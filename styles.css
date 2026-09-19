@@ -406,5 +406,157 @@
   max-width:100px !important;
   transform:none !important;
   filter:none !important;
+  /* =========================================================
+   V3.4 FINAL LOGO FIX
+   Never crop Pristine or Aureon brand assets
+   ========================================================= */
+
+/* Reset any old transformations */
+.pristine-brand img,
+.pristine-lead-card img,
+.pristine-cta-logo img,
+.footer-pristine-mark img,
+.eco-aureon img {
+  transform: none !important;
+  filter: none !important;
+  object-fit: contain !important;
+  object-position: center center !important;
+  image-rendering: auto !important;
+}
+
+/* HEADER PRISTINE */
+.pristine-brand {
+  width: 165px !important;
+  height: 60px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  overflow: visible !important;
+}
+
+.pristine-brand img {
+  display: block !important;
+  width: 155px !important;
+  height: 58px !important;
+  max-width: 100% !important;
+}
+
+/* PRISTINE SIDE / MATERIAL CARD */
+.pristine-lead-card img {
+  display: block !important;
+  width: 110px !important;
+  height: 68px !important;
+  max-width: 100% !important;
+}
+
+/* PRISTINE SALES CTA */
+.pristine-cta {
+  overflow: visible !important;
+}
+
+.pristine-cta-logo {
+  width: 150px;
+  height: 90px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.pristine-cta-logo img {
+  display: block !important;
+  width: 140px !important;
+  height: 84px !important;
+  max-width: 100% !important;
+}
+
+/* FOOTER PRISTINE */
+.footer-pristine-mark {
+  width: 180px !important;
+  height: 92px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+.footer-pristine-mark img {
+  display: block !important;
+  width: 170px !important;
+  height: 86px !important;
+  max-width: 100% !important;
+}
+
+/* AUREON */
+.eco-logo.eco-aureon {
+  width: 105px !important;
+  height: 72px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+.eco-logo.eco-aureon img {
+  display: block !important;
+  width: 100px !important;
+  height: 68px !important;
+  max-width: 100% !important;
+}
+
+/* OTHER AUREON ECOSYSTEM LOGOS */
+.footer-ecosystem {
+  align-items: center !important;
+}
+
+.footer-ecosystem .eco-logo {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  overflow: visible !important;
+}
+
+/* MOBILE */
+@media (max-width: 760px) {
+
+  .pristine-brand {
+    width: 125px !important;
+  }
+
+  .pristine-brand img {
+    width: 120px !important;
+    height: 52px !important;
+  }
+
+  .pristine-cta-logo {
+    width: 130px;
+    height: 78px;
+  }
+
+  .pristine-cta-logo img {
+    width: 125px !important;
+    height: 74px !important;
+  }
+
+  .footer-pristine-mark {
+    width: 150px !important;
+    height: 80px !important;
+  }
+
+  .footer-pristine-mark img {
+    width: 145px !important;
+    height: 76px !important;
+  }
+
+  .eco-logo.eco-aureon {
+    width: 85px !important;
+    height: 58px !important;
+  }
+
+  .eco-logo.eco-aureon img {
+    width: 82px !important;
+    height: 55px !important;
+  }
+}
   image-rendering:auto;
 }
