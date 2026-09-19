@@ -744,3 +744,57 @@
   background:#e3edfb !important;
   border-color:#8ea9c8 !important;
 }
+
+
+/* V9 saved document management */
+.saved-item-managed{
+  grid-template-columns:minmax(150px,1fr) minmax(180px,1.5fr) 120px 120px minmax(330px,auto) !important;
+  align-items:center;
+}
+.saved-item-managed>div:first-child small{
+  display:block;
+  margin-top:3px;
+  color:#7b8188;
+  font-size:9px;
+}
+.saved-actions{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:7px;
+  flex-wrap:wrap;
+}
+.saved-actions .btn{
+  min-height:36px;
+  padding:8px 11px;
+  white-space:nowrap;
+}
+.btn-pro-email{
+  background:#1b232d !important;
+  color:#fff !important;
+  border:1px solid #39424e !important;
+  display:inline-flex !important;
+  align-items:center;
+  gap:6px;
+}
+.btn-pro-email span{
+  color:#e4c47e;
+  font-size:7px;
+  letter-spacing:.10em;
+  font-weight:900;
+}
+@media(max-width:1050px){
+  .saved-item-managed{
+    grid-template-columns:1fr 1fr !important;
+    gap:10px 14px;
+  }
+  .saved-actions{
+    grid-column:1/-1;
+    justify-content:flex-start;
+  }
+}
+@media(max-width:600px){
+  .saved-item-managed{grid-template-columns:1fr !important}
+  .saved-actions{grid-column:auto}
+  .saved-actions .btn{flex:1 1 auto}
+}
