@@ -1,4 +1,8 @@
 window.PRISTINE_BILLING = {
+  siteUrl: "https://pristineflooring.online",
+  currentAppUrl: "https://pristine-flooring-estimator.elciousa001.workers.dev",
+  transactionalEmailDomain: "mail.pristineflooring.online",
+  transactionalSender: "Pristine Estimator <estimates@mail.pristineflooring.online>",
   currency: "USD",
   plans: {
     free: {
