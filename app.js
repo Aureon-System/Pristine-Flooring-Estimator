@@ -101,6 +101,17 @@ function renderAddons(){const box=$('#addons');box.innerHTML='';addons.forEach(a
 function calc(){const s=state();$('#summaryType').textContent=s.type==='INVOICE'?'Invoice':'Estimate';$('#grandTotal').textContent=money(s.total);$('#mobileTotal').textContent=money(s.total);$('#installationSell').textContent=money(s.installationSell);$('#materialSell').textContent=s.materialSell>0?money(s.materialSell):'Not included';$('#addonsSell').textContent=money(s.addonsSell);const durationView=$('#durationView');if(durationView)durationView.textContent=s.durationDays+' work day'+(s.durationDays===1?'':'s');$('#discountView').textContent='− '+money(s.discount);$('#taxView').textContent=money(s.tax);$('#internalCosts').textContent=money(s.coreCost);$('#otherCostsView').textContent=money(s.otherCosts);$('#contribution').textContent=money(s.contribution);$('#marginPct').textContent=s.margin.toFixed(1)+'%';$('#contribution').style.color=s.contribution<0?'#a33b3b':'#187552';$('#downloadBtn').textContent=`Download ${s.type==='INVOICE'?'invoice':'estimate'} PDF`;const emailMain=$('#sendDocEmailBtn');if(emailMain)emailMain.textContent=`PRO · Email ${s.type==='INVOICE'?'invoice':'estimate'}`;$('#convertBtn').style.display=s.type==='INVOICE'?'none':'flex'}
 function resetDoc(){areas=[defaultArea()];addons=[];$('#clientName').value='';$('#projectName').value='';$('#clientEmail').value='';$('#clientPhone').value='';$('#projectAddress').value='';$('#documentType').value='ESTIMATE';$('#documentNo').value='EST-'+Math.random().toString(36).slice(2,9).toUpperCase();$('#issueDate').value=today();$('#validThrough').value=addDays(today(),30);$('#discount').value=0;$('#taxRate').value=0;$('#otherInternalCosts').value=0;$('#clientNotes').value='';renderAreas();renderAddons();calc()}
 function snapshot(){return JSON.parse(JSON.stringify(state()))}
+function customerIdentity(d){
+  const c=d?.client||{};
+  const email=String(c.email||'').trim().toLowerCase();
+  if(email)return 'email:'+email;
+  const phone=String(c.phone||'').replace(/\D/g,'');
+  if(phone)return 'phone:'+phone;
+  const name=String(c.name||'').trim().toLowerCase().replace(/\s+/g,' ');
+  const address=String(c.address||'').trim().toLowerCase().replace(/\s+/g,' ');
+  if(name||address)return 'nameaddr:'+name+'|'+address;
+  return '';
+}
 function saveCurrent(){const s=snapshot();if(!(s.client.name||s.client.email||s.client.phone)){alert('Add at least a client name, email or phone before saving.');return null}const docs=loadDocs();const found=docs.findIndex(d=>d.documentNo===s.documentNo&&d.type===s.type);const record={...s,savedAt:new Date().toISOString()};if(found>=0)docs[found]=record;else docs.unshift(record);saveDocs(docs);return record}
 function loadSavedDocument(d,scroll=true){
   if(!d)return;
@@ -158,12 +169,20 @@ function emailSavedDocument(d){
 }
 function renderSaved(){
   const docs=loadDocs(),box=$('#savedDocs');
-  const customers=new Set(docs.map(d=>d.client?.email||d.client?.phone||d.client?.name).filter(Boolean));
-  $('#statCustomers').textContent=customers.size;
-  $('#statEstimates').textContent=docs.filter(d=>d.type==='ESTIMATE').length;
-  $('#statInvoices').textContent=docs.filter(d=>d.type==='INVOICE').length;
-  const leads=loadLeads(),leadStat=$('#statMaterialLeads');if(leadStat)leadStat.textContent=leads.length;
-  $('#statValue').textContent=money(docs.filter(d=>d.type==='ESTIMATE').reduce((s,d)=>s+(d.total||0),0));
+  const customerIds=new Set(docs.map(customerIdentity).filter(Boolean));
+  const estimates=docs.filter(d=>d.type==='ESTIMATE');
+  const invoices=docs.filter(d=>d.type==='INVOICE');
+  const estimateTotal=estimates.reduce((s,d)=>s+num(d.total),0);
+  const invoiceTotal=invoices.reduce((s,d)=>s+num(d.total),0);
+  const leads=loadLeads();
+
+  $('#statCustomers').textContent=customerIds.size;
+  $('#statEstimates').textContent=estimates.length;
+  $('#statEstimateValue').textContent=money(estimateTotal);
+  $('#statInvoices').textContent=invoices.length;
+  $('#statInvoiceValue').textContent=money(invoiceTotal);
+  const leadStat=$('#statMaterialLeads');if(leadStat)leadStat.textContent=leads.length;
+
   if(!docs.length){box.innerHTML='<p class="empty">No saved documents yet.</p>';return}
   box.innerHTML='';
   docs.forEach(d=>{
