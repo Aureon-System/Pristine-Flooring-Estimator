@@ -1,0 +1,9 @@
+{
+  "name": "pristine-flooring-estimator",
+  "version": "3.0.0",
+  "private": true,
+  "description": "Pristine Flooring Estimator - static Cloudflare Workers application",
+  "scripts": {
+    "build": "echo \"Static site - no build step required\""
+  }
+}
