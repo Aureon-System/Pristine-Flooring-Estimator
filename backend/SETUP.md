@@ -90,3 +90,10 @@ After the Cloudflare zone is active and the custom domain is attached to the Wor
 `https://pristineflooring.online`
 
 Then update Stripe success/cancel redirects to the production domain.
+
+
+### Resend template
+- Template alias: `pristine-customer-document`
+- Template ID: `19b17e9a-71ee-41c0-bcb6-998d2964b81f`
+- Sender: `Pristine Estimator <estimates@mail.pristineflooring.online>`
+- Domain verification must show `verified` before production sending.
