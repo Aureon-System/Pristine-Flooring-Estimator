@@ -108,6 +108,46 @@ async function sendMaterialQuote(){
   }
 }
 let currentProFeature='pro';
+let pendingCloudDocument=null;
+
+async function openEmailDialog(){
+  const s=currentForDocument(); if(!s)return;
+  if(!s.client.email){alert('Add the customer email before sending.');return}
+  $('#sendEmailTo').value=s.client.email||'';
+  $('#sendEmailName').value=s.client.name||'';
+  $('#sendEmailSubject').value=(loadBrand().name||'Your contractor')+' sent you a '+(s.type==='INVOICE'?'invoice':'estimate')+' '+s.documentNo;
+  pendingCloudDocument=null;
+  $('#emailDialog').showModal();
+}
+
+async function sendEmailNow(){
+  const to=$('#sendEmailTo').value.trim();
+  if(!to){alert('Customer email is required.');return}
+  const btn=$('#sendEmailNowBtn'); if(btn){btn.disabled=true;btn.textContent='Sending...'}
+  try{
+    const d=await createCloudDocument();
+    if(!d?.document?.id||!d?.manage_token)throw new Error('Could not prepare cloud document');
+    pendingCloudDocument=d;
+    const r=await fetch(PRISTINE_API+'?action=send-document-email',{
+      method:'POST',
+      headers:{'content-type':'application/json'},
+      body:JSON.stringify({
+        document_id:d.document.id,
+        manage_token:d.manage_token,
+        to
+      })
+    });
+    const out=await r.json();
+    if(!r.ok||!out.ok)throw new Error(out.error||'Email could not be sent');
+    $('#emailDialog').close();
+    alert('Email sent successfully to '+to+'.');
+  }catch(err){
+    alert(err?.message||'Email could not be sent.');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Send email'}
+  }
+}
+
 function openPro(feature){
   currentProFeature=feature;
   const copy={
@@ -145,5 +185,5 @@ async function joinProInterest(){
 function renderBrandStatus(){const b=loadBrand();$('#brandStatus').textContent=b.name||'No company brand set';const prev=$('#brandLogoPreview');if(prev){prev.innerHTML=b.logoData?`<img src="${b.logoData}" alt="Brand logo">`:'LOGO'}}
 function openBrand(){const b=loadBrand();brandLogoDraft=b.logoData||null;$('#brandName').value=b.name||'';$('#brandPhone').value=b.phone||'';$('#brandEmail').value=b.email||'';$('#brandLicense').value=b.license||'';$('#brandAddress').value=b.address||'';renderBrandStatus();$('#brandDialog').showModal()}
 function saveBrandFromDialog(){saveBrandData({name:$('#brandName').value.trim(),phone:$('#brandPhone').value.trim(),email:$('#brandEmail').value.trim(),license:$('#brandLicense').value.trim(),address:$('#brandAddress').value.trim(),logoData:brandLogoDraft});renderBrandStatus()}
-function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))resetDoc()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=()=>{if(confirm('Clear all saved documents from this browser?'))saveDocs([])};$('#brandBtn').onclick=openBrand;$('#brandCardBtn').onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>openPro('email');const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>openPro('client');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');calc()}
+function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))resetDoc()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=()=>{if(confirm('Clear all saved documents from this browser?'))saveDocs([])};$('#brandBtn').onclick=openBrand;$('#brandCardBtn').onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=openEmailDialog;const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>openPro('client');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;calc()}
 init();
