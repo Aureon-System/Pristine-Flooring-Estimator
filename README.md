@@ -22,3 +22,9 @@ Upload these three files to any static host (Cloudflare Pages, GitHub Pages, Net
 
 ## Deployment
 Cloudflare Workers auto-deploys from the `main` branch via Git integration.
+
+## Domains
+- Primary brand domain: `pristineflooring.online`
+- Transactional email subdomain: `mail.pristineflooring.online`
+- Planned sender: `Pristine Estimator <estimates@mail.pristineflooring.online>`
+- Current app host remains the Cloudflare Worker URL until the custom domain is connected in Cloudflare.
