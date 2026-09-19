@@ -1,3 +1,4 @@
+const PRISTINE_API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristine-api';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)||0);
 const num=v=>Math.max(0,Number(v)||0);
@@ -80,45 +81,66 @@ function materialLeadPayload(){
     source:'Pristine Flooring Estimator'
   };
 }
-function sendMaterialQuote(){
+async function sendMaterialQuote(){
   const payload=materialLeadPayload();
   if(!payload.measuredSqft){alert('Add project square footage before requesting material pricing.');return}
   if(!(payload.company||payload.phone||payload.email)){alert('Add your company/name and at least one contact method.');return}
   if(!$('#quoteConsent').checked){alert('Please authorize sharing these project details with Pristine Flooring.');return}
-  const leads=loadLeads();leads.unshift(payload);saveLeads(leads);
-  const msg=[
-    'Pristine Flooring - Material Quote Request',
-    '',
-    'Requester: '+(payload.company||'-'),
-    'Phone: '+(payload.phone||'-'),
-    'Email: '+(payload.email||'-'),
-    'Project: '+(payload.project||'-'),
-    'Address: '+(payload.address||'-'),
-    'Material: '+payload.material,
-    'Measured area: '+payload.measuredSqft.toLocaleString()+' sqft',
-    'Waste: '+payload.waste+'%',
-    'Required material: '+payload.requiredSqft.toLocaleString()+' sqft',
-    'Estimate: '+payload.estimateNo,
-    payload.notes?'Notes: '+payload.notes:''
-  ].filter(Boolean).join('\n');
-  $('#materialQuoteDialog').close();
-  window.open('https://wa.me/15618063322?text='+encodeURIComponent(msg),'_blank','noopener');
+  const sendBtn=$('#sendMaterialQuoteBtn'); if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='Sending...'}
+  try{
+    const cloudPayload={
+      company:payload.company,name:payload.company,phone:payload.phone,email:payload.email,
+      project:payload.project,address:payload.address,material:payload.material,
+      measured_sqft:payload.measuredSqft,waste_pct:payload.waste,required_sqft:payload.requiredSqft,
+      notes:payload.notes,consent:true,website:''
+    };
+    const r=await fetch(PRISTINE_API+'?action=material-lead',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(cloudPayload)});
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Could not save lead');
+    payload.cloudId=d.lead?.id||null;
+    const leads=loadLeads();leads.unshift(payload);saveLeads(leads);
+    $('#materialQuoteDialog').close();
+    alert('Material quote request sent to Pristine Flooring.');
+  }catch(err){
+    alert('Could not send the quote request online. Please try again. '+(err?.message||''));
+  }finally{
+    if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Send quote request'}
+  }
 }
+let currentProFeature='pro';
 function openPro(feature){
+  currentProFeature=feature;
   const copy={
     email:['Email estimate / invoice','Send branded estimate and invoice emails directly from the platform, with PDF attachment and delivery history.'],
     text:['Text customer','Send estimate links, invoice reminders and status updates by SMS.'],
     followup:['Automated follow-up','Create scheduled reminders for estimates that have not been accepted yet.'],
-    client:['Client view','Give customers a secure web link to view, accept and later pay deposits online.']
+    client:['Client view','Create a secure web link for the customer to view and accept the estimate online.']
   };
-  const [title,body]=copy[feature]||['Pro feature','This feature is being prepared for the Pro plan.'];
-  $('#proFeatureTitle').textContent=title;$('#proFeatureCopy').textContent=body;$('#proDialog').showModal();
+  const [title,body]=copy[feature]||['Pro feature','This feature is available in Pristine Estimator Pro.'];
+  $('#proFeatureTitle').textContent=title;$('#proFeatureCopy').textContent=body;
+  const btn=$('#proInterestBtn'); if(btn)btn.textContent=feature==='client'?'Create client link':'Upgrade to Pro · $12.99/mo';
+  $('#proDialog').showModal();
 }
-function joinProInterest(){
-  const s=state(),b=loadBrand(),subject='Pristine Estimator Pro Early Access';
-  const body=['I am interested in Pristine Estimator Pro.','', 'Company: '+(b.name||''),'Name: '+(s.client.name||''),'Email: '+(b.email||s.client.email||''),'Phone: '+(b.phone||s.client.phone||'')].join('\n');
+async function createCloudDocument(){
+  const s=currentForDocument(); if(!s)return null;
+  const payload={document_no:s.documentNo,document_type:s.type,project_name:s.client.project,project_address:s.client.address,total:s.total,payload:s};
+  const r=await fetch(PRISTINE_API+'?action=document',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+  const d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Could not create client link');
+  return d;
+}
+async function joinProInterest(){
+  const s=state(),b=loadBrand(),company=b.name||'',email=b.email||s.client.email||'',phone=b.phone||s.client.phone||'';
+  try{await fetch(PRISTINE_API+'?action=pro-interest',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({company,email,phone,feature:currentProFeature,website:''})})}catch{}
+  if(currentProFeature==='client'){
+    try{
+      const d=await createCloudDocument();
+      $('#proDialog').close();
+      if(d?.public_url){window.open(d.public_url,'_blank','noopener');return}
+    }catch(err){alert(err?.message||'Could not create client link');return}
+  }
   $('#proDialog').close();
-  window.location.href='mailto:?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+  const checkout=window.PRISTINE_BILLING?.plans?.pro?.checkoutUrl;
+  if(checkout){window.open(checkout,'_blank','noopener')}else alert('Pro checkout is not available yet.');
 }
 function renderBrandStatus(){const b=loadBrand();$('#brandStatus').textContent=b.name||'No company brand set';const prev=$('#brandLogoPreview');if(prev){prev.innerHTML=b.logoData?`<img src="${b.logoData}" alt="Brand logo">`:'LOGO'}}
 function openBrand(){const b=loadBrand();brandLogoDraft=b.logoData||null;$('#brandName').value=b.name||'';$('#brandPhone').value=b.phone||'';$('#brandEmail').value=b.email||'';$('#brandLicense').value=b.license||'';$('#brandAddress').value=b.address||'';renderBrandStatus();$('#brandDialog').showModal()}
