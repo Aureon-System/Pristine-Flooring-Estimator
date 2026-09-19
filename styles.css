@@ -938,3 +938,63 @@
   .workspace-stats strong{font-size:20px}
   .workspace-stats .money-stat strong{font-size:17px}
 }
+
+
+/* V12 separated estimate and invoice workspace cards */
+.grouped-stats{
+  grid-template-columns:1fr 1.45fr 1.45fr 1fr !important;
+  gap:12px;
+}
+.workspace-stat-card{
+  border:1px solid #e2e5e9;
+  border-radius:12px;
+  background:#fff;
+  padding:14px 14px !important;
+  min-width:0;
+}
+.workspace-stat-card .stat-label{
+  display:block;
+  margin-bottom:10px;
+  font-size:9px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#68717b;
+}
+.workspace-stat-card>strong{
+  font-size:25px !important;
+  margin-bottom:4px !important;
+}
+.stat-pair{
+  display:grid;
+  grid-template-columns:minmax(70px,.65fr) minmax(120px,1.35fr);
+  gap:12px;
+  align-items:end;
+}
+.stat-pair>div{
+  min-width:0;
+}
+.stat-pair small{
+  margin:0 0 4px !important;
+  font-size:8px !important;
+}
+.stat-pair strong{
+  display:block;
+  margin:0 !important;
+  font-size:20px !important;
+  white-space:nowrap;
+}
+.estimate-stat-card{
+  border-left:4px solid #b7893f;
+}
+.invoice-stat-card{
+  border-left:4px solid #243447;
+}
+@media(max-width:1000px){
+  .grouped-stats{grid-template-columns:1fr 1fr !important}
+}
+@media(max-width:620px){
+  .grouped-stats{grid-template-columns:1fr !important}
+  .stat-pair{grid-template-columns:1fr 1.4fr}
+  .stat-pair strong{font-size:19px !important}
+}
