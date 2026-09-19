@@ -7,7 +7,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/" />
   <meta property="og:url" content="https://pristineflooring.online/" />
-  <link rel="stylesheet" href="styles.css?v=130" />
+  <link rel="stylesheet" href="styles.css?v=140" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email">
 <header class="app-header">
@@ -150,7 +150,14 @@
 
   <section id="documents" class="saved-panel panel">
     <div class="saved-head"><div><p class="kicker">LOCAL WORKSPACE</p><h2>Saved documents</h2><p>Open the estimate, review it, then edit, print, email or convert it into an invoice.</p></div><button id="clearDocsBtn" class="btn btn-link danger" type="button">Clear saved documents</button></div>
-    <div class="stats-row"><div><strong id="statCustomers">0</strong><span>Customers</span></div><div><strong id="statEstimates">0</strong><span>Estimates</span></div><div><strong id="statInvoices">0</strong><span>Invoices</span></div><div><strong id="statMaterialLeads">0</strong><span>Material leads</span></div><div><strong id="statValue">$0</strong><span>Estimate value</span></div></div>
+    <div class="stats-row workspace-stats">
+      <div><strong id="statCustomers">0</strong><span>Customers</span><small>Unique customers</small></div>
+      <div><strong id="statEstimates">0</strong><span>Estimates</span><small>Saved documents</small></div>
+      <div class="money-stat"><strong id="statEstimateValue">$0.00</strong><span>Total estimated</span><small>All saved estimates</small></div>
+      <div><strong id="statInvoices">0</strong><span>Invoices</span><small>Saved documents</small></div>
+      <div class="money-stat"><strong id="statInvoiceValue">$0.00</strong><span>Total invoiced</span><small>All saved invoices</small></div>
+      <div><strong id="statMaterialLeads">0</strong><span>Material leads</span><small>Quote requests</small></div>
+    </div>
     <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
   </section>
 
@@ -252,6 +259,6 @@
 </dialog>
 
 <script src="billing-config.js"></script>
-<script src="app.js?v=130"></script>
+<script src="app.js?v=140"></script>
 </body>
 </html>
