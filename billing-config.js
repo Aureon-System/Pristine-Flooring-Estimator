@@ -9,7 +9,7 @@ window.PRISTINE_BILLING = {
     pro: {
       name: "Pro",
       monthly: 12.99,
-      stripePriceId: null,
+      stripePriceId: "price_1UHVKiHOF48QQcVxwHeJBQpw",
       features: ["Cloud documents", "Email estimate/invoice", "Text customer", "Automated follow-up", "Client view", "Estimate acceptance", "Activity history"]
     }
   }
