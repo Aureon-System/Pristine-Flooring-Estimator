@@ -18,3 +18,7 @@ Lightweight static MVP designed to run without a backend or paid AI-builder cred
 
 ## Hosting
 Upload these three files to any static host (Cloudflare Pages, GitHub Pages, Netlify, etc.). No build step required.
+
+
+## Deployment
+Cloudflare Workers auto-deploys from the `main` branch via Git integration.
