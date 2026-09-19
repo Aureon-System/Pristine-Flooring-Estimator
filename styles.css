@@ -122,3 +122,266 @@
   .eco-logo{height:54px}
   .footer-legal{grid-column:auto;flex-direction:column;align-items:flex-start;gap:9px}
 }
+
+
+/* V3.2 FINAL UI OVERRIDES — installation alignment + clean ecosystem footer */
+.area-card{
+  padding:16px;
+  border-radius:14px;
+  overflow:visible;
+}
+.area-card label{
+  min-width:0;
+  height:auto !important;
+  justify-content:flex-start !important;
+  gap:6px;
+}
+.field-title{
+  min-height:30px;
+  display:flex;
+  flex-direction:column;
+  justify-content:flex-end;
+  gap:3px;
+  font-size:10px;
+  line-height:1.15;
+  font-weight:850;
+  color:#303741;
+}
+.field-title .internal-tag,
+.field-title .internal-spacer{
+  display:block;
+  min-height:9px;
+  margin:0;
+  font-size:7px;
+  line-height:9px;
+  letter-spacing:.10em;
+}
+.field-title .internal-tag{color:#9a6a25}
+.field-title .internal-spacer{visibility:hidden}
+
+.area-grid{
+  display:grid !important;
+  grid-template-columns:minmax(0,3fr) minmax(150px,1fr) !important;
+  gap:10px !important;
+  align-items:end !important;
+}
+.area-grid .wide{grid-column:auto !important}
+.area-grid label:nth-child(1){grid-column:1 / 2 !important}
+.area-grid label:nth-child(2){grid-column:2 / 3 !important}
+.area-grid label:nth-child(3){grid-column:1 / 2 !important}
+.area-grid label:nth-child(4){grid-column:2 / 3 !important}
+
+.crew-grid{
+  display:grid !important;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  gap:10px !important;
+  align-items:end !important;
+  padding:12px !important;
+  margin-top:10px !important;
+}
+.pricing-grid{
+  display:grid !important;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  gap:10px !important;
+  align-items:end !important;
+  padding-top:10px !important;
+  margin-top:10px !important;
+}
+.pricing-grid label:nth-child(n){grid-column:auto !important}
+.area-card input,
+.area-card select{
+  min-height:44px !important;
+  height:44px;
+}
+.crew-grid input:disabled,
+.pricing-grid input:disabled{
+  background:#f1f3f6 !important;
+}
+.crew-formula{
+  margin-top:7px;
+  min-height:30px;
+  display:flex;
+  align-items:center;
+  font-size:9px;
+}
+.area-total-line{
+  min-height:44px;
+  margin-top:11px;
+}
+
+/* Brand asset rendering */
+.pristine-brand{
+  width:150px !important;
+  height:60px !important;
+  overflow:visible !important;
+}
+.pristine-brand img{
+  width:150px !important;
+  height:60px !important;
+  object-fit:contain !important;
+  object-position:center !important;
+  transform:scale(1.42);
+  transform-origin:center;
+}
+.pristine-lead-card img,
+.pristine-cta>img{
+  object-fit:contain !important;
+  object-position:center !important;
+  transform:scale(1.65);
+  transform-origin:center;
+}
+
+/* Footer */
+.app-footer{
+  width:100%;
+  max-width:none !important;
+  margin:0 !important;
+  padding:0 !important;
+  background:#101821 !important;
+  border:0 !important;
+  color:#d4d9df;
+}
+.footer-unified{
+  max-width:1260px;
+  margin:0 auto;
+  min-height:120px;
+  padding:16px 24px;
+  display:grid;
+  grid-template-columns:180px 1px 190px minmax(360px,1fr) 170px;
+  gap:18px;
+  align-items:center;
+}
+.footer-pristine-mark{
+  width:180px;
+  height:82px;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  overflow:visible;
+}
+.footer-pristine-mark img{
+  width:160px !important;
+  height:76px !important;
+  max-width:none !important;
+  object-fit:contain !important;
+  object-position:center !important;
+  transform:scale(1.62) !important;
+  transform-origin:center !important;
+  filter:none !important;
+}
+.footer-rule{
+  width:1px;
+  height:54px;
+  background:#606873;
+}
+.footer-powered{
+  display:flex;
+  flex-direction:column;
+  gap:5px;
+  white-space:normal !important;
+}
+.footer-powered strong{
+  color:#fff;
+  font-size:11px;
+}
+.footer-powered span{
+  color:#aeb7c2;
+  font-size:9px;
+}
+.footer-ecosystem{
+  display:grid !important;
+  grid-template-columns:repeat(4,minmax(66px,1fr)) !important;
+  gap:14px !important;
+  align-items:center;
+}
+.eco-logo{
+  height:58px !important;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  overflow:visible !important;
+}
+.eco-logo img{
+  width:100% !important;
+  height:52px !important;
+  max-width:96px !important;
+  object-fit:contain !important;
+  object-position:center !important;
+  transform:none !important;
+  filter:none !important;
+  image-rendering:auto;
+}
+.eco-aureon img{
+  height:58px !important;
+  max-width:100px !important;
+}
+.footer-legal{
+  min-width:0 !important;
+  justify-self:end;
+  align-items:flex-end;
+}
+.footer-legal>div{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+.footer-legal a,
+.footer-legal small{
+  font-size:9px;
+}
+
+@media(max-width:1100px){
+  .crew-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  .pricing-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  .footer-unified{
+    grid-template-columns:160px 1px 190px 1fr;
+  }
+  .footer-legal{
+    grid-column:1/-1;
+    justify-self:stretch;
+    flex-direction:row;
+    justify-content:space-between;
+    align-items:center;
+    border-top:1px solid #2b343e;
+    padding-top:11px;
+  }
+}
+@media(max-width:760px){
+  .area-grid,
+  .crew-grid,
+  .pricing-grid{
+    grid-template-columns:1fr !important;
+  }
+  .area-grid label:nth-child(n){grid-column:auto !important}
+  .field-title{min-height:auto}
+  .field-title .internal-spacer{display:none}
+  .footer-unified{
+    grid-template-columns:1fr !important;
+    gap:12px;
+    padding:16px 14px;
+  }
+  .footer-rule{display:none}
+  .footer-pristine-mark{
+    width:160px;
+    height:70px;
+  }
+  .footer-pristine-mark img{
+    width:140px !important;
+    height:66px !important;
+  }
+  .footer-ecosystem{
+    grid-template-columns:repeat(4,minmax(54px,1fr)) !important;
+    width:100%;
+  }
+  .eco-logo img{
+    max-width:74px !important;
+    height:42px !important;
+  }
+  .footer-legal{
+    grid-column:auto;
+    justify-self:stretch;
+    flex-direction:column;
+    align-items:flex-start;
+  }
+}
