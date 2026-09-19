@@ -385,3 +385,26 @@
     align-items:flex-start;
   }
 }
+
+
+/* V3.3 PNG logo rendering */
+.pristine-brand img,
+.pristine-lead-card img,
+.pristine-cta>img,
+.footer-pristine-mark img{
+  transform:none !important;
+  filter:none !important;
+  image-rendering:auto;
+}
+.pristine-brand img{width:auto !important;height:54px !important;max-width:145px !important}
+.pristine-lead-card img{width:auto !important;height:62px !important;max-width:118px !important}
+.pristine-cta>img{width:auto !important;height:78px !important;max-width:138px !important}
+.footer-pristine-mark img{width:auto !important;height:72px !important;max-width:165px !important}
+.eco-aureon img{
+  width:auto !important;
+  height:56px !important;
+  max-width:100px !important;
+  transform:none !important;
+  filter:none !important;
+  image-rendering:auto;
+}
