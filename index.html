@@ -7,13 +7,13 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/" />
   <meta property="og:url" content="https://pristineflooring.online/" />
-  <link rel="stylesheet" href="styles.css?v=120" />
+  <link rel="stylesheet" href="styles.css?v=130" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email">
 <header class="app-header">
   <div class="header-inner">
     <a class="pristine-brand pristine-brand-text" href="#top" aria-label="Pristine Flooring Estimator">
-      <strong>PRISTINE</strong>
+      <strong>PRISTINE FLOORING</strong>
     </a>
     <div class="workspace-title">
       <span>FREE TOOL</span>
@@ -26,6 +26,13 @@
     </div>
   </div>
 </header>
+
+<nav class="workspace-nav" aria-label="Estimator navigation">
+  <a href="#builderStart">Estimate</a>
+  <a href="#documents">Documents</a>
+  <a href="#growthTools">Materials & Pro</a>
+  <button id="navBrandBtn" type="button">My Brand</button>
+</nav>
 
 <main id="top" class="shell">
   <section class="intro">
@@ -41,7 +48,7 @@
 
   <section class="workspace-grid">
     <div class="builder-column">
-      <article class="panel">
+      <article id="builderStart" class="panel">
         <div class="section-heading"><span>01</span><div><h2>Client &amp; project</h2><p>Information shown on the partner-branded Estimate or Invoice.</p></div></div>
         <div class="form-grid cols-2">
           <label>Client / company name<input id="clientName" type="text" placeholder="Client or company name" /></label>
@@ -60,7 +67,7 @@
         <div class="section-heading"><span>02</span><div><h2>Installation scope</h2><p>Add one or more areas. Internal costs stay off client documents.</p></div></div>
         <div id="areas" class="stack"></div>
         <button id="addAreaBtn" class="btn btn-secondary" type="button">+ Add installation area</button>
-        <p class="microcopy">Pattern surcharges affect selling price only. Confirm field conditions and crew pricing before quoting.</p>
+        <p class="microcopy">Pattern surcharges affect selling price only. Confirm field conditions and total daily crew cost before quoting.</p>
       </article>
 
       <article class="panel">
@@ -123,30 +130,25 @@
         <p>Before fixed overhead and income tax.</p>
       </div>
 
-      <div class="brand-card">
+      <div id="brandSettings" class="brand-card">
         <div class="brand-card-icon">B</div>
         <div><span>PARTNER BRAND</span><strong id="brandStatus">No company brand set</strong><p>Client PDFs show only the issuing partner's brand.</p></div>
         <button id="brandCardBtn" class="btn btn-link" type="button">Edit brand</button>
       </div>
 
-      <div class="growth-card">
+      <div id="growthTools" class="growth-card">
         <div class="growth-card-head">
-          <span>GROWTH TOOLS</span>
-          <strong>Turn estimates into sales.</strong>
-          <p>Free: estimates, invoices, PDF and material quotes. Pro: email, client view, SMS and follow-up.</p>
+          <span>SALES TOOLS</span>
+          <strong>Materials are free. Automation is Pro.</strong>
+          <p>Request material pricing from Pristine at no charge. Email, client view, SMS and follow-up require Pro.</p>
         </div>
         <button id="materialQuoteBtn" class="btn btn-gold full" type="button">Request material quote</button>
-        <div class="pro-tools-grid">
-          <button id="emailClientBtn" class="pro-tool-btn" type="button"><span>PRO ONLY</span>Email estimate / invoice</button>
-          <button id="textClientBtn" class="pro-tool-btn" type="button"><span>PRO</span>Text customer</button>
-          <button id="followUpBtn" class="pro-tool-btn" type="button"><span>PRO</span>Follow-up</button>
-          <button id="clientLinkBtn" class="pro-tool-btn" type="button"><span>PRO</span>Client view</button>
-        </div>
+        <button id="proToolsBtn" class="btn btn-dark full" type="button">Explore Pro tools · $12.99/mo</button>
       </div>
     </aside>
   </section>
 
-  <section class="saved-panel panel">
+  <section id="documents" class="saved-panel panel">
     <div class="saved-head"><div><p class="kicker">LOCAL WORKSPACE</p><h2>Saved documents</h2><p>Open the estimate, review it, then edit, print, email or convert it into an invoice.</p></div><button id="clearDocsBtn" class="btn btn-link danger" type="button">Clear saved documents</button></div>
     <div class="stats-row"><div><strong id="statCustomers">0</strong><span>Customers</span></div><div><strong id="statEstimates">0</strong><span>Estimates</span></div><div><strong id="statInvoices">0</strong><span>Invoices</span></div><div><strong id="statMaterialLeads">0</strong><span>Material leads</span></div><div><strong id="statValue">$0</strong><span>Estimate value</span></div></div>
     <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
@@ -156,7 +158,7 @@
     <div>
       <p class="kicker light">PRISTINE FLOORING</p>
       <h2>Estimate the work. Source the flooring.</h2>
-      <p>The estimator is free. Pristine can help turn project quantities into a material order.</p><p class="site-address"><a href="https://pristineflooring.online" target="_blank" rel="noopener">pristineflooring.online</a></p>
+      <p>The estimator is free. Pristine can help turn project quantities into a material order.</p><p class="pristine-contact">7861 Venture Center Way, Boynton Beach, FL · 561-806-3322</p><p class="site-address"><a href="https://pristineflooring.online" target="_blank" rel="noopener">pristineflooring.online</a></p>
     </div>
     <div class="cta-buttons"><a class="btn btn-gold" href="https://wa.me/15618063322" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-light" href="tel:+15618063322">Call Pristine</a></div>
   </section>
@@ -176,7 +178,7 @@
   </div>
 </footer>
 
-<div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><button id="mobileSummaryBtn" type="button">Review</button></div>
+<div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div></div>
 
 <dialog id="brandDialog">
   <form method="dialog" class="brand-dialog">
@@ -250,6 +252,6 @@
 </dialog>
 
 <script src="billing-config.js"></script>
-<script src="app.js?v=120"></script>
+<script src="app.js?v=130"></script>
 </body>
 </html>
