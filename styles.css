@@ -598,3 +598,117 @@
     grid-template-columns:1fr !important;
   }
 }
+
+
+/* V5 monetization & growth tools */
+.growth-card{
+  background:#111820;
+  color:#fff;
+  border:1px solid #303946;
+  border-radius:14px;
+  padding:15px;
+  display:grid;
+  gap:12px;
+}
+.growth-card-head span{
+  display:block;
+  color:#e4c47e;
+  font-size:8px;
+  letter-spacing:.12em;
+  font-weight:900;
+}
+.growth-card-head strong{
+  display:block;
+  font-size:16px;
+  margin-top:4px;
+}
+.growth-card-head p{
+  margin:5px 0 0;
+  color:#aeb7c2;
+  font-size:10px;
+  line-height:1.45;
+}
+.pro-tools-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+}
+.pro-tool-btn{
+  min-height:42px;
+  border:1px solid #39424e;
+  border-radius:9px;
+  background:#1b232d;
+  color:#fff;
+  padding:8px 9px;
+  text-align:left;
+  font-weight:800;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+.pro-tool-btn span{
+  color:#e4c47e;
+  font-size:7px;
+  letter-spacing:.12em;
+}
+.quote-metric{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:12px 0 16px;
+}
+.quote-metric div{
+  background:#f7f3eb;
+  border:1px solid #e8dcc7;
+  border-radius:10px;
+  padding:12px;
+}
+.quote-metric span{
+  display:block;
+  font-size:9px;
+  color:#777;
+  margin-bottom:4px;
+}
+.quote-metric strong{
+  font-size:18px;
+}
+.consent-row{
+  margin-top:14px;
+  display:flex;
+  flex-direction:row;
+  align-items:flex-start;
+  gap:8px;
+  font-weight:600;
+}
+.consent-row input{
+  width:auto;
+  min-height:0;
+  margin-top:2px;
+}
+.split-actions{
+  justify-content:space-between;
+  gap:10px;
+}
+.pro-benefits{
+  display:grid;
+  gap:8px;
+  margin:14px 0 4px;
+}
+.pro-benefits div{
+  background:#f7f8fa;
+  border:1px solid #e2e5e9;
+  border-radius:8px;
+  padding:10px;
+  font-size:11px;
+}
+.stats-row{
+  grid-template-columns:repeat(5,1fr);
+}
+@media(max-width:980px){
+  .stats-row{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:700px){
+  .pro-tools-grid,.quote-metric{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+}
