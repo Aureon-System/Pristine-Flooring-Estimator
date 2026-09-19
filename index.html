@@ -9,139 +9,196 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand-wrap">
-      <div class="brand-logo" aria-label="Pristine Flooring logo placeholder">PRISTINE</div>
-      <div>
-        <div class="eyebrow">FREE TOOL</div>
-        <h1>Flooring Estimator</h1>
+    <div class="topbar-inner">
+      <div class="brand-wrap">
+        <div class="brand-logo" aria-label="Pristine Flooring">PRISTINE</div>
+        <div class="brand-copy">
+          <div class="eyebrow light">FREE PROFESSIONAL TOOL</div>
+          <h1>Flooring Estimator</h1>
+          <span>Powered by Pristine Flooring</span>
+        </div>
       </div>
+      <button id="brandBtn" class="ghost-btn" type="button">Co-brand your estimate</button>
     </div>
-    <button id="brandBtn" class="ghost-btn" type="button">Your Brand</button>
   </header>
 
   <main class="container">
     <section class="hero">
-      <div>
-        <p class="eyebrow">Fast. Practical. Professional.</p>
-        <h2>Create a flooring estimate in minutes.</h2>
-        <p class="hero-copy">Calculate material, installation and add-ons, then download a professional Estimate or Invoice in English.</p>
-      </div>
-      <div class="hero-badge">No signup required</div>
-    </section>
-
-    <section class="stats" aria-label="Saved document summary">
-      <article><strong id="statCustomers">0</strong><span>Customers</span></article>
-      <article><strong id="statEstimates">0</strong><span>Estimates</span></article>
-      <article><strong id="statInvoices">0</strong><span>Invoices</span></article>
-      <article><strong id="statValue">$0</strong><span>Estimate Value</span></article>
-    </section>
-
-    <section class="grid two-col">
-      <div class="card">
-        <div class="section-title">
-          <span class="step">1</span>
-          <div><h3>Customer & Project</h3><p>Basic project information.</p></div>
-        </div>
-        <div class="form-grid">
-          <label>Customer name<input id="customerName" type="text" autocomplete="name" /></label>
-          <label>Phone<input id="customerPhone" type="tel" autocomplete="tel" /></label>
-          <label>Email<input id="customerEmail" type="email" autocomplete="email" /></label>
-          <label>ZIP<input id="customerZip" type="text" inputmode="numeric" maxlength="10" /></label>
-          <label class="full">Project address<input id="projectAddress" type="text" autocomplete="street-address" /></label>
+      <div class="hero-copy-wrap">
+        <p class="eyebrow">FAST · PRACTICAL · PROFESSIONAL</p>
+        <h2>Build a flooring estimate in minutes.</h2>
+        <p class="hero-copy">Calculate material, installation and extras, then create a polished Estimate or Invoice in English.</p>
+        <div class="benefits" aria-label="Tool benefits">
+          <span>✓ No signup</span>
+          <span>✓ Professional PDF</span>
+          <span>✓ Mobile friendly</span>
+          <span>✓ Free to use</span>
         </div>
       </div>
-
-      <div class="card">
-        <div class="section-title">
-          <span class="step">2</span>
-          <div><h3>Measurements</h3><p>Enter measured square footage and waste.</p></div>
-        </div>
-        <div class="form-grid">
-          <label>Measured Sq Ft<input id="sqft" type="number" min="0" step="1" value="1000" /></label>
-          <label>Waste %<input id="waste" type="number" min="0" max="40" step="1" value="10" /></label>
-        </div>
-        <div class="calculated-line"><span>Required material</span><strong id="requiredSqft">1,100 sq ft</strong></div>
-      </div>
+      <aside class="hero-cta">
+        <span class="mini-label">MATERIAL + INSTALLATION</span>
+        <strong>Need pricing for the flooring too?</strong>
+        <p>Use your project quantities to request a material quote from Pristine.</p>
+        <a href="https://wa.me/15618063322" target="_blank" rel="noopener">Get Material Pricing</a>
+      </aside>
     </section>
 
-    <section class="grid two-col">
-      <div class="card">
-        <div class="section-title"><span class="step">3</span><div><h3>Flooring & Installation</h3><p>Choose material and installation pattern.</p></div></div>
-        <div class="form-grid">
-          <label>Material type
-            <select id="materialType">
-              <option>Porcelain Tile</option><option>Ceramic Tile</option><option>Luxury Vinyl Plank (LVP)</option><option>Laminate</option><option>Engineered Hardwood</option><option>Hardwood</option><option>Carpet</option><option>Customer Supplied / Other</option>
-            </select>
-          </label>
-          <label>Material price / sq ft<input id="materialRate" type="number" min="0" step="0.01" value="3.50" /></label>
-          <label>Installation pattern
-            <select id="pattern">
-              <option value="Straight / Running Bond">Straight / Running Bond</option>
-              <option value="1/3 Offset">1/3 Offset</option>
-              <option value="1/2 Offset / Brick">1/2 Offset / Brick</option>
-              <option value="Diagonal">Diagonal</option>
-              <option value="Herringbone">Herringbone</option>
-              <option value="Chevron">Chevron</option>
-              <option value="Large Format Tile">Large Format Tile</option>
-              <option value="Custom">Custom</option>
-            </select>
-          </label>
-          <label>Labor price / sq ft<input id="laborRate" type="number" min="0" step="0.01" value="4.50" /></label>
+    <section class="workbench">
+      <div class="flow">
+        <article class="card">
+          <div class="section-title">
+            <span class="step">1</span>
+            <div><h3>Customer & Project</h3><p>Add the information that will appear on the document.</p></div>
+          </div>
+          <div class="form-grid">
+            <label>Customer name<input id="customerName" type="text" autocomplete="name" placeholder="Customer name" /></label>
+            <label>Phone<input id="customerPhone" type="tel" autocomplete="tel" placeholder="(555) 555-5555" /></label>
+            <label>Email<input id="customerEmail" type="email" autocomplete="email" placeholder="customer@email.com" /></label>
+            <label>ZIP<input id="customerZip" type="text" inputmode="numeric" maxlength="10" placeholder="33426" /></label>
+            <label class="full">Project address<input id="projectAddress" type="text" autocomplete="street-address" placeholder="Project address" /></label>
+          </div>
+        </article>
+
+        <article class="card">
+          <div class="section-title">
+            <span class="step">2</span>
+            <div><h3>Measurements</h3><p>Enter measured area and a waste allowance.</p></div>
+          </div>
+          <div class="form-grid">
+            <label>Measured Sq Ft<input id="sqft" type="number" min="0" step="1" value="1000" /></label>
+            <label>Waste %<input id="waste" type="number" min="0" max="40" step="1" value="10" /></label>
+          </div>
+          <div class="calculated-line"><span>Required material</span><strong id="requiredSqft">1,100 sq ft</strong></div>
+        </article>
+
+        <article class="card">
+          <div class="section-title">
+            <span class="step">3</span>
+            <div><h3>Flooring & Installation</h3><p>Select material, layout and labor rate.</p></div>
+          </div>
+          <div class="form-grid">
+            <label>Material type
+              <select id="materialType">
+                <option>Porcelain Tile</option><option>Ceramic Tile</option><option>Luxury Vinyl Plank (LVP)</option><option>Laminate</option><option>Engineered Hardwood</option><option>Hardwood</option><option>Carpet</option><option>Customer Supplied / Other</option>
+              </select>
+            </label>
+            <label>Material price / sq ft<input id="materialRate" type="number" min="0" step="0.01" value="3.50" /></label>
+            <label>Installation pattern
+              <select id="pattern">
+                <option value="Straight / Running Bond">Straight / Running Bond</option>
+                <option value="1/3 Offset">1/3 Offset</option>
+                <option value="1/2 Offset / Brick">1/2 Offset / Brick</option>
+                <option value="Diagonal">Diagonal</option>
+                <option value="Herringbone">Herringbone</option>
+                <option value="Chevron">Chevron</option>
+                <option value="Large Format Tile">Large Format Tile</option>
+                <option value="Custom">Custom</option>
+              </select>
+            </label>
+            <label>Labor price / sq ft<input id="laborRate" type="number" min="0" step="0.01" value="4.50" /></label>
+          </div>
+          <div id="patternHint" class="hint">Straight installation is typically the most efficient layout.</div>
+        </article>
+
+        <article class="card">
+          <div class="section-title">
+            <span class="step">4</span>
+            <div><h3>Add-ons</h3><p>Add only the extra work this project needs.</p></div>
+          </div>
+          <div class="quick-add" aria-label="Quick add options">
+            <button type="button" data-addon="Waterproofing" data-rate="2.25">+ Waterproofing</button>
+            <button type="button" data-addon="Self-leveling" data-rate="2.5">+ Self-leveling</button>
+            <button type="button" data-addon="Stairs" data-rate="95">+ Stairs</button>
+            <button type="button" data-addon="Transitions / reducers" data-rate="45">+ Transitions</button>
+          </div>
+          <div id="addons"></div>
+          <button id="addAddonBtn" class="secondary-btn" type="button">+ Add custom item</button>
+        </article>
+
+        <article class="card notes-card">
+          <div class="section-title">
+            <span class="step">5</span>
+            <div><h3>Scope & Notes</h3><p>Add exclusions, conditions or project notes.</p></div>
+          </div>
+          <label>Notes / scope<textarea id="notes" rows="4" placeholder="Example: Includes standard installation. Final conditions subject to field verification."></textarea></label>
+        </article>
+      </div>
+
+      <aside class="summary-panel" id="estimateSummary">
+        <div class="summary-top">
+          <p class="eyebrow">LIVE ESTIMATE</p>
+          <h3>Estimate Summary</h3>
+          <p>Review your selling price as you build the project.</p>
         </div>
-        <div id="patternHint" class="hint">Straight installation is typically the most efficient layout.</div>
-      </div>
+        <div class="project-snapshot">
+          <div><span>Measured area</span><strong id="summaryMeasured">1,000 sq ft</strong></div>
+          <div><span>Required material</span><strong id="summaryRequired">1,100 sq ft</strong></div>
+          <div><span>Pattern</span><strong id="summaryPattern">Straight / Running Bond</strong></div>
+        </div>
+        <div class="price-lines">
+          <div><span>Material</span><strong id="materialTotal">$0.00</strong></div>
+          <div><span>Installation</span><strong id="laborTotal">$0.00</strong></div>
+          <div><span>Add-ons</span><strong id="addonsTotal">$0.00</strong></div>
+        </div>
+        <div class="grand-total"><span>Estimated Selling Price</span><strong id="grandTotal">$0.00</strong></div>
 
-      <div class="card">
-        <div class="section-title"><span class="step">4</span><div><h3>Add-ons</h3><p>Add only what the project needs.</p></div></div>
-        <div id="addons"></div>
-        <button id="addAddonBtn" class="secondary-btn" type="button">+ Add custom item</button>
-      </div>
+        <div class="summary-actions">
+          <button id="printEstimateBtn" class="primary-btn" type="button">Download Estimate PDF</button>
+          <button id="saveEstimateBtn" class="secondary-btn dark-outline" type="button">Save Estimate</button>
+          <button id="invoiceBtn" class="secondary-btn dark-outline" type="button">Create Invoice</button>
+        </div>
+
+        <div class="material-partner">
+          <span>PRISTINE FLOORING</span>
+          <strong>Need material pricing?</strong>
+          <p>Send the project quantity and flooring type to Pristine.</p>
+          <a href="https://wa.me/15618063322" target="_blank" rel="noopener">Request Quote on WhatsApp</a>
+        </div>
+      </aside>
     </section>
 
-    <section class="card estimate-card">
-      <div class="section-title"><span class="step">5</span><div><h3>Estimate Summary</h3><p>Customer-facing selling price.</p></div></div>
-      <div class="summary-grid">
-        <div><span>Material</span><strong id="materialTotal">$0.00</strong></div>
-        <div><span>Installation</span><strong id="laborTotal">$0.00</strong></div>
-        <div><span>Add-ons</span><strong id="addonsTotal">$0.00</strong></div>
-        <div class="grand"><span>Estimated Total</span><strong id="grandTotal">$0.00</strong></div>
+    <section class="saved-section">
+      <div class="saved-header">
+        <div><p class="eyebrow">YOUR LOCAL WORKSPACE</p><h3>Saved Estimates & Invoices</h3><p>Documents are stored only on this device in this MVP.</p></div>
+        <button id="clearBtn" class="text-btn" type="button">Clear saved data</button>
       </div>
-      <label>Notes / scope<textarea id="notes" rows="3" placeholder="Example: Includes standard installation. Final conditions subject to field verification."></textarea></label>
-      <div class="actions">
-        <button id="saveEstimateBtn" class="primary-btn" type="button">Save Estimate</button>
-        <button id="printEstimateBtn" class="secondary-btn" type="button">Download Estimate PDF</button>
-        <button id="invoiceBtn" class="secondary-btn" type="button">Create Invoice</button>
+      <div class="workspace-stats" aria-label="Saved document summary">
+        <article><strong id="statCustomers">0</strong><span>Customers</span></article>
+        <article><strong id="statEstimates">0</strong><span>Estimates</span></article>
+        <article><strong id="statInvoices">0</strong><span>Invoices</span></article>
+        <article><strong id="statValue">$0</strong><span>Estimate Value</span></article>
       </div>
-    </section>
-
-    <section class="card saved-card">
-      <div class="saved-header"><div><p class="eyebrow">LOCAL FILES</p><h3>Saved Estimates & Invoices</h3></div><button id="clearBtn" class="text-btn" type="button">Clear demo data</button></div>
       <div id="savedList" class="saved-list"><p class="empty">No saved documents yet.</p></div>
     </section>
 
     <section class="cta">
-      <div>
-        <p class="eyebrow">PRISTINE FLOORING</p>
-        <h3>Need flooring for this project?</h3>
-        <p>Get material pricing and installation support directly from Pristine Flooring.</p>
+      <div class="cta-copy">
+        <p class="eyebrow light">PRISTINE FLOORING</p>
+        <h3>Turn this estimate into a flooring order.</h3>
+        <p>Already know the square footage? Pristine can help with material pricing, product selection and installation support.</p>
       </div>
       <div class="cta-actions">
-        <a class="cta-btn" href="tel:+15618063322">Call Pristine</a>
-        <a class="cta-btn" href="https://wa.me/15618063322" target="_blank" rel="noopener">WhatsApp</a>
-        <a class="cta-btn light" href="mailto:?subject=Pristine%20Flooring%20Material%20Quote">Request Material Quote</a>
+        <a class="cta-btn" href="https://wa.me/15618063322" target="_blank" rel="noopener">Get Material Pricing</a>
+        <a class="cta-btn light" href="tel:+15618063322">Call Pristine</a>
       </div>
+      <div class="cta-note">Send us your Sq Ft + preferred flooring type.</div>
     </section>
   </main>
 
+  <div class="mobile-summary" aria-label="Mobile estimate summary">
+    <div><span>Estimated Total</span><strong id="mobileTotal">$0.00</strong></div>
+    <button id="mobileReviewBtn" type="button">Review</button>
+  </div>
+
   <footer>
-    <div class="footer-brand">Powered by <strong>Aureon Ecosystem</strong></div>
-    <div class="footer-note">Free estimating tool for contractors and homeowners.</div>
+    <div class="aureon-mark"><span>AUREON</span><small>ECOSYSTEM</small></div>
+    <div class="footer-note">Pristine Flooring Estimator · Free tool for contractors and homeowners.</div>
   </footer>
 
   <dialog id="brandDialog">
     <form method="dialog" class="dialog-card">
-      <div class="dialog-head"><h3>Your Brand</h3><button value="cancel" class="icon-btn" aria-label="Close">×</button></div>
-      <p class="small">Customize the document header for your own company. Saved only on this device.</p>
+      <div class="dialog-head"><div><p class="eyebrow">CO-BRANDING</p><h3>Your Company on the PDF</h3></div><button value="cancel" class="icon-btn" aria-label="Close">×</button></div>
+      <p class="small">Add your business information to the Estimate and Invoice while Pristine remains the material partner.</p>
       <label>Company name<input id="brandName" type="text" placeholder="Your Company Name" /></label>
       <label>Phone<input id="brandPhone" type="tel" placeholder="(555) 555-5555" /></label>
       <label>Email<input id="brandEmail" type="email" placeholder="you@company.com" /></label>
