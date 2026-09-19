@@ -59,3 +59,66 @@
   .footer-bottom{align-items:flex-start;flex-direction:column;padding-top:14px;padding-bottom:14px}
   .footer-bottom div{flex-wrap:wrap;gap:14px}
 }
+
+/* V3.1 final alignment + unified footer */
+.pricing-grid{
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+  gap:10px;
+  align-items:end;
+}
+.pricing-grid label:nth-child(1),
+.pricing-grid label:nth-child(2),
+.pricing-grid label:nth-child(3),
+.pricing-grid label:nth-child(4),
+.pricing-grid label:nth-child(5){
+  grid-column:auto !important;
+}
+.pricing-grid label{min-width:0}
+.app-footer{background:#111820;color:#c8ced6;padding:0;border:0}
+.footer-unified{
+  max-width:1260px;
+  margin:auto;
+  min-height:116px;
+  display:grid;
+  grid-template-columns:auto 1px auto minmax(420px,1fr) auto;
+  align-items:center;
+  gap:20px;
+  padding:16px 20px;
+}
+.footer-pristine-mark{display:flex;align-items:center;min-width:170px}
+.footer-pristine-mark img{display:block;width:165px;height:78px;object-fit:contain;object-position:left center}
+.footer-rule{display:block;width:1px;height:54px;background:#58606a}
+.footer-powered{display:flex;flex-direction:column;gap:5px;white-space:nowrap}
+.footer-powered strong{font-size:11px;color:#fff}
+.footer-powered span{font-size:9px;color:#aeb6c0}
+.footer-ecosystem{display:grid;grid-template-columns:repeat(4,minmax(72px,1fr));align-items:center;gap:12px}
+.eco-logo{height:64px;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.eco-logo img{display:block;width:100%;height:100%;object-fit:contain}
+.eco-aureon img{transform:scale(1.35)}
+.eco-thrivo img{transform:scale(1.45)}
+.eco-b2b img{transform:scale(1.25)}
+.eco-track img{transform:scale(1.45)}
+.footer-legal{justify-self:end;display:flex;flex-direction:column;align-items:flex-end;gap:7px;min-width:180px}
+.footer-legal>div{display:flex;gap:12px}
+.footer-legal a{color:#c4cbd3;text-decoration:none;font-size:9px}
+.footer-legal small{font-size:9px;color:#8d96a1}
+@media(max-width:1100px){
+  .footer-unified{grid-template-columns:auto 1px auto 1fr;gap:14px}
+  .footer-legal{grid-column:1/-1;justify-self:stretch;flex-direction:row;justify-content:space-between;align-items:center;border-top:1px solid #2b333c;padding-top:12px}
+}
+@media(max-width:980px){
+  .pricing-grid{grid-template-columns:repeat(3,minmax(0,1fr)) !important}
+  .footer-unified{grid-template-columns:auto 1fr}
+  .footer-rule{display:none}
+  .footer-powered{white-space:normal}
+  .footer-ecosystem{grid-column:1/-1;grid-template-columns:repeat(4,1fr)}
+}
+@media(max-width:700px){
+  .pricing-grid{grid-template-columns:1fr !important}
+  .footer-unified{grid-template-columns:1fr;gap:12px;padding:15px 12px}
+  .footer-pristine-mark img{width:135px;height:64px}
+  .footer-ecosystem{grid-template-columns:repeat(2,1fr)}
+  .eco-logo{height:54px}
+  .footer-legal{grid-column:auto;flex-direction:column;align-items:flex-start;gap:9px}
+}
