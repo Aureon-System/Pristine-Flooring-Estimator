@@ -33,11 +33,75 @@ function renderAreas(){const box=$('#areas');box.innerHTML='';areas.forEach((a,i
 function fillCatalog(){const sel=$('#addonPreset');let currentGroup=null,groupEl=null;catalog.forEach((c,i)=>{if(c[0]!==currentGroup){currentGroup=c[0];groupEl=document.createElement('optgroup');groupEl.label=currentGroup;sel.append(groupEl)}const o=document.createElement('option');o.value=i;o.textContent=c[1];groupEl.append(o)});['Floor removal / demolition','Self-leveling compound','Waterproofing membrane','Baseboard installation','Transitions / reducers','Stairs','Backsplash installation','Furniture moving','Toilet remove & reset','Material pickup / delivery'].forEach(name=>{const idx=catalog.findIndex(c=>c[1]===name),b=document.createElement('button');b.type='button';b.textContent='+ '+name.replace(' / demolition','').replace(' installation','');b.onclick=()=>addCatalog(idx);$('#quickAdd').append(b)})}
 function addCatalog(idx){const c=catalog[idx];if(!c)return;addons.push({id:id('add'),name:c[1],unit:c[2],qty:1,costRate:c[3],sellRate:c[4]});renderAddons()}
 function renderAddons(){const box=$('#addons');box.innerHTML='';addons.forEach(a=>{const row=document.createElement('div');row.className='addon-row';row.innerHTML=`<label>Service<input data-k="name" value="${esc(a.name)}"></label><label>Qty<input data-k="qty" type="number" min="0" step="0.01" value="${a.qty}"></label><label>Unit<select data-k="unit">${['sqft','lf','each','room','flat'].map(u=>`<option ${u===a.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Cost rate <span class="internal-tag">INTERNAL</span><input data-k="costRate" type="number" min="0" step="0.01" value="${a.costRate}"></label><label>Sell rate<input data-k="sellRate" type="number" min="0" step="0.01" value="${a.sellRate}"></label><button class="remove-btn" type="button" aria-label="Remove">×</button>`;row.querySelectorAll('[data-k]').forEach(inp=>{const ev=inp.tagName==='SELECT'?'change':'input';inp.addEventListener(ev,()=>{a[inp.dataset.k]=['qty','costRate','sellRate'].includes(inp.dataset.k)?num(inp.value):inp.value;calc()})});row.querySelector('.remove-btn').onclick=()=>{addons=addons.filter(x=>x.id!==a.id);renderAddons()};box.append(row)});calc()}
-function calc(){const s=state();$('#summaryType').textContent=s.type==='INVOICE'?'Invoice':'Estimate';$('#grandTotal').textContent=money(s.total);$('#mobileTotal').textContent=money(s.total);$('#installationSell').textContent=money(s.installationSell);$('#materialSell').textContent=s.materialSell>0?money(s.materialSell):'Not included';$('#addonsSell').textContent=money(s.addonsSell);const durationView=$('#durationView');if(durationView)durationView.textContent=s.durationDays+' work day'+(s.durationDays===1?'':'s');$('#discountView').textContent='− '+money(s.discount);$('#taxView').textContent=money(s.tax);$('#internalCosts').textContent=money(s.coreCost);$('#otherCostsView').textContent=money(s.otherCosts);$('#contribution').textContent=money(s.contribution);$('#marginPct').textContent=s.margin.toFixed(1)+'%';$('#contribution').style.color=s.contribution<0?'#a33b3b':'#187552';$('#downloadBtn').textContent=`Download ${s.type==='INVOICE'?'invoice':'estimate'} PDF`;const emailMain=$('#sendDocEmailBtn');if(emailMain)emailMain.textContent=`Email ${s.type==='INVOICE'?'invoice':'estimate'} to customer`;$('#convertBtn').style.display=s.type==='INVOICE'?'none':'flex'}
+function calc(){const s=state();$('#summaryType').textContent=s.type==='INVOICE'?'Invoice':'Estimate';$('#grandTotal').textContent=money(s.total);$('#mobileTotal').textContent=money(s.total);$('#installationSell').textContent=money(s.installationSell);$('#materialSell').textContent=s.materialSell>0?money(s.materialSell):'Not included';$('#addonsSell').textContent=money(s.addonsSell);const durationView=$('#durationView');if(durationView)durationView.textContent=s.durationDays+' work day'+(s.durationDays===1?'':'s');$('#discountView').textContent='− '+money(s.discount);$('#taxView').textContent=money(s.tax);$('#internalCosts').textContent=money(s.coreCost);$('#otherCostsView').textContent=money(s.otherCosts);$('#contribution').textContent=money(s.contribution);$('#marginPct').textContent=s.margin.toFixed(1)+'%';$('#contribution').style.color=s.contribution<0?'#a33b3b':'#187552';$('#downloadBtn').textContent=`Download ${s.type==='INVOICE'?'invoice':'estimate'} PDF`;const emailMain=$('#sendDocEmailBtn');if(emailMain)emailMain.textContent=`PRO · Email ${s.type==='INVOICE'?'invoice':'estimate'} to customer`;$('#convertBtn').style.display=s.type==='INVOICE'?'none':'flex'}
 function resetDoc(){areas=[defaultArea()];addons=[];$('#clientName').value='';$('#projectName').value='';$('#clientEmail').value='';$('#clientPhone').value='';$('#projectAddress').value='';$('#documentType').value='ESTIMATE';$('#documentNo').value='EST-'+Math.random().toString(36).slice(2,9).toUpperCase();$('#issueDate').value=today();$('#validThrough').value=addDays(today(),30);$('#discount').value=0;$('#taxRate').value=0;$('#otherInternalCosts').value=0;$('#clientNotes').value='';renderAreas();renderAddons();calc()}
 function snapshot(){return JSON.parse(JSON.stringify(state()))}
 function saveCurrent(){const s=snapshot();if(!(s.client.name||s.client.email||s.client.phone)){alert('Add at least a client name, email or phone before saving.');return null}const docs=loadDocs();const found=docs.findIndex(d=>d.documentNo===s.documentNo&&d.type===s.type);const record={...s,savedAt:new Date().toISOString()};if(found>=0)docs[found]=record;else docs.unshift(record);saveDocs(docs);return record}
-function renderSaved(){const docs=loadDocs(),box=$('#savedDocs');const customers=new Set(docs.map(d=>d.client?.email||d.client?.phone||d.client?.name).filter(Boolean));$('#statCustomers').textContent=customers.size;$('#statEstimates').textContent=docs.filter(d=>d.type==='ESTIMATE').length;$('#statInvoices').textContent=docs.filter(d=>d.type==='INVOICE').length;const leads=loadLeads();const leadStat=$('#statMaterialLeads');if(leadStat)leadStat.textContent=leads.length;$('#statValue').textContent=money(docs.filter(d=>d.type==='ESTIMATE').reduce((s,d)=>s+(d.total||0),0));if(!docs.length){box.innerHTML='<p class="empty">No saved documents yet.</p>';return}box.innerHTML='';docs.forEach(d=>{const row=document.createElement('div');row.className='saved-item';row.innerHTML=`<div><div class="doc-type">${esc(d.type)}</div><strong>${esc(d.documentNo||'-')}</strong></div><div><strong>${esc(d.client?.name||'Unnamed client')}</strong><small>${esc(d.client?.project||'')}</small></div><span>${d.issueDate||''}</span><strong>${money(d.total)}</strong><button class="btn btn-secondary" type="button">Open / PDF</button>`;row.querySelector('button').onclick=()=>previewDocument(d,true);box.append(row)})}
+function loadSavedDocument(d,scroll=true){
+  if(!d)return;
+  const c=d.client||{};
+  $('#clientName').value=c.name||'';
+  $('#projectName').value=c.project||'';
+  $('#clientEmail').value=c.email||'';
+  $('#clientPhone').value=c.phone||'';
+  $('#projectAddress').value=c.address||'';
+  $('#documentType').value=d.type==='INVOICE'?'INVOICE':'ESTIMATE';
+  $('#documentNo').value=d.documentNo||'';
+  $('#issueDate').value=d.issueDate||today();
+  $('#validThrough').value=d.validThrough||addDays(today(),30);
+  $('#discount').value=num(d.discount);
+  $('#taxRate').value=num(d.taxRate);
+  $('#otherInternalCosts').value=num(d.otherCosts);
+  $('#clientNotes').value=d.clientNotes||'';
+  $('#terms').value=d.terms||'';
+  areas=(d.areas||[]).map(a=>({...a,id:a.id||id('area')}));
+  addons=(d.addons||[]).map(a=>({...a,id:a.id||id('add')}));
+  if(!areas.length)areas=[defaultArea()];
+  renderAreas();
+  renderAddons();
+  calc();
+  if(scroll)document.querySelector('#top')?.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function convertSavedToInvoice(d){
+  if(!d||d.type!=='ESTIMATE')return;
+  loadSavedDocument(d,false);
+  $('#documentType').value='INVOICE';
+  $('#documentNo').value='INV-'+Math.random().toString(36).slice(2,9).toUpperCase();
+  $('#issueDate').value=today();
+  $('#validThrough').value='';
+  calc();
+  const invoice={...snapshot(),sourceEstimateNo:d.documentNo,savedAt:new Date().toISOString()};
+  const docs=loadDocs();
+  docs.unshift(invoice);
+  saveDocs(docs);
+  document.querySelector('#top')?.scrollIntoView({behavior:'smooth',block:'start'});
+  alert('Invoice created from '+d.documentNo+' and saved. You can edit, email or download it now.');
+}
+function emailSavedDocument(d){
+  loadSavedDocument(d,false);
+  openEmailDialog();
+}
+function renderSaved(){
+  const docs=loadDocs(),box=$('#savedDocs');
+  const customers=new Set(docs.map(d=>d.client?.email||d.client?.phone||d.client?.name).filter(Boolean));
+  $('#statCustomers').textContent=customers.size;
+  $('#statEstimates').textContent=docs.filter(d=>d.type==='ESTIMATE').length;
+  $('#statInvoices').textContent=docs.filter(d=>d.type==='INVOICE').length;
+  const leads=loadLeads(),leadStat=$('#statMaterialLeads');if(leadStat)leadStat.textContent=leads.length;
+  $('#statValue').textContent=money(docs.filter(d=>d.type==='ESTIMATE').reduce((s,d)=>s+(d.total||0),0));
+  if(!docs.length){box.innerHTML='<p class="empty">No saved documents yet.</p>';return}
+  box.innerHTML='';
+  docs.forEach(d=>{
+    const row=document.createElement('div');
+    row.className='saved-item saved-item-managed';
+    row.innerHTML=`<div><div class="doc-type">${esc(d.type)}</div><strong>${esc(d.documentNo||'-')}</strong>${d.sourceEstimateNo?`<small>From ${esc(d.sourceEstimateNo)}</small>`:''}</div><div><strong>${esc(d.client?.name||'Unnamed client')}</strong><small>${esc(d.client?.project||'')}</small></div><span>${d.issueDate||''}</span><strong>${money(d.total)}</strong><div class="saved-actions"><button class="btn btn-secondary saved-edit" type="button">Edit</button><button class="btn btn-secondary saved-pdf" type="button">PDF</button><button class="btn btn-pro-email saved-email" type="button"><span>PRO</span>Email</button>${d.type==='ESTIMATE'?'<button class="btn btn-gold saved-convert" type="button">Create invoice</button>':''}</div>`;
+    row.querySelector('.saved-edit').onclick=()=>loadSavedDocument(d,true);
+    row.querySelector('.saved-pdf').onclick=()=>previewDocument(d,true);
+    row.querySelector('.saved-email').onclick=()=>emailSavedDocument(d);
+    const convert=row.querySelector('.saved-convert');if(convert)convert.onclick=()=>convertSavedToInvoice(d);
+    box.append(row);
+  });
+}
 function brandHeader(b,type,no,date,valid){const logo=b.logoData?`<img class="doc-logo" src="${b.logoData}" alt="Company logo">`:'';const issuer=b.name?`<div class="issuer"><strong>${esc(b.name)}</strong>${b.address?`<span>${esc(b.address)}</span>`:''}<span>${[b.phone,b.email,b.license].filter(Boolean).map(esc).join(' · ')}</span></div>`:`<div class="issuer neutral"><strong>PROJECT ${type}</strong><span>Issued by the contractor / service provider</span></div>`;return `<header class="doc-head"><div class="issuer-wrap">${logo}${issuer}</div><div class="doc-meta"><strong>${type}</strong><span>${esc(no)}</span><span>Issue: ${esc(date||'')}</span>${type==='ESTIMATE'&&valid?`<span>Valid through: ${esc(valid)}</span>`:''}</div></header>`}
 function docHtml(s,autoPrint=false){const b=s.brand||{},areaRows=s.areas.map(a=>`<tr><td><strong>${esc(a.description)}</strong><br><span>${esc(a.material)} · ${esc(a.pattern)} · ${num(a.durationDays)} work day${num(a.durationDays)===1?'':'s'}</span></td><td>${Math.round(a.sqft).toLocaleString()} sqft</td><td>${money(a.laborSell+a.matSell)}</td></tr>`).join(''),addonRows=s.addons.filter(a=>a.sell>0).map(a=>`<tr><td>${esc(a.name)}</td><td>${a.qty} ${esc(a.unit)}</td><td>${money(a.sell)}</td></tr>`).join(''),matNote=s.materialSell<=0?'<p class="notice"><strong>Material not included.</strong> Materials are excluded unless specifically listed in the scope.</p>':'';return `<!doctype html><html><head><title>${s.type} ${esc(s.documentNo)}</title><style>body{font-family:Arial,sans-serif;color:#17191d;margin:36px;line-height:1.4}.doc-head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #17191d;padding-bottom:16px}.issuer-wrap{display:flex;align-items:center;gap:14px}.doc-logo{max-width:115px;max-height:72px;object-fit:contain}.issuer{display:flex;flex-direction:column;gap:3px}.issuer strong{font-size:20px}.issuer span,.doc-meta span{font-size:11px;color:#666}.doc-meta{text-align:right;display:flex;flex-direction:column;gap:3px}.doc-meta strong{font-size:18px}.client-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0;padding:14px;background:#f5f6f7}.client-grid strong{display:block;font-size:11px;text-transform:uppercase;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:14px}th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:left;border-bottom:2px solid #222;padding:8px}td{padding:10px 8px;border-bottom:1px solid #ddd;font-size:12px}td:nth-child(3),th:nth-child(3){text-align:right}.totals{width:330px;margin:20px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:5px 0}.totals .grand{font-size:18px;font-weight:900;border-top:2px solid #222;margin-top:6px;padding-top:9px}.notes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:25px}.notes h3{font-size:11px;text-transform:uppercase}.notes p{font-size:11px;white-space:pre-wrap}.notice{font-size:11px;background:#f7f4ee;padding:10px;border-left:3px solid #a87a38}.footer{margin-top:32px;border-top:1px solid #ddd;padding-top:10px;font-size:9px;color:#777}.neutral strong{font-size:17px}@media print{body{margin:20px}}</style></head><body>${brandHeader(b,s.type,s.documentNo,s.issueDate,s.validThrough)}<section class="client-grid"><div><strong>Client</strong>${esc(s.client.name||'-')}<br>${esc(s.client.email||'')}<br>${esc(s.client.phone||'')}</div><div><strong>Project</strong>${esc(s.client.project||'-')}<br>${esc(s.client.address||'')}<br>Estimated duration: ${s.durationDays} work day${s.durationDays===1?'':'s'}</div></section>${matNote}<table><thead><tr><th>Scope</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>${areaRows}${addonRows}</tbody></table><div class="totals"><div><span>Subtotal</span><strong>${money(s.baseSell)}</strong></div><div><span>Discount</span><strong>− ${money(s.discount)}</strong></div>${s.taxRate>0?`<div><span>Tax (${s.taxRate}%)</span><strong>${money(s.tax)}</strong></div>`:''}<div class="grand"><span>Total</span><strong>${money(s.total)}</strong></div></div><section class="notes"><div><h3>Notes</h3><p>${esc(s.clientNotes||'')}</p></div><div><h3>Terms & payment</h3><p>${esc(s.terms||'')}</p></div></section><div class="footer">This document is issued by the company/service provider identified above. Verify measurements, site conditions, material specifications, taxes and applicable licensing requirements before acceptance.</div>${autoPrint?'<script>window.onload=()=>window.print()<\/script>':''}</body></html>`}
 function previewDocument(s,autoPrint=false){const w=window.open('','_blank');if(!w){alert('Please allow pop-ups for document preview.');return}w.document.write(docHtml(s,autoPrint));w.document.close()}
