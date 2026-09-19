@@ -7,9 +7,9 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/" />
   <meta property="og:url" content="https://pristineflooring.online/" />
-  <link rel="stylesheet" href="styles.css?v=70" />
+  <link rel="stylesheet" href="styles.css?v=80" />
 </head>
-<body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v3">
+<body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email">
 <header class="app-header">
   <div class="header-inner">
     <a class="pristine-brand pristine-brand-text" href="#top" aria-label="Pristine Flooring Estimator">
@@ -104,6 +104,7 @@
           <div><span>Tax</span><strong id="taxView">$0.00</strong></div>
         </div>
         <div class="summary-actions">
+          <button id="sendDocEmailBtn" class="btn btn-email full" type="button">Email estimate to customer</button>
           <button id="downloadBtn" class="btn btn-gold full" type="button">Download estimate PDF</button>
           <div class="action-row"><button id="saveBtn" class="btn btn-dark full" type="button">Save document</button><button id="previewBtn" class="btn btn-dark full" type="button">Preview</button></div>
           <button id="convertBtn" class="btn btn-outline-light full" type="button">Create invoice</button>
@@ -136,7 +137,7 @@
         </div>
         <button id="materialQuoteBtn" class="btn btn-gold full" type="button">Request material quote</button>
         <div class="pro-tools-grid">
-          <button id="emailClientBtn" class="pro-tool-btn" type="button"><span>PRO</span>Email estimate</button>
+          <button id="emailClientBtn" class="pro-tool-btn" type="button"><span>PRO</span>Email document</button>
           <button id="textClientBtn" class="pro-tool-btn" type="button"><span>PRO</span>Text customer</button>
           <button id="followUpBtn" class="pro-tool-btn" type="button"><span>PRO</span>Follow-up</button>
           <button id="clientLinkBtn" class="pro-tool-btn" type="button"><span>PRO</span>Client view</button>
@@ -249,6 +250,6 @@
 </dialog>
 
 <script src="billing-config.js"></script>
-<script src="app.js?v=70"></script>
+<script src="app.js?v=80"></script>
 </body>
 </html>
