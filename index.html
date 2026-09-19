@@ -7,7 +7,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/" />
   <meta property="og:url" content="https://pristineflooring.online/" />
-  <link rel="stylesheet" href="styles.css?v=61" />
+  <link rel="stylesheet" href="styles.css?v=70" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v3">
 <header class="app-header">
@@ -235,7 +235,20 @@
   </form>
 </dialog>
 
+<dialog id="emailDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">SEND TO CUSTOMER</p><h2>Email estimate / invoice</h2></div><button id="closeEmailDialog" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">The customer receives a secure web link to view the document. Estimate links can be accepted online.</p>
+    <div class="form-grid cols-2">
+      <label>Customer email<input id="sendEmailTo" type="email" placeholder="client@email.com" /></label>
+      <label>Customer name<input id="sendEmailName" type="text" placeholder="Customer name" /></label>
+      <label class="span-2">Email subject<input id="sendEmailSubject" type="text" /></label>
+    </div>
+    <div class="dialog-actions split-actions"><button id="cancelEmailDialog" class="btn btn-secondary" type="button">Cancel</button><button id="sendEmailNowBtn" class="btn btn-gold" type="button">Send email</button></div>
+  </form>
+</dialog>
+
 <script src="billing-config.js"></script>
-<script src="app.js?v=61"></script>
+<script src="app.js?v=70"></script>
 </body>
 </html>
