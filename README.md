@@ -33,3 +33,9 @@ Cloudflare Workers auto-deploys from the `main` branch via Git integration.
 - Transactional email domain: mail.pristineflooring.online
 - Resend verification: verified
 - DMARC record: added at _dmarc.pristineflooring.online
+
+
+## Pricing model update
+- Daily labor input is now the total **Daily crew cost**, not a per-person rate.
+- Labor cost per sqft = Daily crew cost x work days / area sqft.
+- Existing locally saved documents using the older per-person model are normalized on load to preserve their prior total labor cost.
