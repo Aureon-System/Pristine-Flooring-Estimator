@@ -12,10 +12,10 @@ The worker template is intentionally not active yet.
   - `SUPABASE_SERVICE_ROLE_KEY`
 
 ### Resend
-A Pristine-owned verified domain is required. Do not use the Track&Go domain for this product.
+`mail.pristineflooring.online` is the dedicated transactional email domain. DNS verification is required before sending.
 Set:
 - `RESEND_API_KEY`
-- `RESEND_FROM` e.g. `Pristine Estimator <estimates@yourdomain.com>`
+- `RESEND_FROM=Pristine Estimator <estimates@mail.pristineflooring.online>`
 
 ### Stripe
 Test-mode product/price:
@@ -26,8 +26,13 @@ Set:
 - `STRIPE_PRO_PRICE_ID`
 
 ### Cloudflare
-Set:
+Primary custom domain: `pristineflooring.online`.
+Keep the current Worker URL as the active `APP_URL` until DNS/custom-domain routing is configured and verified.
+Current active URL:
 - `APP_URL=https://pristine-flooring-estimator.elciousa001.workers.dev`
+
+Planned production URL after domain cutover:
+- `https://pristineflooring.online`
 
 Then change `wrangler.jsonc` to:
 ```jsonc
