@@ -730,3 +730,17 @@
 .pro-price span{font-size:12px;color:#6b7178}
 .pro-price small{width:100%;font-size:9px;color:#7c838c;margin-top:3px}
 .pro-header-btn{border-color:#b7893f !important;color:#f0d69e !important}
+
+
+/* V8 primary email delivery action */
+.btn-email{
+  background:#eef4ff !important;
+  color:#17365d !important;
+  border:1px solid #b8c9df !important;
+  min-height:44px;
+  font-weight:900 !important;
+}
+.btn-email:hover{
+  background:#e3edfb !important;
+  border-color:#8ea9c8 !important;
+}
