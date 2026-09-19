@@ -51,3 +51,42 @@ Then change `wrangler.jsonc` to:
 ```
 
 Copy `backend/worker.template.js` to `backend/worker.js` only when provider secrets are ready.
+
+
+### DNS records for Resend on Cloudflare
+
+Create these records in the Cloudflare DNS zone for `pristineflooring.online`:
+
+1. TXT
+   - Name: `resend._domainkey.mail`
+   - Content: `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDIqWZ6111xga0XnXmpfkcw0cLfBMy2WHo97/lzsb/P4XyUwi6+h4AZX1LW2SE8LFFOrTC+gt1XT7wVOcKEMyZOoSUV7mkV7N0penRdm/t3bYpaN2F7EWKGmiFXvvbIMLS+5ZsBo8FfBnHS0KRQIFN2tPYOVOZHX/DxbLsbKg+g+wIDAQAB`
+   - TTL: Auto
+
+2. MX
+   - Name: `send.mail`
+   - Mail server: `feedback-smtp.us-east-1.amazonses.com`
+   - Priority: `10`
+   - TTL: Auto
+
+3. TXT
+   - Name: `send.mail`
+   - Content: `v=spf1 include:amazonses.com ~all`
+   - TTL: Auto
+
+4. CNAME
+   - Name: `rsend.mail`
+   - Target: `send.forge.rmta.net`
+   - Proxy status: DNS only
+   - TTL: Auto
+
+After the records propagate, trigger Resend domain verification.
+
+### Custom domain cutover
+
+Do not remove the Workers.dev hostname. Keep it as a fallback.
+
+After the Cloudflare zone is active and the custom domain is attached to the Worker, change the production `APP_URL` to:
+
+`https://pristineflooring.online`
+
+Then update Stripe success/cancel redirects to the production domain.
