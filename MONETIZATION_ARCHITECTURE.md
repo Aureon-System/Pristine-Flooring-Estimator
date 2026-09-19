@@ -52,3 +52,10 @@ All provider secrets stay server-side. Client code never receives service-role, 
 - Transactional email domain: `mail.pristineflooring.online`
 - Default transactional sender: `Pristine Estimator <estimates@mail.pristineflooring.online>`
 - Keep client Estimate/Invoice documents partner-branded only; Pristine/Aureon branding remains outside client documents.
+
+
+## Transactional email
+- Domain: `mail.pristineflooring.online`
+- Sender: `Pristine Estimator <estimates@mail.pristineflooring.online>`
+- Resend template alias: `pristine-customer-document`
+- Template covers Estimate/Invoice customer delivery with document number, project, total, and secure document URL.
