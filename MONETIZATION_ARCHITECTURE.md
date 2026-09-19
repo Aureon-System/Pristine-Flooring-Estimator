@@ -29,7 +29,7 @@ Free estimator remains useful without signup. Monetization happens after an esti
 ## Stack
 - Cloudflare Workers + Static Assets
 - Supabase Postgres/Auth
-- Resend for transactional email
+- Resend for transactional email from `mail.pristineflooring.online`
 - SMS provider behind a server-side adapter
 - Stripe Checkout + Customer Portal
 
@@ -46,3 +46,9 @@ Free estimator remains useful without signup. Monetization happens after an esti
 - POST /api/resend/webhook
 
 All provider secrets stay server-side. Client code never receives service-role, Resend, SMS, or Stripe secret keys.
+
+## Domain plan
+- Primary public domain: `pristineflooring.online`
+- Transactional email domain: `mail.pristineflooring.online`
+- Default transactional sender: `Pristine Estimator <estimates@mail.pristineflooring.online>`
+- Keep client Estimate/Invoice documents partner-branded only; Pristine/Aureon branding remains outside client documents.
