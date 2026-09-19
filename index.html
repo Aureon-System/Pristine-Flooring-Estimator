@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Pristine Flooring Estimator</title>
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
-  <link rel="stylesheet" href="styles.css?v=40" />
+  <link rel="stylesheet" href="styles.css?v=50" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v3">
 <header class="app-header">
@@ -125,16 +125,26 @@
         <button id="brandCardBtn" class="btn btn-link" type="button">Edit brand</button>
       </div>
 
-      <div class="pristine-lead-card no-logo">
-        <div><span>MATERIAL SALES</span><strong>Need flooring for this project?</strong><p>Send the square footage and material type to Pristine for pricing.</p></div>
-        <a href="https://wa.me/15618063322" target="_blank" rel="noopener">Request material quote</a>
+      <div class="growth-card">
+        <div class="growth-card-head">
+          <span>GROWTH TOOLS</span>
+          <strong>Turn estimates into sales.</strong>
+          <p>Material quotes are free. Communication and follow-up tools will be available in Pro.</p>
+        </div>
+        <button id="materialQuoteBtn" class="btn btn-gold full" type="button">Request material quote</button>
+        <div class="pro-tools-grid">
+          <button id="emailClientBtn" class="pro-tool-btn" type="button"><span>PRO</span>Email estimate</button>
+          <button id="textClientBtn" class="pro-tool-btn" type="button"><span>PRO</span>Text customer</button>
+          <button id="followUpBtn" class="pro-tool-btn" type="button"><span>PRO</span>Follow-up</button>
+          <button id="clientLinkBtn" class="pro-tool-btn" type="button"><span>PRO</span>Client view</button>
+        </div>
       </div>
     </aside>
   </section>
 
   <section class="saved-panel panel">
     <div class="saved-head"><div><p class="kicker">LOCAL WORKSPACE</p><h2>Saved documents</h2><p>Stored only in this browser for this MVP.</p></div><button id="clearDocsBtn" class="btn btn-link danger" type="button">Clear saved documents</button></div>
-    <div class="stats-row"><div><strong id="statCustomers">0</strong><span>Customers</span></div><div><strong id="statEstimates">0</strong><span>Estimates</span></div><div><strong id="statInvoices">0</strong><span>Invoices</span></div><div><strong id="statValue">$0</strong><span>Estimate value</span></div></div>
+    <div class="stats-row"><div><strong id="statCustomers">0</strong><span>Customers</span></div><div><strong id="statEstimates">0</strong><span>Estimates</span></div><div><strong id="statInvoices">0</strong><span>Invoices</span></div><div><strong id="statMaterialLeads">0</strong><span>Material leads</span></div><div><strong id="statValue">$0</strong><span>Estimate value</span></div></div>
     <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
   </section>
 
@@ -184,6 +194,43 @@
   </form>
 </dialog>
 
-<script src="app.js"></script>
+<dialog id="materialQuoteDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">PRISTINE MATERIAL QUOTE</p><h2>Turn this estimate into a material lead</h2></div><button id="closeMaterialQuote" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">Project quantities are pulled from the estimator. Review the information below before sending it to Pristine Flooring.</p>
+    <div class="quote-metric">
+      <div><span>Measured area</span><strong id="quoteMeasuredSqft">0 sqft</strong></div>
+      <div><span>Required material</span><strong id="quoteRequiredSqft">0 sqft</strong></div>
+    </div>
+    <div class="form-grid cols-2">
+      <label>Material requested<select id="quoteMaterial"></select></label>
+      <label>Waste allowance (%)<input id="quoteWaste" type="number" min="0" max="50" step="1" value="10" /></label>
+      <label>Company / requester<input id="quoteCompany" type="text" placeholder="Your company or name" /></label>
+      <label>Phone<input id="quotePhone" type="tel" placeholder="(555) 555-5555" /></label>
+      <label>Email<input id="quoteEmail" type="email" placeholder="you@company.com" /></label>
+      <label>Project name<input id="quoteProject" type="text" /></label>
+      <label class="span-2">Project address<input id="quoteAddress" type="text" /></label>
+      <label class="span-2">Material notes<textarea id="quoteNotes" rows="4" placeholder="Color, size, finish, delivery timing, preferred product..."></textarea></label>
+    </div>
+    <label class="consent-row"><input id="quoteConsent" type="checkbox" /> <span>I authorize sharing these project details with Pristine Flooring for material pricing.</span></label>
+    <div class="dialog-actions split-actions"><button id="cancelMaterialQuote" class="btn btn-secondary" type="button">Cancel</button><button id="sendMaterialQuoteBtn" class="btn btn-gold" type="button">Send quote request</button></div>
+  </form>
+</dialog>
+
+<dialog id="proDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">PRISTINE ESTIMATOR PRO</p><h2 id="proFeatureTitle">Pro feature</h2></div><button id="closeProDialog" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p id="proFeatureCopy" class="dialog-note">This feature is being prepared for the Pro plan.</p>
+    <div class="pro-benefits">
+      <div>✓ Send estimates and invoices from the platform</div>
+      <div>✓ Branded customer communication</div>
+      <div>✓ Delivery and follow-up history</div>
+      <div>✓ Future client acceptance and payment links</div>
+    </div>
+    <div class="dialog-actions split-actions"><button id="cancelProDialog" class="btn btn-secondary" type="button">Not now</button><button id="proInterestBtn" class="btn btn-gold" type="button">Join early access</button></div>
+  </form>
+</dialog>
+
+<script src="app.js?v=50"></script>
 </body>
 </html>
