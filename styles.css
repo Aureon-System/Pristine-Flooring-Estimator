@@ -712,3 +712,21 @@
   .pro-tools-grid,.quote-metric{grid-template-columns:1fr}
   .stats-row{grid-template-columns:1fr 1fr}
 }
+
+
+/* V6 Pro monetization */
+.pro-price{
+  margin:14px 0;
+  padding:14px;
+  border:1px solid #e5dccd;
+  border-radius:10px;
+  background:#fbf8f2;
+  display:flex;
+  align-items:baseline;
+  gap:6px;
+  flex-wrap:wrap;
+}
+.pro-price strong{font-size:28px;color:#171b22}
+.pro-price span{font-size:12px;color:#6b7178}
+.pro-price small{width:100%;font-size:9px;color:#7c838c;margin-top:3px}
+.pro-header-btn{border-color:#b7893f !important;color:#f0d69e !important}
