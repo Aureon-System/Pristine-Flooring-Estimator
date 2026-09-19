@@ -28,3 +28,8 @@ Cloudflare Workers auto-deploys from the `main` branch via Git integration.
 - Transactional email subdomain: `mail.pristineflooring.online`
 - Planned sender: `Pristine Estimator <estimates@mail.pristineflooring.online>`
 - Current app host remains the Cloudflare Worker URL until the custom domain is connected in Cloudflare.
+
+## Email security
+- Transactional email domain: mail.pristineflooring.online
+- Resend verification: verified
+- DMARC record: added at _dmarc.pristineflooring.online
