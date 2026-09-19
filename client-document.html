@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Project Document</title>
+  <meta name="robots" content="noindex,nofollow">
+  <style>
+    *{box-sizing:border-box}body{margin:0;background:#f4f5f7;color:#171b22;font-family:Arial,Helvetica,sans-serif}
+    .wrap{max-width:860px;margin:34px auto;padding:0 16px}.card{background:#fff;border:1px solid #e3e6e8;border-radius:16px;box-shadow:0 10px 34px #0000000d;overflow:hidden}
+    .head{display:flex;justify-content:space-between;gap:24px;padding:28px;border-bottom:1px solid #e5e7ea}.issuer{display:flex;gap:16px;align-items:center}.issuer img{max-width:110px;max-height:70px;object-fit:contain}
+    .issuer strong{display:block;font-size:22px}.muted{color:#737b84;font-size:12px;line-height:1.5}.docmeta{text-align:right}.docmeta b{display:block;font-size:18px}.docmeta span{display:block;color:#737b84;font-size:11px;margin-top:3px}
+    .body{padding:28px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;padding:16px;background:#f7f8f9;border-radius:10px}.grid small{display:block;color:#737b84;text-transform:uppercase;letter-spacing:.06em;font-weight:700;margin-bottom:4px}
+    table{width:100%;border-collapse:collapse;margin-top:22px}th{text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;border-bottom:2px solid #20242a;padding:8px}td{padding:11px 8px;border-bottom:1px solid #e4e6e8;font-size:12px}td:last-child,th:last-child{text-align:right}
+    .totals{max-width:340px;margin:22px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:6px 0}.totals .grand{border-top:2px solid #20242a;margin-top:6px;padding-top:11px;font-size:20px;font-weight:800}
+    .notes{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:28px}.notes h3{font-size:11px;text-transform:uppercase}.notes p{font-size:12px;white-space:pre-wrap;line-height:1.6}
+    .accept{border-top:1px solid #e5e7ea;padding:22px 28px;background:#fbfaf7;display:flex;align-items:center;justify-content:space-between;gap:14px}.accept button{border:0;background:#b7893f;color:#fff;padding:12px 18px;border-radius:8px;font-weight:800;cursor:pointer}.status{font-weight:800;color:#187552}
+    dialog{border:0;border-radius:14px;padding:0;max-width:440px;width:calc(100% - 30px);box-shadow:0 24px 80px #0004}dialog::backdrop{background:#0007}.dlg{padding:24px}.dlg h2{margin:0 0 8px}.dlg label{display:block;font-size:12px;font-weight:700;margin-top:12px}.dlg input{width:100%;padding:11px;border:1px solid #ccd1d6;border-radius:8px;margin-top:5px}.actions{display:flex;justify-content:flex-end;gap:8px;margin-top:18px}.actions button{padding:10px 14px;border-radius:8px;border:1px solid #ccd1d6;background:#fff;font-weight:700}.actions .primary{background:#b7893f;color:#fff;border-color:#b7893f}
+    .error{padding:40px;text-align:center;color:#8c2f2f}@media(max-width:650px){.head,.accept{flex-direction:column}.docmeta{text-align:left}.grid,.notes{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+<div class="wrap"><div id="app" class="card"><div class="body">Loading document...</div></div></div>
+<dialog id="acceptDialog"><form class="dlg" onsubmit="return false"><h2>Accept estimate</h2><p class="muted">Enter your name and email to record acceptance.</p><label>Name<input id="acceptName"></label><label>Email<input id="acceptEmail" type="email"></label><div class="actions"><button id="cancelAccept" type="button">Cancel</button><button id="confirmAccept" class="primary" type="button">Accept estimate</button></div></form></dialog>
+<script>
+const API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristine-api';
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)||0);
+const token=new URLSearchParams(location.search).get('token');
+let doc=null;
+function render(d){
+ doc=d;const p=d.payload||{},b=p.brand||{},c=p.client||{},areas=p.areas||[],addons=(p.addons||[]).filter(a=>Number(a.sell||0)>0);
+ const rows=areas.map(a=>'<tr><td><strong>'+esc(a.description||'Floor installation')+'</strong><br><span class="muted">'+esc(a.material||'')+' · '+esc(a.pattern||'')+'</span></td><td>'+Math.round(Number(a.sqft||0)).toLocaleString()+' sqft</td><td>'+money(Number(a.laborSell||0)+Number(a.matSell||0))+'</td></tr>').join('')+
+ addons.map(a=>'<tr><td>'+esc(a.name)+'</td><td>'+esc(a.qty)+' '+esc(a.unit)+'</td><td>'+money(a.sell)+'</td></tr>').join('');
+ const logo=b.logoData?'<img src="'+b.logoData+'" alt="Company logo">':'';
+ const status=d.status==='accepted'?'<span class="status">Accepted ✓</span>':(d.document_type==='ESTIMATE'?'<button id="acceptBtn" type="button">Accept estimate</button>':'');
+ document.getElementById('app').innerHTML='<div class="head"><div class="issuer">'+logo+'<div><strong>'+esc(b.name||'Project Document')+'</strong><div class="muted">'+esc([b.address,b.phone,b.email,b.license].filter(Boolean).join(' · '))+'</div></div></div><div class="docmeta"><b>'+esc(d.document_type)+' '+esc(d.document_no)+'</b><span>Project document</span></div></div><div class="body"><div class="grid"><div><small>Client</small>'+esc(c.name||'-')+'<br><span class="muted">'+esc(c.email||'')+' '+esc(c.phone||'')+'</span></div><div><small>Project</small>'+esc(d.project_name||c.project||'-')+'<br><span class="muted">'+esc(d.project_address||c.address||'')+'</span></div></div><table><thead><tr><th>Scope</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody></table><div class="totals"><div><span>Subtotal</span><b>'+money(p.baseSell||0)+'</b></div><div><span>Discount</span><b>− '+money(p.discount||0)+'</b></div>'+(Number(p.taxRate||0)>0?'<div><span>Tax</span><b>'+money(p.tax||0)+'</b></div>':'')+'<div class="grand"><span>Total</span><b>'+money(d.total)+'</b></div></div><section class="notes"><div><h3>Notes</h3><p>'+esc(p.clientNotes||'')+'</p></div><div><h3>Terms & payment</h3><p>'+esc(p.terms||'')+'</p></div></section></div><div class="accept"><div><strong>'+esc(d.document_type==='ESTIMATE'?'Estimate status':'Document status')+'</strong><div class="muted">'+esc(d.status||'')+'</div></div>'+status+'</div>';
+ const btn=document.getElementById('acceptBtn');if(btn)btn.onclick=()=>{document.getElementById('acceptName').value=c.name||'';document.getElementById('acceptEmail').value=c.email||'';document.getElementById('acceptDialog').showModal()};
+}
+async function load(){
+ if(!token){document.getElementById('app').innerHTML='<div class="error">Document link is missing.</div>';return}
+ const r=await fetch(API+'?action=public-document&token='+encodeURIComponent(token));const d=await r.json();
+ if(!r.ok||!d.ok){document.getElementById('app').innerHTML='<div class="error">This document could not be found.</div>';return}
+ render(d.document)
+}
+document.getElementById('cancelAccept').onclick=()=>document.getElementById('acceptDialog').close();
+document.getElementById('confirmAccept').onclick=async()=>{
+ const name=document.getElementById('acceptName').value.trim(),email=document.getElementById('acceptEmail').value.trim();if(!name||!email){alert('Name and email are required.');return}
+ const r=await fetch(API+'?action=accept-document',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token,name,email})});const d=await r.json();if(!r.ok||!d.ok){alert(d.error||'Could not accept estimate');return}
+ document.getElementById('acceptDialog').close();await load();alert('Estimate accepted.');
+};
+load();
+</script>
+</body></html>
