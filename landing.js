@@ -55,7 +55,9 @@ async function resetPassword(){
 async function primary(){if(mode==='signin')return signIn();if(mode==='signup')return signUp();return resetPassword()}
 function bind(id,fn){const el=$(id);if(el)el.addEventListener('click',fn)}
 bind('#openLoginTop',()=>openAuth('signin'));
+bind('#openSignupTop',()=>openAuth('signup'));
 bind('#heroAccountBtn',()=>openAuth('signup'));
+bind('#workflowSignupBtn',()=>openAuth('signup'));
 bind('#freeAccountBtn',()=>openAuth('signup'));
 bind('#proAccountBtn',()=>openAuth('signin'));
 bind('#closeAuth',()=>$('#authDialog').close());
