@@ -14,3 +14,92 @@ dialog{border:0;border-radius:18px;padding:0;box-shadow:0 30px 90px #0004;width:
 .button-link{border:0;background:transparent;padding:0;cursor:pointer;font:inherit;text-align:left}
 .plans-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media(max-width:900px){.plans-grid{grid-template-columns:1fr}}
+
+/* V3 brand rendering hardening */
+.brand-shell{
+  width:176px;
+  height:64px;
+  padding:6px 10px;
+  border-radius:12px;
+  background:#111820;
+  display:flex;
+  align-items:center;
+  justify-content:flex-start;
+  overflow:visible;
+}
+.landing-pristine-logo{
+  display:block;
+  width:158px!important;
+  height:54px!important;
+  max-width:none!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  filter:none!important;
+  transform:scale(1.16);
+  transform-origin:center;
+}
+.footer-brand-shell{
+  width:170px;
+  min-height:72px;
+  padding:6px 10px;
+  border-radius:12px;
+  background:#111820;
+  display:flex;
+  align-items:center;
+}
+.footer-pristine-logo{
+  display:block;
+  width:152px!important;
+  height:60px!important;
+  max-width:none!important;
+  object-fit:contain!important;
+  transform:scale(1.14);
+  transform-origin:center;
+}
+.footer-powered{
+  gap:10px!important;
+}
+.footer-powered>span{
+  color:#aeb7c0;
+  font-size:9px;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  font-weight:800;
+}
+.aureon-lockup{
+  min-width:184px;
+  height:64px;
+  padding:5px 12px;
+  border-radius:12px;
+  background:#fff;
+  border:1px solid #303946;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+}
+.landing-aureon-logo{
+  display:block;
+  width:82px!important;
+  height:48px!important;
+  max-width:none!important;
+  object-fit:contain!important;
+  object-position:center!important;
+  filter:none!important;
+  transform:none!important;
+}
+.aureon-lockup strong{
+  display:block;
+  color:#111820;
+  font-size:8px;
+  line-height:1.2;
+  letter-spacing:.08em;
+  max-width:62px;
+}
+@media(max-width:650px){
+  .brand-shell{width:132px;height:52px;padding:4px 6px}
+  .landing-pristine-logo{width:120px!important;height:44px!important;transform:scale(1.12)}
+  .footer-brand-shell{width:150px}
+  .footer-pristine-logo{width:136px!important;height:56px!important}
+  .aureon-lockup{min-width:170px}
+}
