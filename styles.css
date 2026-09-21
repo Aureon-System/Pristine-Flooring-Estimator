@@ -1579,3 +1579,47 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     min-width:66px !important;
   }
 }
+
+
+/* V6 live branding + secure company workspace */
+.hidden{display:none!important}
+.pristine-brand-image{width:160px!important;height:62px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;overflow:visible!important}
+.pristine-brand-image img{display:block!important;width:150px!important;height:58px!important;object-fit:contain!important;object-position:left center!important;max-width:none!important;max-height:none!important}
+.account-status{margin:0 0 16px;padding:12px 14px;border:1px solid #d9dde2;border-radius:12px;background:#f8fafc;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.account-status>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.account-status strong{font-size:13px;color:#171b22}
+.account-status span{font-size:11px;color:#68717c}
+.account-status.signed-in{background:#f4f8f5;border-color:#cfe0d2}
+.account-status.signed-in strong{color:#1e5930}
+.account-btn{max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.account-dialog{width:min(560px,calc(100vw - 28px))}
+.account-message{min-height:20px;margin:8px 0 0;font-size:11px;color:#52606d}
+.account-message.error{color:#a12626}
+.account-actions{display:flex;gap:8px;flex-wrap:wrap}
+.pristine-cta-branded{grid-template-columns:150px 1fr auto!important;align-items:center!important}
+.pristine-cta-logo{width:145px!important;height:90px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
+.pristine-cta-logo img{display:block!important;width:135px!important;height:82px!important;object-fit:contain!important}
+.footer-live-logos{display:grid!important;grid-template-columns:175px 1px 190px minmax(360px,1fr) 170px!important;gap:18px!important;align-items:center!important;min-height:120px!important;padding:16px 24px!important}
+.footer-live-logos .footer-pristine-mark{width:175px!important;height:82px!important;display:flex!important;align-items:center!important}
+.footer-live-logos .footer-pristine-mark img{display:block!important;width:160px!important;height:76px!important;object-fit:contain!important;transform:none!important;max-width:none!important}
+.footer-live-logos .footer-ecosystem{display:grid!important;grid-template-columns:repeat(4,minmax(72px,1fr))!important;gap:12px!important;align-items:center!important}
+.footer-live-logos .eco-logo{height:58px!important;display:flex!important;align-items:center!important;justify-content:center!important;overflow:visible!important}
+.footer-live-logos .eco-logo img{display:block!important;width:90px!important;height:52px!important;object-fit:contain!important;transform:none!important;max-width:96px!important}
+.footer-live-logos .eco-aureon img{width:96px!important;height:56px!important}
+@media(max-width:900px){
+  .footer-live-logos{grid-template-columns:1fr!important}
+  .footer-live-logos .footer-rule{display:none!important}
+  .footer-live-logos .footer-ecosystem{grid-template-columns:repeat(4,minmax(64px,1fr))!important;width:100%!important}
+  .pristine-cta-branded{grid-template-columns:120px 1fr!important}
+  .pristine-cta-branded .cta-buttons{grid-column:1/-1}
+}
+@media(max-width:760px){
+  .pristine-brand-image{width:122px!important;height:50px!important}
+  .pristine-brand-image img{width:118px!important;height:46px!important}
+  .account-status{align-items:flex-start;flex-direction:column}
+  .account-status .btn{width:100%}
+  .pristine-cta-branded{grid-template-columns:1fr!important}
+  .pristine-cta-logo{width:126px!important;height:72px!important;justify-content:flex-start!important}
+  .pristine-cta-logo img{width:120px!important;height:70px!important}
+  .footer-live-logos .footer-ecosystem{grid-template-columns:repeat(2,1fr)!important}
+}
