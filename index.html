@@ -7,15 +7,14 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/" />
   <meta property="og:url" content="https://pristineflooring.online/" />
-  <link rel="stylesheet" href="styles.css?v=160" />
+  <link rel="stylesheet" href="styles.css?v=180" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
 <header class="app-header">
   <div class="header-inner">
-    <a class="pristine-brand pristine-brand-text" href="#top" aria-label="Pristine Flooring Estimator">
-      <span class="pristine-brand-mark" aria-hidden="true">PF</span>
-      <span class="pristine-wordmark"><strong>PRISTINE</strong><small>FLOORING</small></span>
+    <a class="pristine-brand pristine-brand-image" href="#top" aria-label="Pristine Flooring Estimator">
+      <img src="assets/pristine-logo.webp" alt="Pristine Flooring" width="150" height="60" />
     </a>
     <div class="workspace-title">
       <span>PRISTINE TOOL</span>
@@ -24,6 +23,7 @@
     <div class="header-actions">
       <button id="newDocBtn" class="btn btn-ghost" type="button">New estimate</button>
       <button id="upgradeProBtn" class="btn btn-ghost pro-header-btn" type="button">Pro · $12.99</button>
+      <button id="accountBtn" class="btn btn-ghost account-btn" type="button">Sign in</button>
       <button id="brandBtn" class="btn btn-gold" type="button">Your company brand</button>
     </div>
   </div>
@@ -37,6 +37,13 @@
 </nav>
 
 <main id="top" class="shell">
+  <section id="accountStatusBar" class="account-status guest">
+    <div>
+      <strong id="accountStatusTitle">Guest workspace</strong>
+      <span id="accountStatusText">Saved on this device. Sign in to sync and keep each company separate.</span>
+    </div>
+    <button id="accountStatusBtn" class="btn btn-secondary" type="button">Sign in / Create account</button>
+  </section>
   <section class="language-panel" aria-labelledby="languageHeading">
     <div>
       <p id="languageHeading" class="language-caption">Interface language</p>
@@ -166,7 +173,7 @@
   </section>
 
   <section id="documents" class="saved-panel panel">
-    <div class="saved-head"><div><p class="kicker">LOCAL WORKSPACE</p><h2>Saved documents</h2><p>Open the estimate, review it, then edit, print, email or convert it into an invoice.</p></div><button id="clearDocsBtn" class="btn btn-link danger" type="button">Clear saved documents</button></div>
+    <div class="saved-head"><div><p class="kicker" id="workspaceModeLabel">LOCAL WORKSPACE</p><h2>Saved documents</h2><p id="workspaceModeText">Open the estimate, review it, then edit, print, email or convert it into an invoice.</p></div><button id="clearDocsBtn" class="btn btn-link danger" type="button">Clear saved documents</button></div>
     <div class="stats-row workspace-stats grouped-stats">
       <div class="workspace-stat-card">
         <span class="stat-label">Customers</span>
@@ -190,7 +197,8 @@
     <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
   </section>
 
-  <section class="pristine-cta no-logo">
+  <section class="pristine-cta pristine-cta-branded">
+    <div class="pristine-cta-logo"><img src="assets/pristine-logo.webp" alt="Pristine Flooring" loading="lazy" /></div>
     <div>
       <p class="kicker light">PRISTINE FLOORING</p>
       <h2>Estimate the work. Source the flooring.</h2>
@@ -201,20 +209,39 @@
 </main>
 
 <footer class="app-footer">
-  <div class="footer-text-only">
-    <div class="footer-brand-copy">
-      <div class="footer-brand-lockup"><span class="pristine-brand-mark small" aria-hidden="true">PF</span><strong>PRISTINE FLOORING</strong></div>
-      <span>Professional estimating tools · Powered by Aureon Ecosystem</span>
+  <div class="footer-unified footer-live-logos">
+    <div class="footer-pristine-mark"><img src="assets/pristine-logo.webp" alt="Pristine Flooring" loading="lazy" /></div>
+    <span class="footer-rule" aria-hidden="true"></span>
+    <div class="footer-powered"><strong>Powered by Aureon Ecosystem</strong><span>Business tools for growing companies</span></div>
+    <div class="footer-ecosystem" aria-label="Aureon Ecosystem products">
+      <div class="eco-logo eco-aureon"><img src="assets/aureon-logo.webp" alt="Aureon" loading="lazy" /></div>
+      <div class="eco-logo eco-thrivo"><img src="assets/thrivo-logo.webp" alt="Thrivo" loading="lazy" /></div>
+      <div class="eco-logo eco-b2b"><img src="assets/b2bgrow-logo.webp" alt="B2B Grow" loading="lazy" /></div>
+      <div class="eco-logo eco-track"><img src="assets/trackgo-logo.webp" alt="Track and Go" loading="lazy" /></div>
     </div>
-    <div class="footer-products">Thrivo · b2bgrow · Track&Go</div>
-    <div class="footer-legal">
-      <div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></div>
-      <small>© 2026 Pristine Flooring</small>
-    </div>
+    <div class="footer-legal"><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></div><small>© 2026 Pristine Flooring</small></div>
   </div>
 </footer>
 
 <div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div></div>
+
+<dialog id="accountDialog">
+  <form class="brand-dialog account-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">SECURE WORKSPACE</p><h2>Sign in or create your company account</h2></div><button id="closeAccountDialog" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">A free account keeps your estimates and invoices synced and separates your company data from other users. You can still use the estimator as a guest on this device.</p>
+    <div class="form-grid cols-2">
+      <label class="span-2">Company name<input id="accountCompany" type="text" placeholder="Your Company LLC" autocomplete="organization" /></label>
+      <label class="span-2">Email<input id="accountEmail" type="email" placeholder="you@company.com" autocomplete="email" /></label>
+      <label class="span-2">Password<input id="accountPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password" /></label>
+    </div>
+    <p id="accountMessage" class="account-message" role="status"></p>
+    <div class="dialog-actions account-actions">
+      <button id="signInBtn" class="btn btn-dark" type="button">Sign in</button>
+      <button id="signUpBtn" class="btn btn-gold" type="button">Create free account</button>
+      <button id="signOutBtn" class="btn btn-secondary hidden" type="button">Sign out</button>
+    </div>
+  </form>
+</dialog>
 
 <dialog id="brandDialog">
   <form method="dialog" class="brand-dialog">
@@ -287,9 +314,10 @@
   </form>
 </dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=170"></script>
+<script src="app.js?v=180"></script>
 </body>
 </html>
