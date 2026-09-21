@@ -4,6 +4,7 @@ const PRISTINE_API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristi
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
 let mode='signin';
+let postAuthTarget='calculator.html';
 
 function setMessage(message,error=false){const el=$('#authMessage');el.textContent=message||'';el.classList.toggle('error',!!error)}
 function setMode(next){
@@ -24,7 +25,7 @@ function openAuth(next='signin'){
   $('#authDialog').showModal();
   setTimeout(()=>$('#authEmail').focus(),50);
 }
-async function goToCalculator(){location.href='calculator.html'}
+async function goToCalculator(){location.href=postAuthTarget||'calculator.html'}
 async function signIn(){
   const email=$('#authEmail').value.trim(),password=$('#authPassword').value;
   if(!email||!password)return setMessage('Enter your email and password.',true);
@@ -74,7 +75,7 @@ bind('#openSignupTop',()=>openAuth('signup'));
 bind('#heroAccountBtn',()=>openAuth('signup'));
 bind('#workflowSignupBtn',()=>openAuth('signup'));
 bind('#freeAccountBtn',()=>openAuth('signup'));
-bind('#proAccountBtn',()=>openAuth('signin'));
+bind('#proAccountBtn',async()=>{const {data}=await sb.auth.getSession();postAuthTarget='calculator.html?upgrade=pro';if(data.session)goToCalculator();else openAuth('signin')});
 bind('#closeAuth',()=>$('#authDialog').close());
 bind('#authPrimaryBtn',primary);
 bind('#toggleAuthMode',()=>setMode(mode==='signin'?'signup':'signin'));
@@ -87,6 +88,8 @@ $('#authEmail').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='reset
   const hash=new URLSearchParams(location.hash.replace(/^#/,''));
   if(hash.get('error_description')){openAuth('signin');setMessage(hash.get('error_description'),true)}
   const {data}=await sb.auth.getSession();
+  const query=new URLSearchParams(location.search);
+  if(query.get('signin')==='1'||query.get('admin')==='1')openAuth('signin');
   if(data.session){
     const top=$('#openLoginTop');
     top.textContent='Open workspace';
