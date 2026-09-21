@@ -240,6 +240,20 @@
       <button id="signUpBtn" class="btn btn-gold" type="button">Create free account</button>
       <button id="signOutBtn" class="btn btn-secondary hidden" type="button">Sign out</button>
     </div>
+    <button id="forgotAccountPassword" class="btn btn-link full" type="button">Forgot password?</button>
+  </form>
+</dialog>
+
+<dialog id="resetPasswordDialog">
+  <form class="brand-dialog account-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">ACCOUNT SECURITY</p><h2>Set a new password</h2></div></div>
+    <p class="dialog-note">Enter a new password for your Pristine Estimator account.</p>
+    <div class="form-grid">
+      <label>New password<input id="newAccountPassword" type="password" autocomplete="new-password" placeholder="At least 6 characters" /></label>
+      <label>Confirm password<input id="confirmAccountPassword" type="password" autocomplete="new-password" placeholder="Repeat password" /></label>
+    </div>
+    <p id="resetPasswordMessage" class="account-message" role="status"></p>
+    <div class="dialog-actions"><button id="saveNewPasswordBtn" class="btn btn-gold" type="button">Save new password</button></div>
   </form>
 </dialog>
 
