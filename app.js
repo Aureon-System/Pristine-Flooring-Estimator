@@ -8,6 +8,7 @@ const SUPABASE_URL='https://lueomnmkbbrllxbnpxph.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
 let currentSession=null,currentPartner=null,cloudSyncBusy=false;
+function apiHeaders(json=true){const h={};if(json)h['content-type']='application/json';if(currentSession?.access_token)h.Authorization='Bearer '+currentSession.access_token;return h}
 function workspaceSuffix(){return currentSession?.user?.id?':'+currentSession.user.id:':guest'}
 function workspaceKey(base){return base+workspaceSuffix()}
 function loadWorkspaceJSON(base,fallback){try{return JSON.parse(localStorage.getItem(workspaceKey(base))||JSON.stringify(fallback))}catch{return fallback}}
@@ -24,14 +25,14 @@ function updateAccountUI(){
   const email=currentSession?.user?.email||'';
   const company=currentPartner?.company_name||currentSession?.user?.user_metadata?.company_name||'';
   const title=$('#accountStatusTitle'),text=$('#accountStatusText'),bar=$('#accountStatusBar'),btn=$('#accountBtn'),statusBtn=$('#accountStatusBtn');
-  if(title)title.textContent=signed?(company||'Company workspace'):'Guest workspace';
-  if(text)text.textContent=signed?('Synced securely for '+(company||email)+'.'): 'Saved on this device. Sign in to sync and keep each company separate.';
+  if(title)title.textContent=signed?(company||'Company workspace'):'Account required';
+  if(text)text.textContent=signed?('Synced securely for '+(company||email)+'.'):'Sign in from the landing page to access the estimator.';
   if(bar){bar.classList.toggle('guest',!signed);bar.classList.toggle('signed-in',signed)}
   if(btn)btn.textContent=signed?(company||'Account'):'Sign in';
   if(statusBtn)statusBtn.textContent=signed?'Manage account':'Sign in / Create account';
   const mode=$('#workspaceModeLabel'),modeText=$('#workspaceModeText');
-  if(mode)mode.textContent=signed?'CLOUD WORKSPACE':'LOCAL WORKSPACE';
-  if(modeText)modeText.textContent=signed?'Your documents are isolated by company and synced to the cloud.':'Open the estimate, review it, then edit, print, email or convert it into an invoice.';
+  if(mode)mode.textContent='CLOUD WORKSPACE';
+  if(modeText)modeText.textContent='Your documents are isolated by company and synced to the cloud.';
   const out=$('#signOutBtn');if(out)out.classList.toggle('hidden',!signed);
 }
 async function signUpAccount(){
@@ -121,21 +122,22 @@ async function syncCloudDocuments(preferCloud=false){
 async function initAccount(){
   if(!sb){updateAccountUI();return}
   const {data}=await sb.auth.getSession();currentSession=data.session||null;
-  if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true)}
+  if(!currentSession){location.replace('/?signin=1');return false}
+  await fetchCurrentPartner();await syncCloudDocuments(true);
   updateAccountUI();
   const q=new URLSearchParams(location.search);
   if(q.get('reset')==='1'&&currentSession){setTimeout(()=>$('#resetPasswordDialog')?.showModal(),150)}
-  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true)}else currentPartner=null;updateAccountUI();renderSaved()});
+  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true);updateAccountUI();renderSaved()}else{currentPartner=null;location.replace('/?signin=1')}});
 }
 
 let proVerified=false;
-function getProToken(){try{return localStorage.getItem(PRO_TOKEN_KEY)||''}catch{return''}}
-function setProToken(v){try{if(v)localStorage.setItem(PRO_TOKEN_KEY,v);else localStorage.removeItem(PRO_TOKEN_KEY)}catch{}}
+function proTokenKey(){return PRO_TOKEN_KEY+(currentSession?.user?.id?':'+currentSession.user.id:'')}
+function getProToken(){try{return localStorage.getItem(proTokenKey())||''}catch{return''}}
+function setProToken(v){try{if(v)localStorage.setItem(proTokenKey(),v);else localStorage.removeItem(proTokenKey())}catch{}}
 async function verifyPro(){
   const token=getProToken();
-  if(!token){proVerified=false;return false}
   try{
-    const r=await fetch(PRISTINE_API+'?action=pro-status',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pro_token:token})});
+    const r=await fetch(PRISTINE_API+'?action=pro-status',{method:'POST',headers:apiHeaders(),body:JSON.stringify({pro_token:token})});
     const d=await r.json();
     proVerified=Boolean(r.ok&&d.ok&&d.active);
     if(!proVerified)setProToken('');
@@ -401,8 +403,32 @@ async function openEmailDialog(){
   $('#sendEmailTo').value=s.client.email||'';
   $('#sendEmailName').value=s.client.name||'';
   $('#sendEmailSubject').value=(loadBrand().name||'Your contractor')+' sent you a '+(s.type==='INVOICE'?'invoice':'estimate')+' '+s.documentNo;
+  $('#sendEmailMessage').value='Hi '+(s.client.name||'there')+',\n\nYour '+(s.type==='INVOICE'?'invoice':'estimate')+' is ready to review. Please use the secure link in this email to view the document.'+(s.type==='ESTIMATE'?' You can accept the estimate online.':'')+'\n\nThank you.';
+  const aiStatus=$('#aiEmailStatus');if(aiStatus)aiStatus.textContent='AI drafts are editable before sending.';
   pendingCloudDocument=null;
   $('#emailDialog').showModal();
+}
+
+
+async function generateAiEmailDraft(){
+  if(!(proVerified||await verifyPro())){openPro('ai');return}
+  const s=currentForDocument();if(!s)return;
+  const btn=$('#generateAiEmailBtn'),status=$('#aiEmailStatus');
+  if(btn){btn.disabled=true;btn.textContent='Generating...'}if(status)status.textContent='Creating a professional draft from this document...';
+  try{
+    const purpose=s.type==='INVOICE'?'invoice_send':'estimate_send';
+    const r=await fetch(PRISTINE_API+'?action=ai-compose',{
+      method:'POST',headers:apiHeaders(),
+      body:JSON.stringify({purpose,document:s,brand:loadBrand()})
+    });
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'AI draft failed');
+    $('#sendEmailSubject').value=d.subject||$('#sendEmailSubject').value;
+    $('#sendEmailMessage').value=d.body||$('#sendEmailMessage').value;
+    if(status)status.textContent='AI draft ready. Review and edit before sending.';
+  }catch(err){
+    if(status)status.textContent=err?.message||'AI draft is unavailable.';
+  }finally{if(btn){btn.disabled=false;btn.textContent='✦ Generate with AI'}}
 }
 
 async function sendEmailNow(){
@@ -415,11 +441,13 @@ async function sendEmailNow(){
     pendingCloudDocument=d;
     const r=await fetch(PRISTINE_API+'?action=send-document-email',{
       method:'POST',
-      headers:{'content-type':'application/json'},
+      headers:apiHeaders(),
       body:JSON.stringify({
         document_id:d.document.id,
         manage_token:d.manage_token,
         to,
+        subject:$('#sendEmailSubject').value.trim(),
+        message:$('#sendEmailMessage').value.trim(),
         pro_token:getProToken()
       })
     });
@@ -440,7 +468,8 @@ function openPro(feature){
     email:['Email estimate / invoice','Send branded estimate and invoice emails directly from the platform, with PDF attachment and delivery history.'],
     text:['Text customer','Send estimate links, invoice reminders and status updates by SMS.'],
     followup:['Automated follow-up','Create scheduled reminders for estimates that have not been accepted yet.'],
-    client:['Client view','Create a secure web link for the customer to view and accept the estimate online.']
+    client:['Client view','Create a secure web link for the customer to view and accept the estimate online.'],
+    ai:['AI Communication Assistant','Generate professional estimate, invoice, follow-up and collections messages using the document context.']
   };
   const [title,body]=copy[feature]||['Pro feature','This feature is available in Pristine Estimator Pro.'];
   $('#proFeatureTitle').textContent=title;$('#proFeatureCopy').textContent=body;
@@ -450,7 +479,7 @@ function openPro(feature){
 async function createCloudDocument(){
   const s=currentForDocument(); if(!s)return null;
   const payload={document_no:s.documentNo,document_type:s.type,project_name:s.client.project,project_address:s.client.address,total:s.total,payload:s,pro_token:getProToken()};
-  const r=await fetch(PRISTINE_API+'?action=document',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(payload)});
+  const r=await fetch(PRISTINE_API+'?action=document',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
   const d=await r.json(); if(!r.ok||!d.ok)throw new Error(d.error||'Could not create client link');
   return d;
 }
@@ -470,7 +499,7 @@ async function activateProFromCheckout(){
   const sessionId=q.get('session_id');
   if(!sessionId){alert('Payment completed, but the checkout session was not returned. Please contact support.');return}
   try{
-    const r=await fetch(PRISTINE_API+'?action=activate-pro',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({session_id:sessionId})});
+    const r=await fetch(PRISTINE_API+'?action=activate-pro',{method:'POST',headers:apiHeaders(),body:JSON.stringify({session_id:sessionId})});
     const d=await r.json();
     if(!r.ok||!d.ok)throw new Error(d.error||'Could not activate Pro');
     setProToken(d.pro_token);
@@ -481,7 +510,7 @@ async function activateProFromCheckout(){
     alert((err?.message||'Could not activate Pro')+'. If payment was just completed, wait a few seconds and refresh this page.');
   }
 }
-function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))resetDoc()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=()=>{if(confirm('Clear all saved documents from this browser?'))saveDocs([])};$('#brandBtn').onclick=openBrand;$('#brandCardBtn').onclick=openBrand;const navBrand=$('#navBrandBtn');if(navBrand)navBrand.onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);
+async function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))resetDoc()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=()=>{if(confirm('Clear all saved documents from this browser?'))saveDocs([])};$('#brandBtn').onclick=openBrand;$('#brandCardBtn').onclick=openBrand;const navBrand=$('#navBrandBtn');if(navBrand)navBrand.onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);
   const accountBtn=$('#accountBtn');if(accountBtn)accountBtn.onclick=openAccountDialog;
   const accountStatusBtn=$('#accountStatusBtn');if(accountStatusBtn)accountStatusBtn.onclick=openAccountDialog;
   const closeAccount=$('#closeAccountDialog');if(closeAccount)closeAccount.onclick=()=>$('#accountDialog').close();
@@ -489,5 +518,5 @@ function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['dis
   const signUp=$('#signUpBtn');if(signUp)signUp.onclick=signUpAccount;
   const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;
   const forgot=$('#forgotAccountPassword');if(forgot)forgot.onclick=requestAccountPasswordReset;
-  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;calc();initAccount();activateProFromCheckout().then(()=>verifyPro())}
+  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro()}
 init();
