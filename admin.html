@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pristine Dev Control Center</title>
+  <meta name="robots" content="noindex,nofollow">
+  <link rel="stylesheet" href="admin.css?v=1">
+</head>
+<body>
+  <aside class="admin-sidebar">
+    <a class="admin-brand" href="/"><img src="assets/pristine-web.webp" alt="Pristine Flooring"></a>
+    <div class="admin-label">DEV CONTROL CENTER</div>
+    <nav>
+      <button class="nav-item active" data-tab="overview">Overview</button>
+      <button class="nav-item" data-tab="subscriptions">Subscriptions</button>
+      <button class="nav-item" data-tab="costs">Costs</button>
+      <button class="nav-item" data-tab="ai">AI & Automation</button>
+      <button class="nav-item" data-tab="system">System Health</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <a href="calculator.html">← Estimator</a>
+      <button id="adminSignOut" type="button">Sign out</button>
+    </div>
+  </aside>
+
+  <main class="admin-main">
+    <header class="admin-topbar">
+      <div>
+        <p class="eyebrow">PRISTINE PLATFORM</p>
+        <h1>Business & Platform Control</h1>
+      </div>
+      <div class="topbar-status">
+        <span id="adminRole">Checking access...</span>
+        <button id="refreshAdmin" class="btn secondary" type="button">Refresh</button>
+      </div>
+    </header>
+
+    <section id="accessGate" class="access-gate">
+      <div class="gate-card">
+        <h2>Checking administrator access</h2>
+        <p>This page is restricted to Pristine platform administrators.</p>
+      </div>
+    </section>
+
+    <div id="adminApp" class="hidden">
+      <section class="tab-panel active" data-panel="overview">
+        <div class="metric-grid">
+          <article><span>MRR</span><strong id="mrr">$0</strong><small>Active Pro subscriptions</small></article>
+          <article><span>ARR</span><strong id="arr">$0</strong><small>Projected annual recurring revenue</small></article>
+          <article><span>Revenue tracked</span><strong id="revenue">$0</strong><small>Paid/checkout events recorded</small></article>
+          <article><span>Monthly operating cost</span><strong id="monthlyCosts">$0</strong><small>Recurring + current month one-time</small></article>
+          <article><span>Projected margin</span><strong id="margin">$0</strong><small>MRR minus tracked costs</small></article>
+          <article><span>AI cost this month</span><strong id="aiCost">$0</strong><small>Estimated model usage</small></article>
+        </div>
+
+        <div class="split-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">ACCOUNTS</p><h2>Workspace growth</h2></div></div>
+            <div class="compact-stats">
+              <div><span>Total accounts</span><strong id="accounts">0</strong></div>
+              <div><span>Free</span><strong id="freeAccounts">0</strong></div>
+              <div><span>Pro active</span><strong id="proAccounts">0</strong></div>
+              <div><span>Past due / unpaid</span><strong id="pastDue">0</strong></div>
+            </div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">PRODUCT</p><h2>Usage snapshot</h2></div></div>
+            <div class="compact-stats">
+              <div><span>Estimates</span><strong id="estimates">0</strong></div>
+              <div><span>Invoices</span><strong id="invoices">0</strong></div>
+              <div><span>Accepted estimates</span><strong id="accepted">0</strong></div>
+              <div><span>Material leads</span><strong id="materialLeads">0</strong></div>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>Billing events</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>Status</th><th>Amount</th></tr></thead><tbody id="billingEventRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="subscriptions">
+        <article class="panel">
+          <div class="panel-head">
+            <div><p class="eyebrow">STRIPE + SUPABASE</p><h2>Subscription control</h2><p>Entitlements synchronized by billing webhooks.</p></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Account</th><th>Email</th><th>Status</th><th>Monthly</th><th>Period end</th><th>Stripe subscription</th></tr></thead><tbody id="subscriptionRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="costs">
+        <div class="split-grid cost-layout">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">OPERATING EXPENSES</p><h2>Add platform cost</h2></div></div>
+            <div class="form-grid">
+              <label>Category<select id="costCategory"><option>Hosting</option><option>Database</option><option>AI</option><option>Email</option><option>SMS</option><option>Payments</option><option>Domain</option><option>Software</option><option>Marketing</option><option>Other</option></select></label>
+              <label>Vendor<input id="costVendor" placeholder="Supabase, OpenAI, Resend..."></label>
+              <label>Description<input id="costDescription" placeholder="What is this expense?"></label>
+              <label>Amount ($)<input id="costAmount" type="number" min="0" step="0.01"></label>
+              <label>Cadence<select id="costCadence"><option value="monthly">Monthly</option><option value="annual">Annual</option><option value="one_time">One time</option></select></label>
+              <label>Date<input id="costDate" type="date"></label>
+            </div>
+            <label class="notes-label">Notes<textarea id="costNotes" rows="3"></textarea></label>
+            <button id="saveCost" class="btn gold" type="button">Add cost</button>
+            <p id="costMessage" class="form-message"></p>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">COST MODEL</p><h2>What to track</h2></div></div>
+            <div class="cost-guide">
+              <div><strong>Infrastructure</strong><span>Supabase, Cloudflare, domains</span></div>
+              <div><strong>Communications</strong><span>Resend, SMS provider</span></div>
+              <div><strong>AI variable cost</strong><span>Tokens / model usage per automation</span></div>
+              <div><strong>Payments</strong><span>Stripe fees and billing costs</span></div>
+              <div><strong>Acquisition</strong><span>Ads, commissions, lead generation</span></div>
+            </div>
+          </article>
+        </div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">LEDGER</p><h2>Tracked costs</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Description</th><th>Cadence</th><th>Amount</th></tr></thead><tbody id="costRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="ai">
+        <div class="ai-hero panel">
+          <div>
+            <p class="eyebrow">PRO DIFFERENTIATOR</p>
+            <h2>AI Revenue & Follow-up Automation</h2>
+            <p>The Pro plan is designed to move from document creation to intelligent follow-up: draft the right message, send at the right moment and track the outcome.</p>
+          </div>
+          <div class="ai-badge">PRO + AI</div>
+        </div>
+        <div class="feature-grid">
+          <article><span>AI-01</span><h3>Email Assistant</h3><p>Generate professional estimate, invoice and project follow-up emails using document context.</p><strong>Architecture ready</strong></article>
+          <article><span>AI-02</span><h3>Estimate Follow-up</h3><p>Detect estimates without acceptance and prepare a personalized reminder automatically.</p><strong>Rules ready</strong></article>
+          <article><span>AI-03</span><h3>Acceptance Confirmation</h3><p>Send customer and contractor confirmation after an estimate is accepted.</p><strong>Event ready</strong></article>
+          <article><span>AI-04</span><h3>Smart Collections</h3><p>Draft invoice reminders based on due status, history and customer stage without aggressive language.</p><strong>Rules ready</strong></article>
+          <article><span>AI-05</span><h3>Payment Follow-up</h3><p>React to paid, failed or past-due billing events and create the appropriate customer communication.</p><strong>Webhook ready</strong></article>
+          <article><span>AI-06</span><h3>Manager Approval</h3><p>Choose Review mode before sending or Automatic mode for approved workflows.</p><strong>Control ready</strong></article>
+        </div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">AI USAGE</p><h2>Recent AI activity</h2></div><span id="aiActions">0 actions this month</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>Model</th><th>Status</th><th>Input</th><th>Output</th><th>Est. cost</th></tr></thead><tbody id="aiRows"></tbody></table></div>
+        </article>
+      </section>
+
+      <section class="tab-panel" data-panel="system">
+        <div class="feature-grid health-grid">
+          <article><span>AUTH</span><h3>Supabase Auth</h3><p>Company accounts, session persistence and tenant ownership.</p><strong>Active</strong></article>
+          <article><span>DATA</span><h3>Tenant RLS</h3><p>Company records isolated at database level.</p><strong>Active</strong></article>
+          <article><span>BILLING</span><h3>Stripe Billing</h3><p>Checkout, webhook entitlement and billing-event capture.</p><strong>Sandbox</strong></article>
+          <article><span>EMAIL</span><h3>Resend</h3><p>Authentication and document delivery through Pristine domain.</p><strong>Active</strong></article>
+          <article><span>AI</span><h3>OpenAI</h3><p>Automation data model is ready; API key/model connection is the remaining activation step.</p><strong>Setup required</strong></article>
+          <article><span>DEPLOY</span><h3>Cloudflare</h3><p>Static app and worker deployment from the GitHub main branch.</p><strong>Active</strong></article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="admin.js?v=1"></script>
+</body>
+</html>
