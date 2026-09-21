@@ -39,7 +39,8 @@ async function signUpAccount(){
   const company=$('#accountCompany').value.trim(),email=$('#accountEmail').value.trim(),password=$('#accountPassword').value;
   if(!company||!email||password.length<6)return setAccountMessage('Enter company name, valid email and a password with at least 6 characters.',true);
   setAccountMessage('Creating account...');
-  const {data,error}=await sb.auth.signUp({email,password,options:{data:{company_name:company}}});
+  const redirectTo=new URL('calculator.html',location.href).href;
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{company_name:company},emailRedirectTo:redirectTo}});
   if(error)return setAccountMessage(error.message,true);
   if(data.session){currentSession=data.session;await fetchCurrentPartner();await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('')}
   else setAccountMessage('Account created. Check your email to confirm, then sign in.');
@@ -56,6 +57,25 @@ async function signInAccount(){
 async function signOutAccount(){
   if(!sb)return;
   await sb.auth.signOut(); currentSession=null;currentPartner=null;updateAccountUI();renderSaved();$('#accountDialog')?.close();
+}
+async function requestAccountPasswordReset(){
+  if(!sb)return;
+  const email=($('#accountEmail')?.value||currentSession?.user?.email||'').trim();
+  if(!email)return setAccountMessage('Enter your email address first.',true);
+  setAccountMessage('Sending reset link...');
+  const redirectTo=new URL('calculator.html?reset=1',location.href).href;
+  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
+  if(error)return setAccountMessage(error.message,true);
+  setAccountMessage('Password reset email sent. Check your inbox.');
+}
+async function saveNewAccountPassword(){
+  const p=$('#newAccountPassword')?.value||'',c=$('#confirmAccountPassword')?.value||'',m=$('#resetPasswordMessage');
+  if(p.length<6||p!==c){if(m){m.textContent='Passwords must match and contain at least 6 characters.';m.classList.add('error')}return}
+  const {error}=await sb.auth.updateUser({password:p});
+  if(error){if(m){m.textContent=error.message;m.classList.add('error')}return}
+  if(m){m.textContent='Password updated successfully.';m.classList.remove('error')}
+  history.replaceState({},'',location.pathname);
+  setTimeout(()=>$('#resetPasswordDialog')?.close(),500);
 }
 function openAccountDialog(){
   const signed=Boolean(currentSession?.user),dlg=$('#accountDialog');if(!dlg)return;
@@ -103,6 +123,8 @@ async function initAccount(){
   const {data}=await sb.auth.getSession();currentSession=data.session||null;
   if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true)}
   updateAccountUI();
+  const q=new URLSearchParams(location.search);
+  if(q.get('reset')==='1'&&currentSession){setTimeout(()=>$('#resetPasswordDialog')?.showModal(),150)}
   sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true)}else currentPartner=null;updateAccountUI();renderSaved()});
 }
 
@@ -465,5 +487,7 @@ function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['dis
   const closeAccount=$('#closeAccountDialog');if(closeAccount)closeAccount.onclick=()=>$('#accountDialog').close();
   const signIn=$('#signInBtn');if(signIn)signIn.onclick=signInAccount;
   const signUp=$('#signUpBtn');if(signUp)signUp.onclick=signUpAccount;
-  const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;calc();initAccount();activateProFromCheckout().then(()=>verifyPro())}
+  const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;
+  const forgot=$('#forgotAccountPassword');if(forgot)forgot.onclick=requestAccountPasswordReset;
+  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;calc();initAccount();activateProFromCheckout().then(()=>verifyPro())}
 init();
