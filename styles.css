@@ -1629,3 +1629,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .ai-compose-row span{font-size:10px;color:#6d737b;line-height:1.4}
 #sendEmailMessage{resize:vertical;min-height:120px}
 @media(max-width:650px){.ai-compose-row{align-items:stretch;flex-direction:column}.ai-compose-row .btn{width:100%}}
+
+/* V200 Pro automation settings */
+.automation-dialog{width:min(760px,calc(100vw - 28px))}
+.automation-list{display:grid;gap:10px;margin:16px 0}
+.automation-rule{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:13px;border:1px solid #dfe3e7;border-radius:10px;background:#fafbfc}
+.automation-rule input{width:18px;height:18px}
+.automation-rule span{display:grid;gap:3px}
+.automation-rule strong{font-size:12px}
+.automation-rule small{font-size:10px;color:#707983;font-weight:500}
+.automation-rule select{min-width:120px;border:1px solid #d1d7dc;border-radius:8px;padding:8px;background:#fff}
+.automation-options{margin-top:12px}
+.ai-action-btn{font-size:10px!important}
+.footer-legal a{margin-right:10px}
+@media(max-width:650px){
+  .automation-rule{grid-template-columns:auto 1fr}
+  .automation-rule select{grid-column:2;width:100%}
+}
