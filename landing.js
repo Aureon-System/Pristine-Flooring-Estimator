@@ -89,6 +89,7 @@ $('#authEmail').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='reset
   if(hash.get('error_description')){openAuth('signin');setMessage(hash.get('error_description'),true)}
   const {data}=await sb.auth.getSession();
   const query=new URLSearchParams(location.search);
+  if(query.get('admin')==='1')postAuthTarget='admin.html';
   if(query.get('signin')==='1'||query.get('admin')==='1')openAuth('signin');
   if(data.session){
     const top=$('#openLoginTop');
