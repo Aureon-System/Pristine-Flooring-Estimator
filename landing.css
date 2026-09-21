@@ -103,3 +103,43 @@ dialog{border:0;border-radius:18px;padding:0;box-shadow:0 30px 90px #0004;width:
   .footer-pristine-logo{width:136px!important;height:56px!important}
   .aureon-lockup{min-width:170px}
 }
+
+/* V4 corrected web logo assets */
+.brand-shell,
+.footer-brand-shell{
+  background:transparent!important;
+  padding:0!important;
+  overflow:visible!important;
+}
+.landing-pristine-logo{
+  width:170px!important;
+  height:52px!important;
+  object-fit:contain!important;
+  object-position:left center!important;
+  transform:none!important;
+}
+.footer-pristine-logo{
+  width:160px!important;
+  height:52px!important;
+  object-fit:contain!important;
+  transform:none!important;
+}
+.aureon-lockup{
+  background:transparent!important;
+  border:0!important;
+  padding:0!important;
+  min-width:190px!important;
+  justify-content:flex-start!important;
+}
+.landing-aureon-logo{
+  width:175px!important;
+  height:48px!important;
+  object-fit:contain!important;
+  object-position:left center!important;
+}
+.aureon-lockup strong{display:none!important}
+@media(max-width:650px){
+  .landing-pristine-logo{width:126px!important;height:42px!important}
+  .footer-pristine-logo{width:145px!important;height:46px!important}
+  .landing-aureon-logo{width:155px!important;height:44px!important}
+}
