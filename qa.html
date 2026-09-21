@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Visual QA Hub · Pristine Flooring Estimator</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+:root{--ink:#111820;--muted:#6d7680;--gold:#b7893f;--bg:#f4f6f8;--card:#fff;--line:#dfe4e8;--ok:#1d7758;--soft:#f8f4ec}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:var(--bg);color:var(--ink)}
+header{background:#111820;color:#fff;padding:18px clamp(18px,4vw,56px);display:flex;align-items:center;justify-content:space-between;gap:18px}
+header img{width:150px;height:58px;object-fit:contain}
+header div{display:grid;gap:2px;text-align:right}
+header strong{font-size:12px;letter-spacing:.08em}
+header span{font-size:10px;color:#bfc6cd}
+main{max-width:1160px;margin:0 auto;padding:44px 20px 80px}
+.hero{display:grid;grid-template-columns:1.4fr .6fr;gap:24px;align-items:end;margin-bottom:30px}
+.eyebrow{font-size:10px;font-weight:900;letter-spacing:.14em;color:#986a2d;margin:0 0 8px}
+h1{font-size:46px;line-height:1.02;margin:0 0 12px}
+.hero p{color:var(--muted);max-width:720px;margin:0;line-height:1.6}
+.summary{background:#111820;color:#fff;border-radius:14px;padding:18px}
+.summary strong{display:block;font-size:24px}.summary span{font-size:10px;color:#bac2ca}
+section{margin-top:28px}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:16px;margin-bottom:12px}
+.section-head h2{margin:0;font-size:19px}.section-head p{margin:0;color:var(--muted);font-size:11px}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:17px;display:grid;gap:12px;min-width:0}
+.card-head{display:flex;justify-content:space-between;gap:10px;align-items:start}
+.badge{font-size:8px;font-weight:900;letter-spacing:.08em;padding:5px 7px;border-radius:999px;background:#edf1f4;color:#4f5a65;white-space:nowrap}
+.badge.live{background:#e9f5ef;color:var(--ok)}.badge.preview{background:var(--soft);color:#8a642f}.badge.auth{background:#eef1f7;color:#4b5b78}
+.card h3{font-size:15px;margin:0}.card p{font-size:11px;line-height:1.5;color:var(--muted);margin:0;min-height:48px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+a.btn{display:inline-flex;align-items:center;justify-content:center;min-height:40px;padding:9px 12px;border-radius:8px;text-decoration:none;font-size:10px;font-weight:850;border:1px solid #cfd5da;color:#222;background:#fff}
+a.btn.primary{background:var(--gold);border-color:var(--gold);color:#fff}
+a.btn.dark{background:#111820;border-color:#111820;color:#fff}
+.note{margin-top:28px;border:1px solid #e3d8c5;background:#fbf8f2;border-radius:12px;padding:16px;font-size:11px;line-height:1.6;color:#6a6257}
+footer{text-align:center;padding:24px;color:#818a93;font-size:10px}
+@media(max-width:900px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hero{grid-template-columns:1fr}h1{font-size:38px}}
+@media(max-width:620px){.grid{grid-template-columns:1fr}header{align-items:flex-start}header div{text-align:left}.card p{min-height:0}h1{font-size:34px}}
+</style>
+</head>
+<body>
+<header>
+<a href="/"><img src="assets/pristine-web.webp" alt="Pristine Flooring"></a>
+<div><strong>VISUAL QA HUB</strong><span>Internal preview · Pristine Flooring Estimator</span></div>
+</header>
+<main>
+<div class="hero">
+<div><p class="eyebrow">PRE-LAUNCH VISUAL REVIEW</p><h1>Review every product screen before final QA.</h1><p>Use this page to inspect the public experience, authenticated workspace, customer-facing documents, Pro checkout and administrative control center. Demo customer documents cannot change real data.</p></div>
+<div class="summary"><strong>11 views</strong><span>Public · Account · Client · Pro · Admin</span></div>
+</div>
+
+<section>
+<div class="section-head"><div><p class="eyebrow">PUBLIC EXPERIENCE</p><h2>Landing & account entry</h2></div><p>What a new visitor sees first.</p></div>
+<div class="grid">
+<article class="card"><div class="card-head"><h3>Landing page</h3><span class="badge live">LIVE</span></div><p>Hero, features, Free vs Pro positioning, Pristine branding, Aureon footer and primary conversion flow.</p><div class="actions"><a class="btn primary" href="/" target="_blank">Open landing</a></div></article>
+<article class="card"><div class="card-head"><h3>Sign in</h3><span class="badge auth">AUTH</span></div><p>Landing with the secure account dialog opened for an existing user.</p><div class="actions"><a class="btn primary" href="/?signin=1" target="_blank">Open sign in</a></div></article>
+<article class="card"><div class="card-head"><h3>Free / Pro plans</h3><span class="badge live">LIVE</span></div><p>Review the plan cards, Pro AI value proposition and upgrade CTA on the public page.</p><div class="actions"><a class="btn" href="/#plans" target="_blank">Open plans</a></div></article>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div><p class="eyebrow">COMPANY WORKSPACE</p><h2>Estimator & operations</h2></div><p>Requires a signed-in company account.</p></div>
+<div class="grid">
+<article class="card"><div class="card-head"><h3>Calculator workspace</h3><span class="badge auth">LOGIN</span></div><p>Client/project data, installation scope, add-ons, financial summary, saved documents, material quotes and company branding.</p><div class="actions"><a class="btn dark" href="/calculator.html" target="_blank">Open calculator</a></div></article>
+<article class="card"><div class="card-head"><h3>Pro AI tools</h3><span class="badge auth">LOGIN + PRO</span></div><p>AI email drafts, follow-up actions, invoice reminders, automation settings and review queue are inside the calculator.</p><div class="actions"><a class="btn dark" href="/calculator.html#growthTools" target="_blank">Open Pro area</a></div></article>
+<article class="card"><div class="card-head"><h3>Saved documents</h3><span class="badge auth">LOGIN</span></div><p>Workspace dashboard for customers, estimate value, invoice value, material leads and document actions.</p><div class="actions"><a class="btn" href="/calculator.html#documents" target="_blank">Open documents</a></div></article>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div><p class="eyebrow">CUSTOMER EXPERIENCE</p><h2>Client-facing documents</h2></div><p>Safe visual demos — no production record is changed.</p></div>
+<div class="grid">
+<article class="card"><div class="card-head"><h3>Client estimate</h3><span class="badge preview">DEMO</span></div><p>Customer view of an estimate, including contractor branding, scope, totals, notes, terms and acceptance area.</p><div class="actions"><a class="btn primary" href="/client-document.html?demo=estimate" target="_blank">Preview estimate</a></div></article>
+<article class="card"><div class="card-head"><h3>Client invoice</h3><span class="badge preview">DEMO</span></div><p>Customer-facing invoice layout without the estimate acceptance action.</p><div class="actions"><a class="btn primary" href="/client-document.html?demo=invoice" target="_blank">Preview invoice</a></div></article>
+<article class="card"><div class="card-head"><h3>Real client link</h3><span class="badge auth">PRO</span></div><p>Real secure document links are generated from a Pro estimate or invoice in the company workspace.</p><div class="actions"><a class="btn" href="/calculator.html#documents" target="_blank">Generate from workspace</a></div></article>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div><p class="eyebrow">BUSINESS CONTROL</p><h2>Billing & administration</h2></div><p>Owner / platform administration.</p></div>
+<div class="grid">
+<article class="card"><div class="card-head"><h3>Dev / Admin Center</h3><span class="badge auth">OWNER</span></div><p>MRR, ARR, subscriptions, costs, revenue, AI usage, automation metrics and system health.</p><div class="actions"><a class="btn dark" href="/admin.html" target="_blank">Open Admin</a><a class="btn" href="/?admin=1" target="_blank">Admin sign in</a></div></article>
+<article class="card"><div class="card-head"><h3>Stripe Pro checkout</h3><span class="badge preview">TEST MODE</span></div><p>Current Pro subscription checkout at $12.99/month. Use Stripe test payment data only.</p><div class="actions"><a class="btn primary" href="https://buy.stripe.com/test_00w3cvawF1MZ7nQh1p4c800" target="_blank" rel="noopener">Open checkout</a></div></article>
+</div>
+</section>
+
+<section>
+<div class="section-head"><div><p class="eyebrow">LEGAL & SUPPORT</p><h2>Supporting pages</h2></div><p>Public release requirements.</p></div>
+<div class="grid">
+<article class="card"><div class="card-head"><h3>Privacy Policy</h3><span class="badge live">LIVE</span></div><p>Data collection, account information, AI processing, service providers and privacy requests.</p><div class="actions"><a class="btn" href="/privacy.html" target="_blank">Open privacy</a></div></article>
+<article class="card"><div class="card-head"><h3>Terms of Service</h3><span class="badge live">LIVE</span></div><p>Estimator responsibility, Free/Pro plans, subscriptions, AI content and acceptable use.</p><div class="actions"><a class="btn" href="/terms.html" target="_blank">Open terms</a></div></article>
+<article class="card"><div class="card-head"><h3>Support</h3><span class="badge live">LIVE</span></div><p>Pristine support contact, WhatsApp, location and billing support guidance.</p><div class="actions"><a class="btn" href="/support.html" target="_blank">Open support</a></div></article>
+</div>
+</section>
+
+<div class="note"><strong>Recommended visual review order:</strong> Landing → Sign in → Calculator → Saved Documents → Pro tools → Client Estimate → Client Invoice → Admin → Stripe checkout → mobile review. During this pass, focus only on layout, text, navigation, branding, missing fields and usability. We will correct functionality immediately after the visual list is closed.</div>
+</main>
+<footer>Internal QA navigation · Pristine Flooring Estimator · 2026</footer>
+</body>
+</html>
