@@ -410,6 +410,38 @@ async function openEmailDialog(){
 }
 
 
+
+async function openAutomationSettings(){
+  if(!(proVerified||await verifyPro())){openPro('ai');return}
+  if(!currentPartner)return;
+  const {data,error}=await sb.from('ai_automation_rules').select('*').eq('partner_id',currentPartner.id);
+  if(error){alert(error.message);return}
+  const byKey=new Map((data||[]).map(x=>[x.rule_key,x]));
+  const set=(key,check,delay)=>{const r=byKey.get(key);if(check)$(check).checked=Boolean(r?.enabled);if(delay&&r?.delay_hours!=null)$(delay).value=String(r.delay_hours)};
+  set('estimate_followup','#autoEstimateFollowup','#autoEstimateDelay');
+  set('invoice_reminder','#autoInvoiceReminder','#autoInvoiceDelay');
+  set('acceptance_confirmation','#autoAcceptance');
+  set('payment_thanks','#autoPaymentThanks');
+  const sample=(data||[])[0];$('#automationApproval').value=sample?.approval_mode||'review';$('#automationTone').value=sample?.tone||'professional';
+  $('#automationMessage').textContent='';
+  $('#automationDialog').showModal();
+}
+async function saveAutomationSettings(){
+  if(!currentPartner)return;
+  const approval=$('#automationApproval').value,tone=$('#automationTone').value;
+  const rules=[
+    {rule_key:'estimate_followup',enabled:$('#autoEstimateFollowup').checked,trigger_event:'estimate_unaccepted',delay_hours:Number($('#autoEstimateDelay').value||48)},
+    {rule_key:'invoice_reminder',enabled:$('#autoInvoiceReminder').checked,trigger_event:'invoice_open',delay_hours:Number($('#autoInvoiceDelay').value||72)},
+    {rule_key:'acceptance_confirmation',enabled:$('#autoAcceptance').checked,trigger_event:'estimate_accepted',delay_hours:0},
+    {rule_key:'payment_thanks',enabled:$('#autoPaymentThanks').checked,trigger_event:'invoice_paid',delay_hours:0}
+  ].map(r=>({...r,partner_id:currentPartner.id,channel:'email',approval_mode:approval,tone,updated_at:new Date().toISOString()}));
+  $('#automationMessage').textContent='Saving...';
+  const {error}=await sb.from('ai_automation_rules').upsert(rules,{onConflict:'partner_id,rule_key'});
+  if(error){$('#automationMessage').textContent=error.message;return}
+  $('#automationMessage').textContent='Automation preferences saved.';
+  setTimeout(()=>$('#automationDialog')?.close(),500);
+}
+
 async function generateAiEmailDraft(){
   if(!(proVerified||await verifyPro())){openPro('ai');return}
   const s=currentForDocument();if(!s)return;
@@ -518,5 +550,5 @@ async function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus()
   const signUp=$('#signUpBtn');if(signUp)signUp.onclick=signUpAccount;
   const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;
   const forgot=$('#forgotAccountPassword');if(forgot)forgot.onclick=requestAccountPasswordReset;
-  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro()}
+  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
 init();
