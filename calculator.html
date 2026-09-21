@@ -7,7 +7,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=200" />
+  <link rel="stylesheet" href="styles.css?v=220" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -325,7 +325,10 @@
       <label class="automation-rule"><input id="autoEstimateFollowup" type="checkbox"><span><strong>Estimate follow-up</strong><small>Prepare a reminder when an estimate has not been accepted.</small></span><select id="autoEstimateDelay"><option value="24">After 1 day</option><option value="48" selected>After 2 days</option><option value="72">After 3 days</option><option value="120">After 5 days</option></select></label>
       <label class="automation-rule"><input id="autoInvoiceReminder" type="checkbox"><span><strong>Invoice reminder</strong><small>Prepare a professional payment reminder for open invoices.</small></span><select id="autoInvoiceDelay"><option value="24">After 1 day</option><option value="72" selected>After 3 days</option><option value="120">After 5 days</option><option value="168">After 7 days</option></select></label>
       <label class="automation-rule"><input id="autoAcceptance" type="checkbox"><span><strong>Acceptance confirmation</strong><small>Confirm when a customer accepts an estimate.</small></span></label>
-      <label class="automation-rule"><input id="autoPaymentThanks" type="checkbox"><span><strong>Payment confirmation</strong><small>Send a thank-you/confirmation after payment is recorded.</small></span></label>
+    </div>
+    <div class="automation-inbox">
+      <div class="automation-inbox-head"><div><strong>Review queue</strong><small>AI drafts waiting for approval before sending.</small></div><span id="automationReviewCount">0 pending</span></div>
+      <div id="automationReviewList"><p class="empty">No AI drafts waiting for review.</p></div>
     </div>
     <div class="form-grid cols-2 automation-options">
       <label>Approval mode<select id="automationApproval"><option value="review">Review before sending</option><option value="automatic">Automatic send</option></select></label>
@@ -358,6 +361,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=210"></script>
+<script src="app.js?v=220"></script>
 </body>
 </html>
