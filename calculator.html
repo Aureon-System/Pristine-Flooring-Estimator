@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Pristine Flooring Estimator</title>
+  <meta name="description" content="Free professional flooring estimate and invoice builder." />
+  <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
+  <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
+  <link rel="stylesheet" href="styles.css?v=180" />
+  <link rel="stylesheet" href="i18n.css?v=170" />
+</head>
+<body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
+<header class="app-header">
+  <div class="header-inner">
+    <a class="pristine-brand pristine-brand-image" href="/" aria-label="Pristine Flooring Estimator">
+      <img src="assets/pristine-logo.webp" alt="Pristine Flooring" width="150" height="60" />
+    </a>
+    <div class="workspace-title">
+      <span>PRISTINE TOOL</span>
+      <strong>Flooring Estimator</strong>
+    </div>
+    <div class="header-actions">
+      <button id="newDocBtn" class="btn btn-ghost" type="button">New estimate</button>
+      <button id="upgradeProBtn" class="btn btn-ghost pro-header-btn" type="button">Pro · $12.99</button>
+      <button id="accountBtn" class="btn btn-ghost account-btn" type="button">Sign in</button>
+      <button id="brandBtn" class="btn btn-gold" type="button">Your company brand</button>
+    </div>
+  </div>
+</header>
+
+<nav class="workspace-nav" aria-label="Estimator navigation">
+  <a href="#builderStart">Estimate</a>
+  <a href="#documents">Documents</a>
+  <a href="#growthTools">Materials & Pro</a>
+  <button id="navBrandBtn" type="button">My Brand</button>
+</nav>
+
+<main id="top" class="shell">
+  <section id="accountStatusBar" class="account-status guest">
+    <div>
+      <strong id="accountStatusTitle">Guest workspace</strong>
+      <span id="accountStatusText">Saved on this device. Sign in to sync and keep each company separate.</span>
+    </div>
+    <button id="accountStatusBtn" class="btn btn-secondary" type="button">Sign in / Create account</button>
+  </section>
+  <section class="language-panel" aria-labelledby="languageHeading">
+    <div>
+      <p id="languageHeading" class="language-caption">Interface language</p>
+      <p id="documentLanguageHint">Client documents: always in English.</p>
+    </div>
+    <label for="languageSelect">
+      <span class="visually-hidden">Language</span>
+      <select id="languageSelect" aria-label="Language" aria-describedby="documentLanguageHint">
+        <option value="en" lang="en">English</option>
+        <option value="pt" lang="pt-BR">Português</option>
+        <option value="es" lang="es">Español</option>
+      </select>
+    </label>
+  </section>
+  <section class="intro">
+    <div>
+      <p class="kicker">FREE PROFESSIONAL ESTIMATING TOOL</p>
+      <h1>Create a flooring estimate in minutes.</h1>
+      <p class="intro-copy">Calculate material, installation and add-ons, then create a professional Estimate or Invoice in English — with your company brand.</p>
+    </div>
+    <div class="intro-badges">
+      <span>✓ No signup</span><span>✓ Built for mobile</span><span>✓ PDF ready</span><span>✓ Your company brand</span>
+    </div>
+  </section>
+  <p id="documentEnglishHint" class="document-english-hint" data-i18n>Enter client-facing descriptions, notes and terms in English. Your entries are not automatically translated.</p>
+
+  <section class="workspace-grid">
+    <div class="builder-column">
+      <article id="builderStart" class="panel">
+        <div class="section-heading"><span>01</span><div><h2>Client &amp; project</h2><p>Information shown on the partner-branded Estimate or Invoice.</p></div></div>
+        <div class="form-grid cols-2">
+          <label>Client / company name<input id="clientName" type="text" placeholder="Client or company name" /></label>
+          <label>Project name<input id="projectName" type="text" placeholder="Project name" /></label>
+          <label>Email<input id="clientEmail" type="email" placeholder="client@email.com" /></label>
+          <label>Phone<input id="clientPhone" type="tel" placeholder="(555) 555-5555" /></label>
+          <label class="span-2">Project / billing address<input id="projectAddress" type="text" placeholder="Project address" /></label>
+          <label>Document no.<input id="documentNo" type="text" /></label>
+          <label>Issue date<input id="issueDate" type="date" /></label>
+          <label>Valid through<input id="validThrough" type="date" /></label>
+          <label>Document type<select id="documentType"><option value="ESTIMATE">Estimate</option><option value="INVOICE">Invoice</option></select></label>
+        </div>
+      </article>
+
+      <article class="panel">
+        <div class="section-heading"><span>02</span><div><h2>Installation scope</h2><p>Add one or more areas. Internal costs stay off client documents.</p></div></div>
+        <div id="areas" class="stack"></div>
+        <button id="addAreaBtn" class="btn btn-secondary" type="button">+ Add installation area</button>
+        <p class="microcopy">Pattern surcharges affect selling price only. Confirm field conditions and total daily crew cost before quoting.</p>
+      </article>
+
+      <article class="panel">
+        <div class="section-heading"><span>03</span><div><h2>Add-ons &amp; preparation</h2><p>Choose common flooring work quickly, then adjust quantity and pricing.</p></div></div>
+        <div class="addon-picker">
+          <select id="addonPreset">
+            <option value="">Select work type...</option>
+          </select>
+          <button id="addPresetBtn" class="btn btn-secondary" type="button">Add service</button>
+        </div>
+        <div id="quickAdd" class="quick-add"></div>
+        <div id="addons" class="stack compact"></div>
+        <button id="addCustomAddonBtn" class="btn btn-link" type="button">+ Custom work</button>
+      </article>
+
+      <article class="panel">
+        <div class="section-heading"><span>04</span><div><h2>Adjustments &amp; terms</h2><p>Final commercial adjustments and client-facing notes.</p></div></div>
+        <div class="form-grid cols-3">
+          <label>Discount ($)<input id="discount" type="number" min="0" step="0.01" value="0" /></label>
+          <label>Tax rate (%)<input id="taxRate" type="number" min="0" step="0.01" value="0" /></label>
+          <label class="internal-field">Other internal costs ($)<input id="otherInternalCosts" type="number" min="0" step="0.01" value="0" /></label>
+        </div>
+        <div class="form-grid cols-2 notes-grid">
+          <label>Client-facing notes<textarea id="clientNotes" rows="5" placeholder="Scope clarifications, exclusions, scheduling notes..."></textarea></label>
+          <label>Terms &amp; payment instructions<textarea id="terms" rows="5">Labor only unless otherwise specified. Materials, removal, disposal and final cleaning are excluded unless listed. Additional work requires written approval.</textarea></label>
+        </div>
+      </article>
+    </div>
+
+    <aside class="summary-column">
+      <div class="summary-card">
+        <div class="summary-label">PROJECT TOTAL</div>
+        <div class="summary-type" id="summaryType">Estimate</div>
+        <div class="total-value" id="grandTotal">$0.00</div>
+        <div class="summary-lines">
+          <div><span>Installation</span><strong id="installationSell">$0.00</strong></div>
+          <div><span>Materials</span><strong id="materialSell">Not included</strong></div>
+          <div><span>Add-ons</span><strong id="addonsSell">$0.00</strong></div>
+          <div><span>Duration</span><strong id="durationView">0 work days</strong></div>
+          <div><span>Discount</span><strong id="discountView">− $0.00</strong></div>
+          <div><span>Tax</span><strong id="taxView">$0.00</strong></div>
+        </div>
+        <div class="summary-actions">
+          <button id="sendDocEmailBtn" class="btn btn-email full" type="button">Email estimate to customer</button>
+          <button id="downloadBtn" class="btn btn-gold full" type="button">Download estimate PDF</button>
+          <div class="action-row"><button id="saveBtn" class="btn btn-dark full" type="button">Save document</button><button id="previewBtn" class="btn btn-dark full" type="button">Preview</button></div>
+          <button id="convertBtn" class="btn btn-outline-light full" type="button">Create invoice</button>
+        </div>
+      </div>
+
+      <div class="margin-card">
+        <div class="internal-badge">INTERNAL · NEVER ON CLIENT PDF</div>
+        <h3>Cost breakdown</h3>
+        <div class="margin-lines">
+          <div><span>Crew &amp; material costs</span><strong id="internalCosts">$0.00</strong></div>
+          <div><span>Other internal costs</span><strong id="otherCostsView">$0.00</strong></div>
+          <div><span>Job contribution</span><strong id="contribution">$0.00</strong></div>
+          <div><span>Contribution margin</span><strong id="marginPct">0.0%</strong></div>
+        </div>
+        <p>Before fixed overhead and income tax.</p>
+      </div>
+
+      <div id="brandSettings" class="brand-card">
+        <div class="brand-card-icon">B</div>
+        <div><span>PARTNER BRAND</span><strong id="brandStatus">No company brand set</strong><p>Client PDFs show only the issuing partner's brand.</p></div>
+        <button id="brandCardBtn" class="btn btn-link" type="button">Edit brand</button>
+      </div>
+
+      <div id="growthTools" class="growth-card">
+        <div class="growth-card-head">
+          <span>SALES TOOLS</span>
+          <strong>Material quotes are free. Automation is Pro.</strong>
+          <p>Request material pricing from Pristine at no charge. Email, client view, SMS and follow-up require Pro.</p>
+        </div>
+        <button id="materialQuoteBtn" class="btn btn-gold full" type="button">Request material quote</button>
+        <button id="proToolsBtn" class="btn btn-dark full" type="button">Explore Pro tools · $12.99/mo</button>
+      </div>
+    </aside>
+  </section>
+
+  <section id="documents" class="saved-panel panel">
+    <div class="saved-head"><div><p class="kicker" id="workspaceModeLabel">LOCAL WORKSPACE</p><h2>Saved documents</h2><p id="workspaceModeText">Open the estimate, review it, then edit, print, email or convert it into an invoice.</p></div><button id="clearDocsBtn" class="btn btn-link danger" type="button">Clear saved documents</button></div>
+    <div class="stats-row workspace-stats grouped-stats">
+      <div class="workspace-stat-card">
+        <span class="stat-label">Customers</span>
+        <strong id="statCustomers">0</strong>
+        <small>Unique customers</small>
+      </div>
+      <div class="workspace-stat-card estimate-stat-card">
+        <span class="stat-label">Estimates</span>
+        <div class="stat-pair"><div><small>Documents</small><strong id="statEstimates">0</strong></div><div><small>Estimated value</small><strong id="statEstimateValue">$0.00</strong></div></div>
+      </div>
+      <div class="workspace-stat-card invoice-stat-card">
+        <span class="stat-label">Invoices</span>
+        <div class="stat-pair"><div><small>Documents</small><strong id="statInvoices">0</strong></div><div><small>Invoiced value</small><strong id="statInvoiceValue">$0.00</strong></div></div>
+      </div>
+      <div class="workspace-stat-card">
+        <span class="stat-label">Material leads</span>
+        <strong id="statMaterialLeads">0</strong>
+        <small>Quote requests</small>
+      </div>
+    </div>
+    <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
+  </section>
+
+  <section class="pristine-cta pristine-cta-branded">
+    <div class="pristine-cta-logo"><img src="assets/pristine-logo.webp" alt="Pristine Flooring" loading="lazy" /></div>
+    <div>
+      <p class="kicker light">PRISTINE FLOORING</p>
+      <h2>Estimate the work. Source the flooring.</h2>
+      <p>The estimator is free. Pristine can help turn project quantities into a material order.</p><p class="pristine-contact">7861 Venture Center Way, Boynton Beach, FL · 561-806-3322</p><p class="site-address"><a href="https://pristineflooring.online" target="_blank" rel="noopener">pristineflooring.online</a></p>
+    </div>
+    <div class="cta-buttons"><a class="btn btn-gold" href="https://wa.me/15618063322" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-light" href="tel:+15618063322">Call Pristine</a></div>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <div class="footer-unified footer-live-logos">
+    <div class="footer-pristine-mark"><img src="assets/pristine-logo.webp" alt="Pristine Flooring" loading="lazy" /></div>
+    <span class="footer-rule" aria-hidden="true"></span>
+    <div class="footer-powered"><strong>Powered by Aureon Ecosystem</strong><span>Business tools for growing companies</span></div>
+    <div class="footer-ecosystem" aria-label="Aureon Ecosystem products">
+      <div class="eco-logo eco-aureon"><img src="assets/aureon-logo.webp" alt="Aureon" loading="lazy" /></div>
+      <div class="eco-logo eco-thrivo"><img src="assets/thrivo-logo.webp" alt="Thrivo" loading="lazy" /></div>
+      <div class="eco-logo eco-b2b"><img src="assets/b2bgrow-logo.webp" alt="B2B Grow" loading="lazy" /></div>
+      <div class="eco-logo eco-track"><img src="assets/trackgo-logo.webp" alt="Track and Go" loading="lazy" /></div>
+    </div>
+    <div class="footer-legal"><div><a href="#">Privacy</a><a href="#">Terms</a><a href="#">Support</a></div><small>© 2026 Pristine Flooring</small></div>
+  </div>
+</footer>
+
+<div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div></div>
+
+<dialog id="accountDialog">
+  <form class="brand-dialog account-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">SECURE WORKSPACE</p><h2>Sign in or create your company account</h2></div><button id="closeAccountDialog" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">A free account keeps your estimates and invoices synced and separates your company data from other users. You can still use the estimator as a guest on this device.</p>
+    <div class="form-grid cols-2">
+      <label class="span-2">Company name<input id="accountCompany" type="text" placeholder="Your Company LLC" autocomplete="organization" /></label>
+      <label class="span-2">Email<input id="accountEmail" type="email" placeholder="you@company.com" autocomplete="email" /></label>
+      <label class="span-2">Password<input id="accountPassword" type="password" placeholder="At least 6 characters" autocomplete="current-password" /></label>
+    </div>
+    <p id="accountMessage" class="account-message" role="status"></p>
+    <div class="dialog-actions account-actions">
+      <button id="signInBtn" class="btn btn-dark" type="button">Sign in</button>
+      <button id="signUpBtn" class="btn btn-gold" type="button">Create free account</button>
+      <button id="signOutBtn" class="btn btn-secondary hidden" type="button">Sign out</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="brandDialog">
+  <form method="dialog" class="brand-dialog">
+    <div class="dialog-head"><div><p class="kicker">PARTNER BRANDING</p><h2>Your company on the document</h2></div><button class="icon-btn" value="cancel" aria-label="Close">×</button></div>
+    <p class="dialog-note">Estimate and Invoice PDFs are issued with your partner/company information only. Pristine and Aureon are not shown on client documents.</p>
+    <div class="brand-logo-upload">
+      <div id="brandLogoPreview" class="logo-preview">LOGO</div>
+      <label class="upload-label">Company logo<input id="brandLogoInput" type="file" accept="image/png,image/jpeg,image/webp" /></label>
+      <button id="removeBrandLogo" class="btn btn-link" type="button">Remove logo</button>
+    </div>
+    <div class="form-grid cols-2">
+      <label>Company name<input id="brandName" type="text" placeholder="Your Company LLC" /></label>
+      <label>Phone<input id="brandPhone" type="tel" placeholder="(555) 555-5555" /></label>
+      <label>Email<input id="brandEmail" type="email" placeholder="office@company.com" /></label>
+      <label>License / registration<input id="brandLicense" type="text" placeholder="Optional" /></label>
+      <label class="span-2">Company address<input id="brandAddress" type="text" placeholder="Optional" /></label>
+    </div>
+    <div class="dialog-actions"><button id="saveBrandBtn" class="btn btn-gold" value="default">Save company brand</button></div>
+  </form>
+</dialog>
+
+<dialog id="materialQuoteDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">PRISTINE MATERIAL QUOTE</p><h2>Turn this estimate into a material lead</h2></div><button id="closeMaterialQuote" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">Project quantities are pulled from the estimator. Review the information below before sending it to Pristine Flooring.</p>
+    <div class="quote-metric">
+      <div><span>Measured area</span><strong id="quoteMeasuredSqft">0 sqft</strong></div>
+      <div><span>Required material</span><strong id="quoteRequiredSqft">0 sqft</strong></div>
+    </div>
+    <div class="form-grid cols-2">
+      <label>Material requested<select id="quoteMaterial"></select></label>
+      <label>Waste allowance (%)<input id="quoteWaste" type="number" min="0" max="50" step="1" value="10" /></label>
+      <label>Company / requester<input id="quoteCompany" type="text" placeholder="Your company or name" /></label>
+      <label>Phone<input id="quotePhone" type="tel" placeholder="(555) 555-5555" /></label>
+      <label>Email<input id="quoteEmail" type="email" placeholder="you@company.com" /></label>
+      <label>Project name<input id="quoteProject" type="text" /></label>
+      <label class="span-2">Project address<input id="quoteAddress" type="text" /></label>
+      <label class="span-2">Material notes<textarea id="quoteNotes" rows="4" placeholder="Color, size, finish, delivery timing, preferred product..."></textarea></label>
+    </div>
+    <label class="consent-row"><input id="quoteConsent" type="checkbox" /> <span>I authorize sharing these project details with Pristine Flooring for material pricing.</span></label>
+    <div class="dialog-actions split-actions"><button id="cancelMaterialQuote" class="btn btn-secondary" type="button">Cancel</button><button id="sendMaterialQuoteBtn" class="btn btn-gold" type="button">Send quote request</button></div>
+  </form>
+</dialog>
+
+<dialog id="proDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">PRISTINE ESTIMATOR PRO</p><h2 id="proFeatureTitle">Pro feature</h2></div><button id="closeProDialog" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p id="proFeatureCopy" class="dialog-note">This feature is available in the Pro plan.</p>
+    <div class="pro-price"><strong>$12.99</strong><span>/ month</span><small>Cancel anytime · Free estimator remains available</small></div>
+    <div class="pro-benefits">
+      <div>✓ Send estimates and invoices from the platform</div>
+      <div>✓ Branded customer communication</div>
+      <div>✓ Delivery and follow-up history</div>
+      <div>✓ Future client acceptance and payment links</div>
+    </div>
+    <div class="dialog-actions split-actions"><button id="cancelProDialog" class="btn btn-secondary" type="button">Not now</button><button id="proInterestBtn" class="btn btn-gold" type="button">Join early access</button></div>
+  </form>
+</dialog>
+
+<dialog id="emailDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">SEND TO CUSTOMER</p><h2>Email estimate / invoice</h2></div><button id="closeEmailDialog" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">The customer receives a secure web link to view the document. Estimate links can be accepted online.</p>
+    <div class="form-grid cols-2">
+      <label>Customer email<input id="sendEmailTo" type="email" placeholder="client@email.com" /></label>
+      <label>Customer name<input id="sendEmailName" type="text" placeholder="Customer name" /></label>
+      <label class="span-2">Email subject<input id="sendEmailSubject" type="text" /></label>
+    </div>
+    <div class="dialog-actions split-actions"><button id="cancelEmailDialog" class="btn btn-secondary" type="button">Cancel</button><button id="sendEmailNowBtn" class="btn btn-gold" type="button">Send email</button></div>
+  </form>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="billing-config.js"></script>
+<script src="locales.js?v=170"></script>
+<script src="i18n.js?v=170"></script>
+<script src="app.js?v=180"></script>
+</body>
+</html>
