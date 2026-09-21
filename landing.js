@@ -1,5 +1,6 @@
 const SUPABASE_URL='https://lueomnmkbbrllxbnpxph.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
+const PRISTINE_API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristine-api';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
 let mode='signin';
@@ -37,20 +38,34 @@ async function signUp(){
   const company=$('#authCompany').value.trim(),email=$('#authEmail').value.trim(),password=$('#authPassword').value;
   if(!company||!email||password.length<6)return setMessage('Enter company name, a valid email and a password with at least 6 characters.',true);
   setMessage('Creating account...');
-  const redirectTo=new URL('calculator.html',location.href).href;
-  const {data,error}=await sb.auth.signUp({email,password,options:{data:{company_name:company},emailRedirectTo:redirectTo}});
-  if(error)return setMessage(error.message,true);
-  if(data.session){setMessage('Account created. Opening your workspace...');goToCalculator()}
-  else setMessage('Account created. Check your email to confirm the account, then return here to sign in.');
+  try{
+    const r=await fetch(PRISTINE_API+'?action=auth-signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({company,email,password,website:''})});
+    const d=await r.json();
+    if(!r.ok||!d.ok)return setMessage(d.error||'Could not create account.',true);
+    setMessage('Account created. We sent a confirmation email from Pristine Estimator. Check your inbox and spam folder.');
+  }catch(e){setMessage('Could not create account. Please try again.',true)}
 }
 async function resetPassword(){
   const email=$('#authEmail').value.trim();
   if(!email)return setMessage('Enter your email address first.',true);
   setMessage('Sending reset link...');
-  const redirectTo=new URL('calculator.html?reset=1',location.href).href;
-  const {error}=await sb.auth.resetPasswordForEmail(email,{redirectTo});
-  if(error)return setMessage(error.message,true);
-  setMessage('Password reset email sent. Check your inbox.');
+  try{
+    const r=await fetch(PRISTINE_API+'?action=auth-recovery',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();
+    if(!r.ok||!d.ok)return setMessage(d.error||'Could not send reset email.',true);
+    setMessage('Password reset email sent from Pristine Estimator. Check your inbox and spam folder.');
+  }catch(e){setMessage('Could not send reset email. Please try again.',true)}
+}
+async function resendConfirmation(){
+  const email=$('#authEmail').value.trim();
+  if(!email)return setMessage('Enter your email address first.',true);
+  setMessage('Sending confirmation email...');
+  try{
+    const r=await fetch(PRISTINE_API+'?action=auth-access-link',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json();
+    if(!r.ok||!d.ok)return setMessage(d.error||'Could not send confirmation email.',true);
+    setMessage('Confirmation/sign-in email sent from Pristine Estimator. Check your inbox and spam folder.');
+  }catch(e){setMessage('Could not send confirmation email. Please try again.',true)}
 }
 async function primary(){if(mode==='signin')return signIn();if(mode==='signup')return signUp();return resetPassword()}
 function bind(id,fn){const el=$(id);if(el)el.addEventListener('click',fn)}
@@ -64,6 +79,7 @@ bind('#closeAuth',()=>$('#authDialog').close());
 bind('#authPrimaryBtn',primary);
 bind('#toggleAuthMode',()=>setMode(mode==='signin'?'signup':'signin'));
 bind('#forgotPasswordBtn',()=>setMode('reset'));
+bind('#resendConfirmationBtn',resendConfirmation);
 $('#authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')primary()});
 $('#authEmail').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='reset')primary()});
 
