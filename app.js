@@ -292,8 +292,8 @@ function convertPendingEstimateToInvoice(){
   return true;
 }
 window.convertPendingEstimateToInvoice=convertPendingEstimateToInvoice;
-function emailSavedDocument(d){
-  requirePro('email',()=>{loadSavedDocument(d,false);openEmailDialog()});
+function emailSavedDocument(d,purpose=null,autoGenerate=false){
+  requirePro('email',()=>{loadSavedDocument(d,false);openEmailDialog(purpose,autoGenerate)});
 }
 function renderSaved(){
   const docs=loadDocs(),box=$('#savedDocs');
@@ -316,10 +316,11 @@ function renderSaved(){
   docs.forEach(d=>{
     const row=document.createElement('div');
     row.className='saved-item saved-item-managed';
-    row.innerHTML=`<div><div class="doc-type">${esc(d.type)}</div><strong>${esc(d.documentNo||'-')}</strong>${d.sourceEstimateNo?`<small>From ${esc(d.sourceEstimateNo)}</small>`:''}</div><div><strong>${esc(d.client?.name||'Unnamed client')}</strong><small>${esc(d.client?.project||'')}</small></div><span>${d.issueDate||''}</span><strong>${money(d.total)}</strong><div class="saved-actions"><button class="btn btn-secondary saved-edit" type="button">Edit</button><button class="btn btn-secondary saved-pdf" type="button">PDF</button><button class="btn btn-pro-email saved-email" type="button"><span>PRO</span>Email</button>${d.type==='ESTIMATE'?'<button class="btn btn-gold saved-convert" type="button">Create invoice</button>':''}</div>`;
+    row.innerHTML=`<div><div class="doc-type">${esc(d.type)}</div><strong>${esc(d.documentNo||'-')}</strong>${d.sourceEstimateNo?`<small>From ${esc(d.sourceEstimateNo)}</small>`:''}</div><div><strong>${esc(d.client?.name||'Unnamed client')}</strong><small>${esc(d.client?.project||'')}</small></div><span>${d.issueDate||''}</span><strong>${money(d.total)}</strong><div class="saved-actions"><button class="btn btn-secondary saved-edit" type="button">Edit</button><button class="btn btn-secondary saved-pdf" type="button">PDF</button><button class="btn btn-pro-email saved-email" type="button"><span>PRO</span>Email</button><button class="btn btn-secondary ai-action-btn saved-ai" type="button">✦ ${d.type==='ESTIMATE'?'AI follow-up':'AI reminder'}</button>${d.type==='ESTIMATE'?'<button class="btn btn-gold saved-convert" type="button">Create invoice</button>':''}</div>`;
     row.querySelector('.saved-edit').onclick=()=>loadSavedDocument(d,true);
     row.querySelector('.saved-pdf').onclick=()=>previewDocument(d,true);
     row.querySelector('.saved-email').onclick=()=>emailSavedDocument(d);
+    const aiBtn=row.querySelector('.saved-ai');if(aiBtn)aiBtn.onclick=()=>emailSavedDocument(d,d.type==='ESTIMATE'?'estimate_followup':'invoice_reminder',true);
     const convert=row.querySelector('.saved-convert');if(convert)convert.onclick=()=>convertSavedToInvoice(d);
     box.append(row);
   });
@@ -394,11 +395,13 @@ async function sendMaterialQuote(){
   }
 }
 let currentProFeature='pro';
+let currentAiPurpose=null;
 let pendingCloudDocument=null;
 
-async function openEmailDialog(){
+async function openEmailDialog(purpose=null,autoGenerate=false){
   if(!(proVerified||await verifyPro())){openPro('email');return}
   const s=currentForDocument(); if(!s)return;
+  currentAiPurpose=purpose||null;
   if(!s.client.email){alert('Add the customer email before sending.');return}
   $('#sendEmailTo').value=s.client.email||'';
   $('#sendEmailName').value=s.client.name||'';
@@ -407,6 +410,7 @@ async function openEmailDialog(){
   const aiStatus=$('#aiEmailStatus');if(aiStatus)aiStatus.textContent='AI drafts are editable before sending.';
   pendingCloudDocument=null;
   $('#emailDialog').showModal();
+  if(autoGenerate)setTimeout(()=>generateAiEmailDraft(),100);
 }
 
 
@@ -448,7 +452,7 @@ async function generateAiEmailDraft(){
   const btn=$('#generateAiEmailBtn'),status=$('#aiEmailStatus');
   if(btn){btn.disabled=true;btn.textContent='Generating...'}if(status)status.textContent='Creating a professional draft from this document...';
   try{
-    const purpose=s.type==='INVOICE'?'invoice_send':'estimate_send';
+    const purpose=currentAiPurpose||(s.type==='INVOICE'?'invoice_send':'estimate_send');
     const r=await fetch(PRISTINE_API+'?action=ai-compose',{
       method:'POST',headers:apiHeaders(),
       body:JSON.stringify({purpose,document:s,brand:loadBrand()})
@@ -550,5 +554,5 @@ async function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus()
   const signUp=$('#signUpBtn');if(signUp)signUp.onclick=signUpAccount;
   const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;
   const forgot=$('#forgotAccountPassword');if(forgot)forgot.onclick=requestAccountPasswordReset;
-  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
+  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',()=>openEmailDialog());const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
 init();
