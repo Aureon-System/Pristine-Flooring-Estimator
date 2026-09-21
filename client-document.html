@@ -26,18 +26,62 @@
 const API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristine-api';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)||0);
-const token=new URLSearchParams(location.search).get('token');
+const params=new URLSearchParams(location.search);
+const token=params.get('token');
+const demo=params.get('demo');
+const isDemo=demo==='estimate'||demo==='invoice';
 let doc=null;
+const demoDocument={
+  id:'demo-document',
+  document_type:demo==='invoice'?'INVOICE':'ESTIMATE',
+  document_no:demo==='invoice'?'INV-DEMO-1048':'EST-DEMO-1048',
+  status:demo==='invoice'?'sent':'viewed',
+  project_name:'Living Room & Kitchen Flooring',
+  project_address:'Sample Project · Boynton Beach, FL',
+  total:8420,
+  public_token:'demo',
+  payload:{
+    brand:{
+      name:'Atlas Flooring LLC',
+      address:'Boynton Beach, FL',
+      phone:'(561) 555-0188',
+      email:'hello@atlasflooring.example'
+    },
+    client:{
+      name:'Jordan Miller',
+      email:'jordan@example.com',
+      phone:'(561) 555-0132',
+      project:'Living Room & Kitchen Flooring',
+      address:'Sample Project · Boynton Beach, FL'
+    },
+    areas:[
+      {description:'Living room installation',material:'Luxury vinyl plank (LVP)',pattern:'Straight',sqft:780,laborSell:3900,matSell:0},
+      {description:'Kitchen installation',material:'Luxury vinyl plank (LVP)',pattern:'Straight',sqft:340,laborSell:1700,matSell:0}
+    ],
+    addons:[
+      {name:'Floor preparation',qty:1120,unit:'sqft',sell:1120},
+      {name:'Baseboard installation',qty:300,unit:'lf',sell:900}
+    ],
+    baseSell:7620,
+    discount:0,
+    taxRate:0,
+    tax:0,
+    total:8420,
+    clientNotes:'Installation includes normal floor preparation and cleanup. Furniture must be removed before installation unless otherwise listed.',
+    terms:'Pricing is based on the scope shown above. Additional work requires written approval.'
+  }
+};
 function render(d){
  doc=d;const p=d.payload||{},b=p.brand||{},c=p.client||{},areas=p.areas||[],addons=(p.addons||[]).filter(a=>Number(a.sell||0)>0);
  const rows=areas.map(a=>'<tr><td><strong>'+esc(a.description||'Floor installation')+'</strong><br><span class="muted">'+esc(a.material||'')+' · '+esc(a.pattern||'')+'</span></td><td>'+Math.round(Number(a.sqft||0)).toLocaleString()+' sqft</td><td>'+money(Number(a.laborSell||0)+Number(a.matSell||0))+'</td></tr>').join('')+
  addons.map(a=>'<tr><td>'+esc(a.name)+'</td><td>'+esc(a.qty)+' '+esc(a.unit)+'</td><td>'+money(a.sell)+'</td></tr>').join('');
  const logo=b.logoData?'<img src="'+b.logoData+'" alt="Company logo">':'';
- const status=d.status==='accepted'?'<span class="status">Accepted ✓</span>':(d.document_type==='ESTIMATE'?'<button id="acceptBtn" type="button">Accept estimate</button>':'');
+ const status=d.status==='accepted'?'<span class="status">Accepted ✓</span>':(d.document_type==='ESTIMATE'?(isDemo?'<button type="button" disabled title="Preview only">Accept estimate · preview</button>':'<button id="acceptBtn" type="button">Accept estimate</button>'):'');
  document.getElementById('app').innerHTML='<div class="head"><div class="issuer">'+logo+'<div><strong>'+esc(b.name||'Project Document')+'</strong><div class="muted">'+esc([b.address,b.phone,b.email,b.license].filter(Boolean).join(' · '))+'</div></div></div><div class="docmeta"><b>'+esc(d.document_type)+' '+esc(d.document_no)+'</b><span>Project document</span></div></div><div class="body"><div class="grid"><div><small>Client</small>'+esc(c.name||'-')+'<br><span class="muted">'+esc(c.email||'')+' '+esc(c.phone||'')+'</span></div><div><small>Project</small>'+esc(d.project_name||c.project||'-')+'<br><span class="muted">'+esc(d.project_address||c.address||'')+'</span></div></div><table><thead><tr><th>Scope</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody></table><div class="totals"><div><span>Subtotal</span><b>'+money(p.baseSell||0)+'</b></div><div><span>Discount</span><b>− '+money(p.discount||0)+'</b></div>'+(Number(p.taxRate||0)>0?'<div><span>Tax</span><b>'+money(p.tax||0)+'</b></div>':'')+'<div class="grand"><span>Total</span><b>'+money(d.total)+'</b></div></div><section class="notes"><div><h3>Notes</h3><p>'+esc(p.clientNotes||'')+'</p></div><div><h3>Terms & payment</h3><p>'+esc(p.terms||'')+'</p></div></section></div><div class="accept"><div><strong>'+esc(d.document_type==='ESTIMATE'?'Estimate status':'Document status')+'</strong><div class="muted">'+esc(d.status||'')+'</div></div>'+status+'</div>';
  const btn=document.getElementById('acceptBtn');if(btn)btn.onclick=()=>{document.getElementById('acceptName').value=c.name||'';document.getElementById('acceptEmail').value=c.email||'';document.getElementById('acceptDialog').showModal()};
 }
 async function load(){
+ if(isDemo){render(demoDocument);return}
  if(!token){document.getElementById('app').innerHTML='<div class="error">Document link is missing.</div>';return}
  const r=await fetch(API+'?action=public-document&token='+encodeURIComponent(token));const d=await r.json();
  if(!r.ok||!d.ok){document.getElementById('app').innerHTML='<div class="error">This document could not be found.</div>';return}
@@ -45,6 +89,7 @@ async function load(){
 }
 document.getElementById('cancelAccept').onclick=()=>document.getElementById('acceptDialog').close();
 document.getElementById('confirmAccept').onclick=async()=>{
+ if(isDemo){alert('Preview only. No real estimate will be accepted.');document.getElementById('acceptDialog').close();return}
  const name=document.getElementById('acceptName').value.trim(),email=document.getElementById('acceptEmail').value.trim();if(!name||!email){alert('Name and email are required.');return}
  const r=await fetch(API+'?action=accept-document',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token,name,email})});const d=await r.json();if(!r.ok||!d.ok){alert(d.error||'Could not accept estimate');return}
  document.getElementById('acceptDialog').close();await load();alert('Estimate accepted.');
