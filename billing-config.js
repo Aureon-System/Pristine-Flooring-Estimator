@@ -15,7 +15,7 @@ window.PRISTINE_BILLING = {
       monthly: 12.99,
       stripePriceId: "price_1UHVKiHOF48QQcVxwHeJBQpw",
       checkoutUrl: "https://buy.stripe.com/test_00w3cvawF1MZ7nQh1p4c800",
-      features: ["Cloud documents", "Email estimate/invoice", "Text customer", "Automated follow-up", "Client view", "Estimate acceptance", "Activity history"]
+      features: ["Cloud documents", "AI-assisted customer emails", "Smart estimate follow-up", "AI invoice reminders & collections", "Automatic acceptance confirmations", "Secure client view", "Estimate acceptance", "Communication history"]
     }
   }
 };
