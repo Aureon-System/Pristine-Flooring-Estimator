@@ -4,6 +4,108 @@ const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).
 const num=v=>Math.max(0,Number(v)||0);
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const DOC_KEY='pristine_workspace_docs_v3', BRAND_KEY='pristine_partner_brand_v3', LEAD_KEY='pristine_material_leads_v1', PRO_TOKEN_KEY='pristine_pro_token_v1';
+const SUPABASE_URL='https://lueomnmkbbrllxbnpxph.supabase.co';
+const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
+const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
+let currentSession=null,currentPartner=null,cloudSyncBusy=false;
+function workspaceSuffix(){return currentSession?.user?.id?':'+currentSession.user.id:':guest'}
+function workspaceKey(base){return base+workspaceSuffix()}
+function loadWorkspaceJSON(base,fallback){try{return JSON.parse(localStorage.getItem(workspaceKey(base))||JSON.stringify(fallback))}catch{return fallback}}
+function saveWorkspaceJSON(base,value){try{localStorage.setItem(workspaceKey(base),JSON.stringify(value))}catch{}}
+function setAccountMessage(message,isError=false){const el=$('#accountMessage');if(!el)return;el.textContent=message||'';el.classList.toggle('error',!!isError)}
+async function fetchCurrentPartner(){
+  if(!sb||!currentSession?.user)return null;
+  const {data,error}=await sb.from('partners').select('*').eq('owner_id',currentSession.user.id).maybeSingle();
+  if(error){console.error(error);return null}
+  currentPartner=data||null; return currentPartner
+}
+function updateAccountUI(){
+  const signed=Boolean(currentSession?.user);
+  const email=currentSession?.user?.email||'';
+  const company=currentPartner?.company_name||currentSession?.user?.user_metadata?.company_name||'';
+  const title=$('#accountStatusTitle'),text=$('#accountStatusText'),bar=$('#accountStatusBar'),btn=$('#accountBtn'),statusBtn=$('#accountStatusBtn');
+  if(title)title.textContent=signed?(company||'Company workspace'):'Guest workspace';
+  if(text)text.textContent=signed?('Synced securely for '+(company||email)+'.'): 'Saved on this device. Sign in to sync and keep each company separate.';
+  if(bar){bar.classList.toggle('guest',!signed);bar.classList.toggle('signed-in',signed)}
+  if(btn)btn.textContent=signed?(company||'Account'):'Sign in';
+  if(statusBtn)statusBtn.textContent=signed?'Manage account':'Sign in / Create account';
+  const mode=$('#workspaceModeLabel'),modeText=$('#workspaceModeText');
+  if(mode)mode.textContent=signed?'CLOUD WORKSPACE':'LOCAL WORKSPACE';
+  if(modeText)modeText.textContent=signed?'Your documents are isolated by company and synced to the cloud.':'Open the estimate, review it, then edit, print, email or convert it into an invoice.';
+  const out=$('#signOutBtn');if(out)out.classList.toggle('hidden',!signed);
+}
+async function signUpAccount(){
+  if(!sb)return setAccountMessage('Account service unavailable.',true);
+  const company=$('#accountCompany').value.trim(),email=$('#accountEmail').value.trim(),password=$('#accountPassword').value;
+  if(!company||!email||password.length<6)return setAccountMessage('Enter company name, valid email and a password with at least 6 characters.',true);
+  setAccountMessage('Creating account...');
+  const {data,error}=await sb.auth.signUp({email,password,options:{data:{company_name:company}}});
+  if(error)return setAccountMessage(error.message,true);
+  if(data.session){currentSession=data.session;await fetchCurrentPartner();await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('')}
+  else setAccountMessage('Account created. Check your email to confirm, then sign in.');
+}
+async function signInAccount(){
+  if(!sb)return setAccountMessage('Account service unavailable.',true);
+  const email=$('#accountEmail').value.trim(),password=$('#accountPassword').value;
+  if(!email||!password)return setAccountMessage('Enter your email and password.',true);
+  setAccountMessage('Signing in...');
+  const {data,error}=await sb.auth.signInWithPassword({email,password});
+  if(error)return setAccountMessage(error.message,true);
+  currentSession=data.session;await fetchCurrentPartner();await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('');
+}
+async function signOutAccount(){
+  if(!sb)return;
+  await sb.auth.signOut(); currentSession=null;currentPartner=null;updateAccountUI();renderSaved();$('#accountDialog')?.close();
+}
+function openAccountDialog(){
+  const signed=Boolean(currentSession?.user),dlg=$('#accountDialog');if(!dlg)return;
+  $('#accountEmail').value=currentSession?.user?.email||'';
+  $('#accountCompany').value=currentPartner?.company_name||currentSession?.user?.user_metadata?.company_name||'';
+  $('#accountPassword').value='';
+  $('#signInBtn').classList.toggle('hidden',signed);$('#signUpBtn').classList.toggle('hidden',signed);$('#signOutBtn').classList.toggle('hidden',!signed);
+  setAccountMessage(signed?'Signed in as '+(currentSession.user.email||'')+'.':'');
+  dlg.showModal();
+}
+async function persistPartnerBrand(){
+  if(!sb||!currentSession?.user||!currentPartner)return;
+  const b=loadBrand();
+  const {error}=await sb.from('partners').update({company_name:b.name||currentPartner.company_name||'',email:b.email||currentPartner.email||currentSession.user.email||'',phone:b.phone||null,address:b.address||null,license:b.license||null,updated_at:new Date().toISOString()}).eq('id',currentPartner.id);
+  if(!error){currentPartner={...currentPartner,company_name:b.name||currentPartner.company_name,email:b.email||currentPartner.email,phone:b.phone,address:b.address,license:b.license};updateAccountUI()}
+}
+async function upsertCloudDocument(record){
+  if(!sb||!currentSession?.user||!currentPartner||!record)return;
+  const row={partner_id:currentPartner.id,client_document_id:record.localId||record.id||record.documentNo,document_no:record.documentNo||'',document_type:record.type==='INVOICE'?'INVOICE':'ESTIMATE',status:'draft',project_name:record.client?.project||null,project_address:record.client?.address||null,payload:record,total:Number(record.total||0),updated_at:new Date().toISOString()};
+  const {error}=await sb.from('documents').upsert(row,{onConflict:'partner_id,client_document_id'});
+  if(error)console.error('Cloud sync failed',error);
+}
+async function syncCloudDocuments(preferCloud=false){
+  if(!sb||!currentSession?.user||!currentPartner||cloudSyncBusy)return;
+  cloudSyncBusy=true;
+  try{
+    const {data,error}=await sb.from('documents').select('client_document_id,payload,updated_at,created_at').eq('partner_id',currentPartner.id).order('created_at',{ascending:false});
+    if(error)throw error;
+    const local=loadDocs();
+    const byId=new Map(local.map(d=>[d.localId||d.id||d.documentNo,d]));
+    for(const row of (data||[])){
+      const d=normalizeSavedDoc(row.payload||{}); const key=row.client_document_id||d.localId||d.documentNo;
+      if(!key)continue;
+      d.localId=key; d.cloudUpdatedAt=row.updated_at;
+      const existing=byId.get(key);
+      if(!existing||preferCloud||new Date(row.updated_at||0)>=new Date(existing.savedAt||0))byId.set(key,d);
+    }
+    const merged=[...byId.values()].sort((a,b)=>new Date(b.savedAt||b.cloudUpdatedAt||0)-new Date(a.savedAt||a.cloudUpdatedAt||0));
+    saveWorkspaceJSON(DOC_KEY,merged); renderSaved();
+    for(const d of merged){ if(!(data||[]).some(r=>(r.client_document_id||'')===(d.localId||d.id||d.documentNo))) await upsertCloudDocument(d); }
+  }catch(e){console.error('Workspace sync error',e)}finally{cloudSyncBusy=false}
+}
+async function initAccount(){
+  if(!sb){updateAccountUI();return}
+  const {data}=await sb.auth.getSession();currentSession=data.session||null;
+  if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true)}
+  updateAccountUI();
+  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true)}else currentPartner=null;updateAccountUI();renderSaved()});
+}
+
 let proVerified=false;
 function getProToken(){try{return localStorage.getItem(PRO_TOKEN_KEY)||''}catch{return''}}
 function setProToken(v){try{if(v)localStorage.setItem(PRO_TOKEN_KEY,v);else localStorage.removeItem(PRO_TOKEN_KEY)}catch{}}
@@ -36,8 +138,8 @@ let areas=[],addons=[],brandLogoDraft=null,pendingPreviewEstimate=null;
 const today=()=>new Date().toISOString().slice(0,10);
 function addDays(date,days){const d=new Date(date+'T12:00:00');d.setDate(d.getDate()+days);return d.toISOString().slice(0,10)}
 function id(prefix){return prefix+'-'+Math.random().toString(36).slice(2,7).toUpperCase()}
-function loadBrand(){try{return JSON.parse(localStorage.getItem(BRAND_KEY)||'{}')}catch{return{}}}
-function saveBrandData(b){localStorage.setItem(BRAND_KEY,JSON.stringify(b));renderBrandStatus()}
+function loadBrand(){return loadWorkspaceJSON(BRAND_KEY,{})}
+function saveBrandData(b){saveWorkspaceJSON(BRAND_KEY,b);renderBrandStatus();persistPartnerBrand()}
 function normalizeAreaPricing(a){
   const x={...(a||{})};
   if(x.dailyRateMode!=='crew_total'){
@@ -49,10 +151,10 @@ function normalizeAreaPricing(a){
   return x;
 }
 function normalizeSavedDoc(d){return {...d,areas:(d?.areas||[]).map(normalizeAreaPricing)}}
-function loadDocs(){try{return JSON.parse(localStorage.getItem(DOC_KEY)||'[]').map(normalizeSavedDoc)}catch{return[]}}
-function saveDocs(d){localStorage.setItem(DOC_KEY,JSON.stringify(d));renderSaved()}
-function loadLeads(){try{return JSON.parse(localStorage.getItem(LEAD_KEY)||'[]')}catch{return[]}}
-function saveLeads(d){localStorage.setItem(LEAD_KEY,JSON.stringify(d));renderSaved()}
+function loadDocs(){return loadWorkspaceJSON(DOC_KEY,[]).map(normalizeSavedDoc)}
+function saveDocs(d){saveWorkspaceJSON(DOC_KEY,d);renderSaved()}
+function loadLeads(){return loadWorkspaceJSON(LEAD_KEY,[])}
+function saveLeads(d){saveWorkspaceJSON(LEAD_KEY,d);renderSaved()}
 function defaultArea(){return{id:id('area'),description:'Floor installation',material:'Material not included',sqft:0,pattern:'Straight',dailyRate:0,dailyRateMode:'crew_total',crewSize:1,durationDays:1,crewRate:0,sellRate:6,surcharge:0,materialCost:0,materialSell:0}}
 function areaTotals(a){const sq=num(a.sqft),dailyRate=num(a.dailyRate),durationDays=num(a.durationDays),crewTotal=dailyRate*durationDays,calculatedCrewRate=sq>0&&crewTotal>0?crewTotal/sq:num(a.crewRate),surcharge=num(a.surcharge)/100,effective=num(a.sellRate)*(1+surcharge),laborSell=sq*effective,laborCost=sq*calculatedCrewRate,included=a.material!=='Material not included',matSell=included?sq*num(a.materialSell):0,matCost=included?sq*num(a.materialCost):0;return{dailyRate,durationDays,crewTotal,crewRate:calculatedCrewRate,effective,laborSell,laborCost,matSell,matCost,totalSell:laborSell+matSell,totalCost:laborCost+matCost}}
 function addonTotals(a){return{sell:num(a.qty)*num(a.sellRate),cost:num(a.qty)*num(a.costRate)}}
@@ -112,7 +214,7 @@ function customerIdentity(d){
   if(name||address)return 'nameaddr:'+name+'|'+address;
   return '';
 }
-function saveCurrent(){const s=snapshot();if(!(s.client.name||s.client.email||s.client.phone)){alert('Add at least a client name, email or phone before saving.');return null}const docs=loadDocs();const found=docs.findIndex(d=>d.documentNo===s.documentNo&&d.type===s.type);const record={...s,savedAt:new Date().toISOString()};if(found>=0)docs[found]=record;else docs.unshift(record);saveDocs(docs);return record}
+function saveCurrent(){const s=snapshot();if(!(s.client.name||s.client.email||s.client.phone)){alert('Add at least a client name, email or phone before saving.');return null}const docs=loadDocs();const found=docs.findIndex(d=>d.documentNo===s.documentNo&&d.type===s.type);const existing=found>=0?docs[found]:null;const record={...s,localId:existing?.localId||id('doc'),savedAt:new Date().toISOString()};if(found>=0)docs[found]=record;else docs.unshift(record);saveDocs(docs);if(currentSession?.user&&currentPartner)upsertCloudDocument(record);return record}
 function loadSavedDocument(d,scroll=true){
   if(!d)return;
   const c=d.client||{};
@@ -147,6 +249,7 @@ function convertPendingEstimateToInvoice(){
   if(!d||d.type!=='ESTIMATE')return false;
   const invoice={
     ...JSON.parse(JSON.stringify(d)),
+    localId:id('doc'),
     type:'INVOICE',
     documentNo:'INV-'+Math.random().toString(36).slice(2,9).toUpperCase(),
     issueDate:today(),
@@ -157,6 +260,7 @@ function convertPendingEstimateToInvoice(){
   const docs=loadDocs();
   docs.unshift(invoice);
   saveDocs(docs);
+  if(currentSession?.user&&currentPartner)upsertCloudDocument(invoice);
   loadSavedDocument(invoice,false);
   pendingPreviewEstimate=null;
   document.querySelector('#top')?.scrollIntoView({behavior:'smooth',block:'start'});
@@ -355,5 +459,11 @@ async function activateProFromCheckout(){
     alert((err?.message||'Could not activate Pro')+'. If payment was just completed, wait a few seconds and refresh this page.');
   }
 }
-function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))resetDoc()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=()=>{if(confirm('Clear all saved documents from this browser?'))saveDocs([])};$('#brandBtn').onclick=openBrand;$('#brandCardBtn').onclick=openBrand;const navBrand=$('#navBrandBtn');if(navBrand)navBrand.onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;calc();activateProFromCheckout().then(()=>verifyPro())}
+function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))resetDoc()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=()=>{if(confirm('Clear all saved documents from this browser?'))saveDocs([])};$('#brandBtn').onclick=openBrand;$('#brandCardBtn').onclick=openBrand;const navBrand=$('#navBrandBtn');if(navBrand)navBrand.onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);
+  const accountBtn=$('#accountBtn');if(accountBtn)accountBtn.onclick=openAccountDialog;
+  const accountStatusBtn=$('#accountStatusBtn');if(accountStatusBtn)accountStatusBtn.onclick=openAccountDialog;
+  const closeAccount=$('#closeAccountDialog');if(closeAccount)closeAccount.onclick=()=>$('#accountDialog').close();
+  const signIn=$('#signInBtn');if(signIn)signIn.onclick=signInAccount;
+  const signUp=$('#signUpBtn');if(signUp)signUp.onclick=signUpAccount;
+  const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved on this device.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',openEmailDialog);const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;calc();initAccount();activateProFromCheckout().then(()=>verifyPro())}
 init();
