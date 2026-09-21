@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pristine Dev Control Center</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin.css?v=1">
+  <link rel="stylesheet" href="admin.css?v=2">
 </head>
 <body>
   <aside class="admin-sidebar">
@@ -48,9 +48,10 @@
         <div class="metric-grid">
           <article><span>MRR</span><strong id="mrr">$0</strong><small>Active Pro subscriptions</small></article>
           <article><span>ARR</span><strong id="arr">$0</strong><small>Projected annual recurring revenue</small></article>
-          <article><span>Revenue tracked</span><strong id="revenue">$0</strong><small>Paid/checkout events recorded</small></article>
+          <article><span>Revenue this month</span><strong id="revenueMonth">$0</strong><small>Paid invoices recorded this month</small></article>
           <article><span>Monthly operating cost</span><strong id="monthlyCosts">$0</strong><small>Recurring + current month one-time</small></article>
           <article><span>Projected margin</span><strong id="margin">$0</strong><small>MRR minus tracked costs</small></article>
+          <article><span>Realized net this month</span><strong id="realizedNet">$0</strong><small>Revenue received minus tracked costs</small></article>
           <article><span>AI cost this month</span><strong id="aiCost">$0</strong><small>Estimated model usage</small></article>
         </div>
 
@@ -76,7 +77,7 @@
         </div>
 
         <article class="panel">
-          <div class="panel-head"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>Billing events</h2></div></div>
+          <div class="panel-head"><div><p class="eyebrow">RECENT ACTIVITY</p><h2>Billing events</h2></div><span id="lifetimeRevenue">Lifetime revenue: $0.00</span></div>
           <div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>Status</th><th>Amount</th></tr></thead><tbody id="billingEventRows"></tbody></table></div>
         </article>
       </section>
@@ -84,7 +85,8 @@
       <section class="tab-panel" data-panel="subscriptions">
         <article class="panel">
           <div class="panel-head">
-            <div><p class="eyebrow">STRIPE + SUPABASE</p><h2>Subscription control</h2><p>Entitlements synchronized by billing webhooks.</p></div>
+            <div><p class="eyebrow">STRIPE + SUPABASE</p><h2>Subscription control</h2><p>Entitlements synchronized by billing webhooks. Stripe is currently in sandbox mode.</p></div>
+            <div class="panel-actions"><a class="btn secondary" href="https://dashboard.stripe.com/test/subscriptions" target="_blank" rel="noopener">Open Stripe subscriptions</a></div>
           </div>
           <div class="table-wrap"><table><thead><tr><th>Account</th><th>Email</th><th>Status</th><th>Monthly</th><th>Period end</th><th>Stripe subscription</th></tr></thead><tbody id="subscriptionRows"></tbody></table></div>
         </article>
@@ -119,7 +121,7 @@
         </div>
         <article class="panel">
           <div class="panel-head"><div><p class="eyebrow">LEDGER</p><h2>Tracked costs</h2></div></div>
-          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Description</th><th>Cadence</th><th>Amount</th></tr></thead><tbody id="costRows"></tbody></table></div>
+          <div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Vendor</th><th>Description</th><th>Cadence</th><th>Amount</th><th>Status</th></tr></thead><tbody id="costRows"></tbody></table></div>
         </article>
       </section>
 
@@ -133,13 +135,17 @@
           <div class="ai-badge">PRO + AI</div>
         </div>
         <div class="feature-grid">
-          <article><span>AI-01</span><h3>Email Assistant</h3><p>Generate professional estimate, invoice and project follow-up emails using document context.</p><strong>Architecture ready</strong></article>
-          <article><span>AI-02</span><h3>Estimate Follow-up</h3><p>Detect estimates without acceptance and prepare a personalized reminder automatically.</p><strong>Rules ready</strong></article>
-          <article><span>AI-03</span><h3>Acceptance Confirmation</h3><p>Send customer and contractor confirmation after an estimate is accepted.</p><strong>Event ready</strong></article>
-          <article><span>AI-04</span><h3>Smart Collections</h3><p>Draft invoice reminders based on due status, history and customer stage without aggressive language.</p><strong>Rules ready</strong></article>
-          <article><span>AI-05</span><h3>Payment Follow-up</h3><p>React to paid, failed or past-due billing events and create the appropriate customer communication.</p><strong>Webhook ready</strong></article>
-          <article><span>AI-06</span><h3>Manager Approval</h3><p>Choose Review mode before sending or Automatic mode for approved workflows.</p><strong>Control ready</strong></article>
+          <article><span>AI-01</span><h3>Email Assistant</h3><p>Generate professional estimate, invoice and project follow-up emails using document context.</p><strong id="aiEmailStatus">Ready</strong></article>
+          <article><span>AI-02</span><h3>Estimate Follow-up</h3><p>Detect estimates without acceptance and prepare a personalized reminder automatically.</p><strong id="aiRulesStatus">0 enabled rules</strong></article>
+          <article><span>AI-03</span><h3>Review Queue</h3><p>Drafts waiting for human approval before sending.</p><strong id="aiReviewStatus">0 waiting</strong></article>
+          <article><span>AI-04</span><h3>Automatic Queue</h3><p>Scheduled tasks waiting for processing or currently running.</p><strong id="aiPendingStatus">0 pending</strong></article>
+          <article><span>AI-05</span><h3>Sent Automations</h3><p>Automated communications delivered by the workflow engine.</p><strong id="aiSentStatus">0 sent</strong></article>
+          <article><span>AI-06</span><h3>Automation Errors</h3><p>Tasks that need attention after failed processing attempts.</p><strong id="aiFailedStatus">0 failed</strong></article>
         </div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">AUTOMATION QUEUE</p><h2>Recent workflow tasks</h2></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Created</th><th>Rule</th><th>Status</th><th>Recipient</th><th>Attempts</th><th>Last error</th></tr></thead><tbody id="automationRows"></tbody></table></div>
+        </article>
         <article class="panel">
           <div class="panel-head"><div><p class="eyebrow">AI USAGE</p><h2>Recent AI activity</h2></div><span id="aiActions">0 actions this month</span></div>
           <div class="table-wrap"><table><thead><tr><th>Date</th><th>Event</th><th>Model</th><th>Status</th><th>Input</th><th>Output</th><th>Est. cost</th></tr></thead><tbody id="aiRows"></tbody></table></div>
@@ -148,18 +154,25 @@
 
       <section class="tab-panel" data-panel="system">
         <div class="feature-grid health-grid">
-          <article><span>AUTH</span><h3>Supabase Auth</h3><p>Company accounts, session persistence and tenant ownership.</p><strong>Active</strong></article>
-          <article><span>DATA</span><h3>Tenant RLS</h3><p>Company records isolated at database level.</p><strong>Active</strong></article>
-          <article><span>BILLING</span><h3>Stripe Billing</h3><p>Checkout, webhook entitlement and billing-event capture.</p><strong>Sandbox</strong></article>
-          <article><span>EMAIL</span><h3>Resend</h3><p>Authentication and document delivery through Pristine domain.</p><strong>Active</strong></article>
-          <article><span>AI</span><h3>OpenAI</h3><p>Automation data model is ready; API key/model connection is the remaining activation step.</p><strong>Setup required</strong></article>
-          <article><span>DEPLOY</span><h3>Cloudflare</h3><p>Static app and worker deployment from the GitHub main branch.</p><strong>Active</strong></article>
+          <article><span>AUTH</span><h3>Supabase Auth</h3><p>Company accounts, session persistence and tenant ownership.</p><strong class="health-ok">Active</strong></article>
+          <article><span>DATA</span><h3>Tenant RLS</h3><p>Company records isolated at database level.</p><strong class="health-ok">Active</strong></article>
+          <article><span>BILLING</span><h3>Stripe Billing</h3><p>Checkout, webhook entitlement and billing-event capture.</p><strong id="healthStripe">Checking...</strong></article>
+          <article><span>EMAIL</span><h3>Resend</h3><p>Authentication and document delivery through Pristine domain.</p><strong id="healthResend">Checking...</strong></article>
+          <article><span>AI</span><h3>OpenAI</h3><p>AI-assisted communication and automation generation.</p><strong id="healthOpenAI">Checking...</strong></article>
+          <article><span>AUTOMATION</span><h3>Hourly Scheduler</h3><p>Runs Pro automation discovery and processing every hour.</p><strong id="healthScheduler">Checking...</strong></article>
         </div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">AUTOMATION ENGINE</p><h2>Scheduler status</h2></div></div>
+          <div class="compact-stats">
+            <div><span>Last run</span><strong id="schedulerLastRun">—</strong></div>
+            <div><span>Last result</span><strong id="schedulerLastResult">—</strong></div>
+          </div>
+        </article>
       </section>
     </div>
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=1"></script>
+  <script src="admin.js?v=2"></script>
 </body>
 </html>
