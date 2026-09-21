@@ -1623,3 +1623,9 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .pristine-cta-logo img{width:120px!important;height:70px!important}
   .footer-live-logos .footer-ecosystem{grid-template-columns:repeat(2,1fr)!important}
 }
+
+/* V190 account-only + AI Pro */
+.ai-compose-row{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:12px 0 2px;padding:10px 12px;border-radius:10px;background:#f7f4ee;border:1px solid #eadfca}
+.ai-compose-row span{font-size:10px;color:#6d737b;line-height:1.4}
+#sendEmailMessage{resize:vertical;min-height:120px}
+@media(max-width:650px){.ai-compose-row{align-items:stretch;flex-direction:column}.ai-compose-row .btn{width:100%}}
