@@ -425,19 +425,66 @@ async function openAutomationSettings(){
   set('estimate_followup','#autoEstimateFollowup','#autoEstimateDelay');
   set('invoice_reminder','#autoInvoiceReminder','#autoInvoiceDelay');
   set('acceptance_confirmation','#autoAcceptance');
-  set('payment_thanks','#autoPaymentThanks');
   const sample=(data||[])[0];$('#automationApproval').value=sample?.approval_mode||'review';$('#automationTone').value=sample?.tone||'professional';
   $('#automationMessage').textContent='';
+  await loadAutomationReviewQueue();
   $('#automationDialog').showModal();
 }
+
+async function loadAutomationReviewQueue(){
+  if(!currentPartner)return;
+  const {data,error}=await sb.from('automation_queue')
+    .select('id,rule_key,recipient,subject,message,created_at,due_at')
+    .eq('partner_id',currentPartner.id)
+    .eq('status','review')
+    .order('due_at',{ascending:true});
+  const box=$('#automationReviewList'),count=$('#automationReviewCount');
+  if(error){if(box)box.innerHTML='<p class="empty">'+esc(error.message)+'</p>';return}
+  if(count)count.textContent=(data||[]).length+' pending';
+  if(!box)return;
+  if(!(data||[]).length){box.innerHTML='<p class="empty">No AI drafts waiting for review.</p>';return}
+  box.innerHTML='';
+  (data||[]).forEach(task=>{
+    const el=document.createElement('div');
+    el.className='automation-review-item';
+    const label=task.rule_key==='estimate_followup'?'Estimate follow-up':task.rule_key==='invoice_reminder'?'Invoice reminder':'Acceptance confirmation';
+    el.innerHTML='<div class="automation-review-title"><strong>'+esc(label)+'</strong><span>'+esc(task.recipient||'')+'</span></div>'+
+      '<label>Subject<input class="review-subject" value="'+esc(task.subject||'')+'"></label>'+
+      '<label>Message<textarea class="review-message" rows="5">'+esc(task.message||'')+'</textarea></label>'+
+      '<div class="automation-review-actions"><button class="btn btn-gold review-send" type="button">Send</button></div>';
+    el.querySelector('.review-send').onclick=()=>sendAutomationReviewTask(task.id,el);
+    box.append(el);
+  });
+}
+async function sendAutomationReviewTask(taskId,el){
+  const btn=el.querySelector('.review-send');
+  if(btn){btn.disabled=true;btn.textContent='Sending...'}
+  try{
+    const r=await fetch(PRISTINE_API+'?action=send-automation-task',{
+      method:'POST',
+      headers:apiHeaders(),
+      body:JSON.stringify({
+        task_id:taskId,
+        subject:el.querySelector('.review-subject').value.trim(),
+        message:el.querySelector('.review-message').value.trim()
+      })
+    });
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Could not send automation');
+    await loadAutomationReviewQueue();
+  }catch(err){
+    $('#automationMessage').textContent=err?.message||'Could not send automation.';
+    if(btn){btn.disabled=false;btn.textContent='Send'}
+  }
+}
+
 async function saveAutomationSettings(){
   if(!currentPartner)return;
   const approval=$('#automationApproval').value,tone=$('#automationTone').value;
   const rules=[
     {rule_key:'estimate_followup',enabled:$('#autoEstimateFollowup').checked,trigger_event:'estimate_unaccepted',delay_hours:Number($('#autoEstimateDelay').value||48)},
     {rule_key:'invoice_reminder',enabled:$('#autoInvoiceReminder').checked,trigger_event:'invoice_open',delay_hours:Number($('#autoInvoiceDelay').value||72)},
-    {rule_key:'acceptance_confirmation',enabled:$('#autoAcceptance').checked,trigger_event:'estimate_accepted',delay_hours:0},
-    {rule_key:'payment_thanks',enabled:$('#autoPaymentThanks').checked,trigger_event:'invoice_paid',delay_hours:0}
+    {rule_key:'acceptance_confirmation',enabled:$('#autoAcceptance').checked,trigger_event:'estimate_accepted',delay_hours:0}
   ].map(r=>({...r,partner_id:currentPartner.id,channel:'email',approval_mode:approval,tone,updated_at:new Date().toISOString()}));
   $('#automationMessage').textContent='Saving...';
   const {error}=await sb.from('ai_automation_rules').upsert(rules,{onConflict:'partner_id,rule_key'});
