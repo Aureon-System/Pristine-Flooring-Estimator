@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en" translate="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Document Preview · Pristine Flooring Estimator</title>
+<meta name="robots" content="noindex,nofollow">
+<style>
+*{box-sizing:border-box}body{font-family:Arial,Helvetica,sans-serif;color:#17191d;margin:0;background:#f4f5f7;line-height:1.4}
+.shell{max-width:1100px;margin:28px auto;padding:0 16px}
+.toolbar{position:sticky;top:0;z-index:20;display:flex;justify-content:flex-end;gap:8px;padding:10px 0 14px;background:linear-gradient(#f4f5f7 80%,transparent)}
+.toolbar button{border:1px solid #cfd4da;background:#fff;color:#1b2026;border-radius:8px;padding:10px 14px;font-weight:800;cursor:pointer}
+.toolbar .primary{background:#b7893f;color:#fff;border-color:#b7893f}
+.page{background:#fff;border:1px solid #e1e4e7;border-radius:14px;padding:30px;box-shadow:0 10px 34px #0000000a}
+.doc-head{display:flex;justify-content:space-between;gap:24px;border-bottom:3px solid #17191d;padding-bottom:16px}
+.issuer-wrap{display:flex;align-items:center;gap:14px}.doc-logo{max-width:115px;max-height:72px;object-fit:contain}.issuer{display:flex;flex-direction:column;gap:3px}.issuer strong{font-size:20px}.issuer span,.doc-meta span{font-size:11px;color:#666}.doc-meta{text-align:right;display:flex;flex-direction:column;gap:3px}.doc-meta strong{font-size:18px}
+.client-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:22px 0;padding:14px;background:#f5f6f7}.client-grid strong{display:block;font-size:11px;text-transform:uppercase;margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin-top:14px}th{font-size:10px;text-transform:uppercase;letter-spacing:.06em;text-align:left;border-bottom:2px solid #222;padding:8px}td{padding:10px 8px;border-bottom:1px solid #ddd;font-size:12px}td:nth-child(3),th:nth-child(3){text-align:right}
+.totals{width:330px;margin:20px 0 0 auto}.totals div{display:flex;justify-content:space-between;padding:5px 0}.totals .grand{font-size:18px;font-weight:900;border-top:2px solid #222;margin-top:6px;padding-top:9px}
+.notes{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:25px}.notes h3{font-size:11px;text-transform:uppercase}.notes p{font-size:11px;white-space:pre-wrap}.notice{font-size:11px;background:#f7f4ee;padding:10px;border-left:3px solid #a87a38}.footer{margin-top:32px;border-top:1px solid #ddd;padding-top:10px;font-size:9px;color:#777}.neutral strong{font-size:17px}
+.error{background:#fff;border:1px solid #e1e4e7;border-radius:14px;padding:36px;text-align:center;color:#8c2f2f}
+@media(max-width:700px){.doc-head,.client-grid,.notes{grid-template-columns:1fr;display:grid}.doc-meta{text-align:left}.totals{width:100%}.page{padding:20px}.toolbar{justify-content:stretch;flex-wrap:wrap}.toolbar button{flex:1}}
+@media print{body{background:#fff}.shell{max-width:none;margin:0;padding:0}.toolbar{display:none!important}.page{border:0;box-shadow:none;border-radius:0;padding:0}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <div class="toolbar">
+    <button id="backBtn" type="button">Back to workspace</button>
+    <button id="printBtn" type="button">Print / Save PDF</button>
+    <button id="createInvoiceBtn" class="primary" type="button" hidden>Create Invoice</button>
+  </div>
+  <div id="page" class="page">Loading preview...</div>
+</div>
+<script>
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)||0);
+const num=v=>Number(v)||0;
+const params=new URLSearchParams(location.search);
+const key=params.get('key');
+const autoPrint=params.get('print')==='1';
+const allowConvert=params.get('convert')==='1';
+
+function render(s){
+  const b=s.brand||{};
+  const logo=b.logoData?'<img class="doc-logo" src="'+b.logoData+'" alt="Company logo">':'';
+  const issuer=b.name
+    ? '<div class="issuer"><strong>'+esc(b.name)+'</strong>'+(b.address?'<span>'+esc(b.address)+'</span>':'')+'<span>'+[b.phone,b.email,b.license].filter(Boolean).map(esc).join(' · ')+'</span></div>'
+    : '<div class="issuer neutral"><strong>PROJECT '+esc(s.type)+'</strong><span>Issued by the contractor / service provider</span></div>';
+  const areaRows=(s.areas||[]).map(a=>'<tr><td><strong>'+esc(a.description)+'</strong><br><span>'+esc(a.material)+' · '+esc(a.pattern)+' · '+num(a.durationDays)+' work day'+(num(a.durationDays)===1?'':'s')+'</span></td><td>'+Math.round(num(a.sqft)).toLocaleString()+' sqft</td><td>'+money(num(a.laborSell)+num(a.matSell))+'</td></tr>').join('');
+  const addonRows=(s.addons||[]).filter(a=>num(a.sell)>0).map(a=>'<tr><td>'+esc(a.name)+'</td><td>'+esc(a.qty)+' '+esc(a.unit)+'</td><td>'+money(a.sell)+'</td></tr>').join('');
+  const matNote=num(s.materialSell)<=0?'<p class="notice"><strong>Material not included.</strong> Materials are excluded unless specifically listed in the scope.</p>':'';
+  document.getElementById('page').innerHTML=
+    '<header class="doc-head"><div class="issuer-wrap">'+logo+issuer+'</div><div class="doc-meta"><strong>'+esc(s.type)+'</strong><span>'+esc(s.documentNo||'')+'</span><span>Issue: '+esc(s.issueDate||'')+'</span>'+(s.type==='ESTIMATE'&&s.validThrough?'<span>Valid through: '+esc(s.validThrough)+'</span>':'')+'</div></header>'+
+    '<section class="client-grid"><div><strong>Client</strong>'+esc(s.client?.name||'-')+'<br>'+esc(s.client?.email||'')+'<br>'+esc(s.client?.phone||'')+'</div><div><strong>Project</strong>'+esc(s.client?.project||'-')+'<br>'+esc(s.client?.address||'')+'<br>Estimated duration: '+num(s.durationDays)+' work day'+(num(s.durationDays)===1?'':'s')+'</div></section>'+
+    matNote+
+    '<table><thead><tr><th>Scope</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>'+areaRows+addonRows+'</tbody></table>'+
+    '<div class="totals"><div><span>Subtotal</span><strong>'+money(s.baseSell)+'</strong></div><div><span>Discount</span><strong>− '+money(s.discount)+'</strong></div>'+(num(s.taxRate)>0?'<div><span>Tax ('+num(s.taxRate)+'%)</span><strong>'+money(s.tax)+'</strong></div>':'')+'<div class="grand"><span>Total</span><strong>'+money(s.total)+'</strong></div></div>'+
+    '<section class="notes"><div><h3>Notes</h3><p>'+esc(s.clientNotes||'')+'</p></div><div><h3>Terms & payment</h3><p>'+esc(s.terms||'')+'</p></div></section>'+
+    '<div class="footer">This document is issued by the company/service provider identified above. Verify measurements, site conditions, material specifications, taxes and applicable licensing requirements before acceptance.</div>';
+}
+function fail(message){document.getElementById('page').className='error';document.getElementById('page').textContent=message}
+let payload=null;
+try{payload=key?JSON.parse(localStorage.getItem('pristine_document_preview:'+key)||'null'):null}catch{}
+if(!payload?.document){fail('This document preview is no longer available. Return to the workspace and open it again.')}
+else if(payload.expiresAt && Date.now()>payload.expiresAt){try{localStorage.removeItem('pristine_document_preview:'+key)}catch{};fail('This document preview has expired. Return to the workspace and open it again.')}
+else{
+  render(payload.document);
+  document.title=(payload.document.type||'Document')+' '+(payload.document.documentNo||'')+' · Pristine Flooring Estimator';
+  const createBtn=document.getElementById('createInvoiceBtn');
+  createBtn.hidden=!(allowConvert&&payload.document.type==='ESTIMATE');
+  if(autoPrint)setTimeout(()=>window.print(),250);
+}
+document.getElementById('printBtn').onclick=()=>window.print();
+document.getElementById('backBtn').onclick=()=>{if(window.opener&&!window.opener.closed){window.opener.focus();window.close()}else location.href='calculator.html'};
+document.getElementById('createInvoiceBtn').onclick=()=>{
+  if(window.opener&&!window.opener.closed&&typeof window.opener.convertPendingEstimateToInvoice==='function'){
+    const ok=window.opener.convertPendingEstimateToInvoice();
+    if(ok)window.close();
+    return;
+  }
+  alert('Return to the estimator workspace to create the invoice.');
+};
+</script>
+</body>
+</html>
