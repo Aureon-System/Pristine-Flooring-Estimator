@@ -3,6 +3,7 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const PRISTINE_API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristine-api';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
+const REFERRAL_KEY='pristine_referral_code';
 let mode='signin';
 let postAuthTarget='calculator.html';
 
@@ -40,7 +41,8 @@ async function signUp(){
   if(!company||!email||password.length<6)return setMessage('Enter company name, a valid email and a password with at least 6 characters.',true);
   setMessage('Creating account...');
   try{
-    const r=await fetch(PRISTINE_API+'?action=auth-signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({company,email,password,website:''})});
+    const referralCode=(localStorage.getItem(REFERRAL_KEY)||'').trim().toUpperCase();
+    const r=await fetch(PRISTINE_API+'?action=auth-signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({company,email,password,referral_code:referralCode,website:''})});
     const d=await r.json();
     if(!r.ok||!d.ok)return setMessage(d.error||'Could not create account.',true);
     setMessage('Account created. We sent a confirmation email from Pristine Estimator. Check your inbox and spam folder.');
@@ -85,6 +87,14 @@ $('#authPassword').addEventListener('keydown',e=>{if(e.key==='Enter')primary()})
 $('#authEmail').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='reset')primary()});
 
 (async()=>{
+  const queryNow=new URLSearchParams(location.search);
+  const incomingRef=(queryNow.get('ref')||'').trim().toUpperCase();
+  if(incomingRef){
+    try{
+      localStorage.setItem(REFERRAL_KEY,incomingRef);
+      fetch(PRISTINE_API+'?action=referral-open',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({code:incomingRef})}).catch(()=>{});
+    }catch{}
+  }
   const hash=new URLSearchParams(location.hash.replace(/^#/,''));
   if(hash.get('error_description')){openAuth('signin');setMessage(hash.get('error_description'),true)}
   const {data}=await sb.auth.getSession();
