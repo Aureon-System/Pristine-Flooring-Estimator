@@ -7,7 +7,7 @@ const DOC_KEY='pristine_workspace_docs_v3', BRAND_KEY='pristine_partner_brand_v3
 const SUPABASE_URL='https://lueomnmkbbrllxbnpxph.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
-let currentSession=null,currentPartner=null,cloudSyncBusy=false;
+let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,cloudSyncBusy=false;
 function apiHeaders(json=true){const h={};if(json)h['content-type']='application/json';if(currentSession?.access_token)h.Authorization='Bearer '+currentSession.access_token;return h}
 function workspaceSuffix(){return currentSession?.user?.id?':'+currentSession.user.id:':guest'}
 function workspaceKey(base){return base+workspaceSuffix()}
@@ -19,6 +19,120 @@ async function fetchCurrentPartner(){
   const {data,error}=await sb.from('partners').select('*').eq('owner_id',currentSession.user.id).maybeSingle();
   if(error){console.error(error);return null}
   currentPartner=data||null; return currentPartner
+}
+
+function partnerBusinessLabel(value){
+  const labels={
+    installer:'Installer',
+    flooring_contractor:'Flooring contractor',
+    general_contractor:'General contractor',
+    remodeler:'Remodeler',
+    retailer:'Retailer',
+    designer:'Designer',
+    property_manager:'Property manager',
+    other:'Other'
+  };
+  return labels[value]||'Complete your Partner Profile';
+}
+
+async function fetchPartnerNetworkData(promptProfile=false){
+  if(!sb||!currentPartner)return null;
+  const [profileR,codeR,eventsR]=await Promise.all([
+    sb.from('partner_profiles').select('*').eq('partner_id',currentPartner.id).maybeSingle(),
+    sb.from('referral_codes').select('id,code,active,created_at').eq('partner_id',currentPartner.id).eq('active',true).maybeSingle(),
+    sb.from('referral_events').select('event_type,created_at').eq('partner_id',currentPartner.id)
+  ]);
+  if(profileR.error)console.error(profileR.error);
+  if(codeR.error)console.error(codeR.error);
+  if(eventsR.error)console.error(eventsR.error);
+  currentPartnerProfile=profileR.data||null;
+  currentReferralCode=codeR.data||null;
+  renderPartnerCenter(eventsR.data||[]);
+  if(promptProfile && currentPartnerProfile && !currentPartnerProfile.profile_completed){
+    const key='pristine_partner_profile_prompted:'+currentPartner.id;
+    if(!sessionStorage.getItem(key)){
+      sessionStorage.setItem(key,'1');
+      setTimeout(()=>openPartnerProfile(),650);
+    }
+  }
+  return {profile:currentPartnerProfile,code:currentReferralCode,events:eventsR.data||[]};
+}
+
+function renderPartnerCenter(events=[]){
+  const code=currentReferralCode?.code||'—';
+  const link=currentReferralCode?.code?(location.origin+'/?ref='+encodeURIComponent(currentReferralCode.code)):'';
+  const codeEl=$('#partnerCode'),linkEl=$('#partnerReferralLink'),typeEl=$('#partnerBusinessType');
+  if(codeEl)codeEl.textContent=code;
+  if(linkEl)linkEl.value=link;
+  if(typeEl)typeEl.textContent=currentPartnerProfile?.profile_completed
+    ? partnerBusinessLabel(currentPartnerProfile.business_type)+(currentPartnerProfile.service_area?' · '+currentPartnerProfile.service_area:'')
+    : 'Complete your profile to personalize the network.';
+  const count=t=>events.filter(e=>e.event_type===t).length;
+  const opp=count('material_opportunity')+count('material_already_purchased');
+  const map={
+    partnerMetricOpportunities:opp,
+    partnerMetricQuotes:count('quote_requested'),
+    partnerMetricReferrals:count('customer_referred'),
+    partnerMetricPurchased:count('material_already_purchased')
+  };
+  Object.entries(map).forEach(([id,v])=>{const el=$('#'+id);if(el)el.textContent=String(v)});
+}
+
+function openPartnerProfile(){
+  if(!currentPartner)return;
+  const p=currentPartnerProfile||{};
+  $('#partnerBusinessTypeInput').value=p.business_type||'';
+  $('#partnerPurchaseFrequency').value=p.material_purchase_frequency||'';
+  $('#partnerUsualBuyer').value=p.usual_material_buyer||'';
+  $('#partnerReferralInterest').value=p.referral_interest||'';
+  $('#partnerServiceArea').value=p.service_area||'';
+  $('#partnerProfileMessage').textContent='';
+  $('#partnerProfileDialog')?.showModal();
+}
+
+async function savePartnerProfile(){
+  if(!currentPartner)return;
+  const row={
+    partner_id:currentPartner.id,
+    business_type:$('#partnerBusinessTypeInput').value||null,
+    material_purchase_frequency:$('#partnerPurchaseFrequency').value||null,
+    usual_material_buyer:$('#partnerUsualBuyer').value||null,
+    referral_interest:$('#partnerReferralInterest').value||null,
+    service_area:$('#partnerServiceArea').value.trim()||null,
+    profile_completed:Boolean($('#partnerBusinessTypeInput').value&&$('#partnerPurchaseFrequency').value&&$('#partnerUsualBuyer').value),
+    updated_at:new Date().toISOString()
+  };
+  if(!row.profile_completed){
+    $('#partnerProfileMessage').textContent='Select business type, purchase frequency and usual material buyer.';
+    $('#partnerProfileMessage').classList.add('error');
+    return;
+  }
+  $('#partnerProfileMessage').classList.remove('error');
+  $('#partnerProfileMessage').textContent='Saving...';
+  const {data,error}=await sb.from('partner_profiles').upsert(row,{onConflict:'partner_id'}).select('*').single();
+  if(error){
+    $('#partnerProfileMessage').textContent=error.message;
+    $('#partnerProfileMessage').classList.add('error');
+    return;
+  }
+  currentPartnerProfile=data;
+  try{
+    await fetch(PRISTINE_API+'?action=partner-profile-completed',{method:'POST',headers:apiHeaders(),body:'{}'});
+  }catch{}
+  await fetchPartnerNetworkData(false);
+  $('#partnerProfileMessage').textContent='Partner Profile saved.';
+  setTimeout(()=>$('#partnerProfileDialog')?.close(),450);
+}
+
+async function copyPartnerReferralLink(){
+  const value=$('#partnerReferralLink')?.value||'';
+  if(!value)return;
+  try{
+    await navigator.clipboard.writeText(value);
+    const btn=$('#copyReferralLinkBtn');if(btn){const old=btn.textContent;btn.textContent='Copied';setTimeout(()=>btn.textContent=old,1200)}
+  }catch{
+    const input=$('#partnerReferralLink');input?.select();document.execCommand?.('copy');
+  }
 }
 function updateAccountUI(){
   const signed=Boolean(currentSession?.user);
@@ -123,11 +237,11 @@ async function initAccount(){
   if(!sb){updateAccountUI();return}
   const {data}=await sb.auth.getSession();currentSession=data.session||null;
   if(!currentSession){location.replace('/?signin=1');return false}
-  await fetchCurrentPartner();await syncCloudDocuments(true);
+  await fetchCurrentPartner();await fetchPartnerNetworkData(true);await syncCloudDocuments(true);
   updateAccountUI();
   const q=new URLSearchParams(location.search);
   if(q.get('reset')==='1'&&currentSession){setTimeout(()=>$('#resetPasswordDialog')?.showModal(),150)}
-  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await syncCloudDocuments(true);updateAccountUI();renderSaved()}else{currentPartner=null;location.replace('/?signin=1')}});
+  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await fetchPartnerNetworkData(false);await syncCloudDocuments(true);updateAccountUI();renderSaved()}else{currentPartner=null;currentPartnerProfile=null;currentReferralCode=null;location.replace('/?signin=1')}});
 }
 
 let proVerified=false;
@@ -352,17 +466,41 @@ function convertToInvoice(){const s=currentForDocument();if(!s)return;if(s.type!
 function quoteAreaSqft(){return areas.reduce((s,a)=>s+num(a.sqft),0)}
 function quoteRequiredSqft(){return Math.round(quoteAreaSqft()*(1+num($('#quoteWaste')?.value||10)/100))}
 function refreshQuoteMetrics(){const m=$('#quoteMeasuredSqft'),r=$('#quoteRequiredSqft');if(m)m.textContent=Math.round(quoteAreaSqft()).toLocaleString()+' sqft';if(r)r.textContent=quoteRequiredSqft().toLocaleString()+' sqft'}
+function selectedMaterialOpportunityType(){
+  return document.querySelector('input[name="materialOpportunityType"]:checked')?.value||'quote_for_me';
+}
+function syncMaterialOpportunityUI(fillContact=false){
+  const type=selectedMaterialOpportunityType(),s=state(),b=loadBrand();
+  const purchased=type==='already_purchased';
+  const consentRow=$('#quoteConsentRow'),btn=$('#sendMaterialQuoteBtn');
+  if(consentRow)consentRow.classList.toggle('hidden',purchased);
+  if(btn)btn.textContent=purchased?'Record project':'Send material opportunity';
+  if(purchased)$('#quoteConsent').checked=false;
+  if(fillContact){
+    if(type==='send_to_customer'){
+      $('#quoteCompany').value=s.client.name||'';
+      $('#quotePhone').value=s.client.phone||'';
+      $('#quoteEmail').value=s.client.email||'';
+      $('#quoteBuyerRole').value='homeowner';
+    }else{
+      $('#quoteCompany').value=b.name||currentPartner?.company_name||s.client.name||'';
+      $('#quotePhone').value=b.phone||currentPartner?.phone||'';
+      $('#quoteEmail').value=b.email||currentPartner?.email||currentSession?.user?.email||'';
+      const usual=currentPartnerProfile?.usual_material_buyer||'my_company';
+      $('#quoteBuyerRole').value=usual==='varies'?'unknown':usual;
+    }
+  }
+}
 function openMaterialQuote(){
-  const s=state(),b=loadBrand(),sel=$('#quoteMaterial');
+  const s=state(),sel=$('#quoteMaterial');
   if(sel){sel.innerHTML=materials.filter(m=>m!=='Material not included').map(m=>'<option>'+esc(m)+'</option>').join('');const preferred=s.areas.find(a=>a.material&&a.material!=='Material not included')?.material;if(preferred)sel.value=preferred}
-  $('#quoteCompany').value=b.name||s.client.name||'';
-  $('#quotePhone').value=b.phone||s.client.phone||'';
-  $('#quoteEmail').value=b.email||s.client.email||'';
+  const first=document.querySelector('input[name="materialOpportunityType"][value="quote_for_me"]');if(first)first.checked=true;
   $('#quoteProject').value=s.client.project||'';
   $('#quoteAddress').value=s.client.address||'';
   $('#quoteWaste').value=10;
   $('#quoteNotes').value='';
   $('#quoteConsent').checked=false;
+  syncMaterialOpportunityUI(true);
   refreshQuoteMetrics();
   $('#materialQuoteDialog').showModal();
 }
@@ -371,6 +509,8 @@ function materialLeadPayload(){
   return {
     id:id('lead'),
     createdAt:new Date().toISOString(),
+    opportunityType:selectedMaterialOpportunityType(),
+    buyerRole:$('#quoteBuyerRole').value||'unknown',
     company:$('#quoteCompany').value.trim(),
     phone:$('#quotePhone').value.trim(),
     email:$('#quoteEmail').value.trim(),
@@ -384,33 +524,39 @@ function materialLeadPayload(){
     estimateNo:s.documentNo,
     estimateTotal:s.total,
     partnerBrand:brand.name||'',
-    source:'Pristine Flooring Estimator'
+    source:'Pristine Partner Network'
   };
 }
 async function sendMaterialQuote(){
   const payload=materialLeadPayload();
-  if(!payload.measuredSqft){alert('Add project square footage before requesting material pricing.');return}
-  if(!(payload.company||payload.phone||payload.email)){alert('Add your company/name and at least one contact method.');return}
-  if(!$('#quoteConsent').checked){alert('Please authorize sharing these project details with Pristine Flooring.');return}
-  const sendBtn=$('#sendMaterialQuoteBtn'); if(sendBtn){sendBtn.disabled=true;sendBtn.textContent='Sending...'}
+  if(!payload.measuredSqft){alert('Add project square footage before creating a material opportunity.');return}
+  const purchased=payload.opportunityType==='already_purchased';
+  if(!purchased && !(payload.phone||payload.email)){alert('Add an email or phone number for the material opportunity.');return}
+  if(!purchased && !$('#quoteConsent').checked){alert('Please authorize sharing the project details for material pricing.');return}
+  const sendBtn=$('#sendMaterialQuoteBtn');if(sendBtn){sendBtn.disabled=true;sendBtn.textContent=purchased?'Recording...':'Sending...'}
   try{
     const cloudPayload={
       company:payload.company,name:payload.company,phone:payload.phone,email:payload.email,
       project:payload.project,address:payload.address,material:payload.material,
+      opportunity_type:payload.opportunityType,buyer_role:payload.buyerRole,
       measured_sqft:payload.measuredSqft,waste_pct:payload.waste,required_sqft:payload.requiredSqft,
-      notes:payload.notes,consent:true,website:''
+      estimate_no:payload.estimateNo,estimate_total:payload.estimateTotal,
+      notes:payload.notes,consent:purchased?false:true,website:''
     };
-    const r=await fetch(PRISTINE_API+'?action=material-lead',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(cloudPayload)});
+    const r=await fetch(PRISTINE_API+'?action=material-lead',{method:'POST',headers:apiHeaders(),body:JSON.stringify(cloudPayload)});
     const d=await r.json();
-    if(!r.ok||!d.ok)throw new Error(d.error||'Could not save lead');
-    payload.cloudId=d.lead?.id||null;
-    const leads=loadLeads();leads.unshift(payload);saveLeads(leads);
+    if(!r.ok||!d.ok)throw new Error(d.error||'Could not save material opportunity');
+    if(d.lead){
+      payload.cloudId=d.lead.id||null;
+      const leads=loadLeads();leads.unshift(payload);saveLeads(leads);
+    }
+    await fetchPartnerNetworkData(false);
     $('#materialQuoteDialog').close();
-    alert('Material quote request sent to Pristine Flooring.');
+    alert(purchased?'Project recorded. No material sales lead was created.':'Material opportunity sent and attributed to your Partner ID.');
   }catch(err){
-    alert('Could not send the quote request online. Please try again. '+(err?.message||''));
+    alert('Could not save the material opportunity. Please try again. '+(err?.message||''));
   }finally{
-    if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Send quote request'}
+    if(sendBtn){sendBtn.disabled=false;sendBtn.textContent='Send material opportunity'}
   }
 }
 let currentProFeature='pro';
@@ -621,5 +767,9 @@ async function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus()
   const signUp=$('#signUpBtn');if(signUp)signUp.onclick=signUpAccount;
   const signOut=$('#signOutBtn');if(signOut)signOut.onclick=signOutAccount;
   const forgot=$('#forgotAccountPassword');if(forgot)forgot.onclick=requestAccountPasswordReset;
-  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved to your company workspace.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',()=>openEmailDialog());const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
+  const saveNew=$('#saveNewPasswordBtn');if(saveNew)saveNew.onclick=saveNewAccountPassword;
+  const editPartner=$('#editPartnerProfileBtn');if(editPartner)editPartner.onclick=openPartnerProfile;
+  const copyReferral=$('#copyReferralLinkBtn');if(copyReferral)copyReferral.onclick=copyPartnerReferralLink;
+  const savePartner=$('#savePartnerProfileBtn');if(savePartner)savePartner.onclick=savePartnerProfile;
+  ['closePartnerProfile','partnerProfileLaterBtn'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#partnerProfileDialog')?.close()});$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved to your company workspace.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const partnerMaterial=$('#partnerMaterialBtn');if(partnerMaterial)partnerMaterial.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);document.querySelectorAll('input[name="materialOpportunityType"]').forEach(el=>el.addEventListener('change',()=>syncMaterialOpportunityUI(true)));const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',()=>openEmailDialog());const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
 init();
