@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=220" />
+  <link rel="stylesheet" href="styles.css?v=300" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -34,6 +34,7 @@
   <a href="#builderStart">Estimate</a>
   <a href="#documents">Documents</a>
   <a href="#growthTools">Materials & Pro</a>
+  <a href="#partnerCenter">Partner Center</a>
   <button id="navBrandBtn" type="button">My Brand</button>
 </nav>
 
@@ -199,6 +200,41 @@
     <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
   </section>
 
+  <section id="partnerCenter" class="partner-center panel">
+    <div class="partner-center-head">
+      <div>
+        <p class="kicker">PRISTINE PARTNER NETWORK</p>
+        <h2>Your Partner Center</h2>
+        <p>Use your Partner ID to refer customers, create material opportunities and track the commercial value generated through the platform.</p>
+      </div>
+      <button id="editPartnerProfileBtn" class="btn btn-secondary" type="button">Edit Partner Profile</button>
+    </div>
+
+    <div class="partner-identity">
+      <div>
+        <span class="partner-label">PARTNER ID</span>
+        <strong id="partnerCode">Loading...</strong>
+        <small id="partnerBusinessType">Complete your profile to personalize the network.</small>
+      </div>
+      <div class="partner-link-box">
+        <label>Referral link<input id="partnerReferralLink" type="text" readonly /></label>
+        <button id="copyReferralLinkBtn" class="btn btn-dark" type="button">Copy link</button>
+      </div>
+    </div>
+
+    <div class="partner-metrics">
+      <article><span>Material opportunities</span><strong id="partnerMetricOpportunities">0</strong><small>Projects entered into the material funnel</small></article>
+      <article><span>Quote requests</span><strong id="partnerMetricQuotes">0</strong><small>Requests for distributor pricing</small></article>
+      <article><span>Customer referrals</span><strong id="partnerMetricReferrals">0</strong><small>Customers sent to source flooring</small></article>
+      <article><span>Already purchased</span><strong id="partnerMetricPurchased">0</strong><small>Projects where material was already secured</small></article>
+    </div>
+
+    <div class="partner-center-footer">
+      <div><strong>Partner Rewards</strong><span>Sales attribution and rewards will be activated during the distributor pilot.</span></div>
+      <button id="partnerMaterialBtn" class="btn btn-gold" type="button">Create material opportunity</button>
+    </div>
+  </section>
+
   <section class="pristine-cta pristine-cta-branded">
     <div class="pristine-cta-logo"><img src="assets/pristine-web.webp" alt="Pristine Flooring" loading="lazy" /></div>
     <div>
@@ -282,13 +318,26 @@
 <dialog id="materialQuoteDialog">
   <form class="brand-dialog" onsubmit="return false;">
     <div class="dialog-head"><div><p class="kicker">PRISTINE MATERIAL QUOTE</p><h2>Turn this estimate into a material lead</h2></div><button id="closeMaterialQuote" class="icon-btn" type="button" aria-label="Close">×</button></div>
-    <p class="dialog-note">Project quantities are pulled from the estimator. Review the information below before sending it to Pristine Flooring.</p>
+    <p class="dialog-note">Project quantities are pulled from the estimator. First tell us how material will be sourced for this project.</p>
+    <div class="material-opportunity-choices">
+      <label class="opportunity-choice"><input type="radio" name="materialOpportunityType" value="quote_for_me" checked /><span><strong>Quote for me</strong><small>I or my company may purchase the flooring.</small></span></label>
+      <label class="opportunity-choice"><input type="radio" name="materialOpportunityType" value="send_to_customer" /><span><strong>Send options to customer</strong><small>The homeowner/customer will likely purchase the flooring.</small></span></label>
+      <label class="opportunity-choice"><input type="radio" name="materialOpportunityType" value="already_purchased" /><span><strong>Material already purchased</strong><small>Record the project for market intelligence only. No sales lead will be created.</small></span></label>
+    </div>
     <div class="quote-metric">
       <div><span>Measured area</span><strong id="quoteMeasuredSqft">0 sqft</strong></div>
       <div><span>Required material</span><strong id="quoteRequiredSqft">0 sqft</strong></div>
     </div>
     <div class="form-grid cols-2">
       <label>Material requested<select id="quoteMaterial"></select></label>
+      <label>Who will most likely buy the material?<select id="quoteBuyerRole">
+        <option value="my_company">My company</option>
+        <option value="homeowner">Homeowner / customer</option>
+        <option value="general_contractor">General contractor</option>
+        <option value="retailer_designer">Retailer / designer</option>
+        <option value="another_company">Another company</option>
+        <option value="unknown">Not sure yet</option>
+      </select></label>
       <label>Waste allowance (%)<input id="quoteWaste" type="number" min="0" max="50" step="1" value="10" /></label>
       <label>Company / requester<input id="quoteCompany" type="text" placeholder="Your company or name" /></label>
       <label>Phone<input id="quotePhone" type="tel" placeholder="(555) 555-5555" /></label>
@@ -297,8 +346,54 @@
       <label class="span-2">Project address<input id="quoteAddress" type="text" /></label>
       <label class="span-2">Material notes<textarea id="quoteNotes" rows="4" placeholder="Color, size, finish, delivery timing, preferred product..."></textarea></label>
     </div>
-    <label class="consent-row"><input id="quoteConsent" type="checkbox" /> <span>I authorize sharing these project details with Pristine Flooring for material pricing.</span></label>
+    <label id="quoteConsentRow" class="consent-row"><input id="quoteConsent" type="checkbox" /> <span>I authorize sharing these project details with Pristine Flooring and its assigned distributor for material pricing.</span></label>
     <div class="dialog-actions split-actions"><button id="cancelMaterialQuote" class="btn btn-secondary" type="button">Cancel</button><button id="sendMaterialQuoteBtn" class="btn btn-gold" type="button">Send quote request</button></div>
+  </form>
+</dialog>
+
+<dialog id="partnerProfileDialog">
+  <form class="brand-dialog partner-profile-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">PRISTINE PARTNER NETWORK</p><h2>Tell us about your flooring business</h2></div><button id="closePartnerProfile" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">This short profile helps us understand who purchases materials, route opportunities correctly and design Partner Rewards around real behavior.</p>
+    <div class="form-grid cols-2">
+      <label>Business type<select id="partnerBusinessTypeInput">
+        <option value="">Select...</option>
+        <option value="installer">Installer</option>
+        <option value="flooring_contractor">Flooring contractor</option>
+        <option value="general_contractor">General contractor</option>
+        <option value="remodeler">Remodeler</option>
+        <option value="retailer">Retailer</option>
+        <option value="designer">Designer</option>
+        <option value="property_manager">Property manager</option>
+        <option value="other">Other</option>
+      </select></label>
+      <label>How often do you purchase flooring materials?<select id="partnerPurchaseFrequency">
+        <option value="">Select...</option>
+        <option value="always">Always</option>
+        <option value="often">Often</option>
+        <option value="sometimes">Sometimes</option>
+        <option value="rarely">Rarely</option>
+        <option value="never">Never</option>
+      </select></label>
+      <label>Who usually buys the flooring?<select id="partnerUsualBuyer">
+        <option value="">Select...</option>
+        <option value="my_company">My company</option>
+        <option value="homeowner">Homeowner / customer</option>
+        <option value="general_contractor">General contractor</option>
+        <option value="retailer_designer">Retailer / designer</option>
+        <option value="another_company">Another company</option>
+        <option value="varies">It varies</option>
+      </select></label>
+      <label>Would you refer customers for rewards?<select id="partnerReferralInterest">
+        <option value="">Select...</option>
+        <option value="yes">Yes</option>
+        <option value="maybe">Maybe</option>
+        <option value="no">No</option>
+      </select></label>
+      <label class="span-2">Primary service area<input id="partnerServiceArea" type="text" placeholder="Example: Palm Beach & Broward County" /></label>
+    </div>
+    <p id="partnerProfileMessage" class="account-message"></p>
+    <div class="dialog-actions split-actions"><button id="partnerProfileLaterBtn" class="btn btn-secondary" type="button">Complete later</button><button id="savePartnerProfileBtn" class="btn btn-gold" type="button">Save Partner Profile</button></div>
   </form>
 </dialog>
 
@@ -362,6 +457,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=230"></script>
+<script src="app.js?v=300"></script>
 </body>
 </html>
