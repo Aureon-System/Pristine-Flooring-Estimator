@@ -382,4 +382,9 @@ window.PristineLocaleMessages = Object.freeze({
   ,"Send material opportunity": ["Enviar oportunidade de material", "Enviar oportunidad de material"]
   ,"Record project": ["Registrar projeto", "Registrar proyecto"]
 
+  ,"Product size(s)": ["Tamanho(s) do produto", "Tamaño(s) del producto"]
+  ,"Select one or more sizes for this material request.": ["Selecione um ou mais tamanhos para esta solicitação de material.", "Seleccione uno o más tamaños para esta solicitud de material."]
+  ,"Custom size / specification": ["Tamanho / especificação personalizada", "Tamaño / especificación personalizada"]
+  ,"No standard presets for this material. Use Custom size below.": ["Não há tamanhos padrão para este material. Use o campo personalizado abaixo.", "No hay tamaños estándar para este material. Use el campo personalizado abajo."]
+
 });
