@@ -268,6 +268,20 @@ async function requirePro(feature,onAllowed){
 const patterns=['Straight','Staggered','Diagonal 45°','Herringbone','Chevron','Modular','Custom'];
 const patternSurcharges={'Straight':0,'Staggered':5,'Diagonal 45°':10,'Herringbone':20,'Chevron':20,'Modular':10,'Custom':0};
 const materials=['Material not included','Ceramic / porcelain','Large-format porcelain','Click-lock laminate','Luxury vinyl plank (LVP)','Engineered wood · floating','Engineered wood · glued','Solid hardwood','Carpet','Marble floor tile','Marble wall tile','Wall tile','Customer supplied / Other'];
+const materialSizePresets={
+  'Ceramic / porcelain':['12x24','24x24','24x48','32x32','36x36','48x48'],
+  'Large-format porcelain':['24x48','32x64','36x72','48x48','48x96'],
+  'Marble floor tile':['12x24','24x24','24x48','36x36','48x48'],
+  'Marble wall tile':['12x24','24x48','36x72'],
+  'Wall tile':['3x12','4x12','6x18','12x24','24x48'],
+  'Click-lock laminate':['7x48','8x48','9x60'],
+  'Luxury vinyl plank (LVP)':['7x48','9x48','9x60','12x24'],
+  'Engineered wood · floating':['5x48','7x48','7.5x72','9x72'],
+  'Engineered wood · glued':['5x48','7x48','7.5x72','9x72'],
+  'Solid hardwood':['3.25x48','5x48','7x48'],
+  'Carpet':['12 ft roll','15 ft roll'],
+  'Customer supplied / Other':[]
+};
 const catalog=[
  ['Preparation & removal','Floor removal / demolition','sqft',1.25,2.50],['Preparation & removal','Thinset / adhesive removal','sqft',1.00,2.00],['Preparation & removal','Debris disposal','flat',150,300],['Preparation & removal','Final cleaning','flat',100,225],['Preparation & removal','Localized floor prep / patching','sqft',0.75,1.50],['Preparation & removal','Self-leveling compound','sqft',1.50,3.00],['Preparation & removal','Grinding','sqft',1.00,2.25],['Preparation & removal','Mortar bed','sqft',2.50,5.00],['Preparation & removal','Crack isolation membrane','sqft',1.00,2.00],['Preparation & removal','Sound-control membrane','sqft',1.25,2.50],['Preparation & removal','Moisture barrier','sqft',0.85,1.75],['Preparation & removal','Waterproofing membrane','sqft',1.50,3.00],['Preparation & removal','Uncoupling membrane','sqft',1.50,3.00],
  ['Installation extras','Pattern upgrade','sqft',0.50,1.00],['Installation extras','Large-format tile handling','sqft',0.75,1.50],['Installation extras','Underlayment installation','sqft',0.60,1.25],['Installation extras','Grout / sealing','sqft',0.50,1.00],['Installation extras','Tile leveling system','sqft',0.30,0.75],
@@ -506,9 +520,24 @@ function syncMaterialOpportunityUI(fillContact=false){
     }
   }
 }
+function selectedMaterialSizes(){
+  return [...document.querySelectorAll('#quoteSizeOptions input[type="checkbox"]:checked')].map(el=>el.value);
+}
+function renderMaterialSizeOptions(preserve=true){
+  const box=$('#quoteSizeOptions');if(!box)return;
+  const material=$('#quoteMaterial')?.value||'';
+  const selected=preserve?new Set(selectedMaterialSizes()):new Set();
+  const presets=materialSizePresets[material]||[];
+  box.innerHTML=presets.length
+    ? presets.map(size=>'<label class="size-chip"><input type="checkbox" value="'+esc(size)+'" '+(selected.has(size)?'checked':'')+'><span>'+esc(size)+'</span></label>').join('')
+    : '<p class="size-empty">No standard presets for this material. Use Custom size below.</p>';
+}
+
 function openMaterialQuote(){
   const s=state(),sel=$('#quoteMaterial');
   if(sel){sel.innerHTML=materials.filter(m=>m!=='Material not included').map(m=>'<option>'+esc(m)+'</option>').join('');const preferred=s.areas.find(a=>a.material&&a.material!=='Material not included')?.material;if(preferred)sel.value=preferred}
+  renderMaterialSizeOptions(false);
+  $('#quoteCustomSize').value='';
   const first=document.querySelector('input[name="materialOpportunityType"][value="quote_for_me"]');if(first)first.checked=true;
   $('#quoteProject').value=s.client.project||'';
   $('#quoteAddress').value=s.client.address||'';
@@ -533,6 +562,8 @@ function materialLeadPayload(){
     project:$('#quoteProject').value.trim(),
     address:$('#quoteAddress').value.trim(),
     material:$('#quoteMaterial').value,
+    productSizes:selectedMaterialSizes(),
+    customSize:$('#quoteCustomSize').value.trim(),
     measuredSqft:Math.round(quoteAreaSqft()),
     waste:num($('#quoteWaste').value),
     requiredSqft:quoteRequiredSqft(),
@@ -554,6 +585,7 @@ async function sendMaterialQuote(){
     const cloudPayload={
       company:payload.company,name:payload.company,phone:payload.phone,email:payload.email,
       project:payload.project,address:payload.address,material:payload.material,
+      product_sizes:payload.productSizes,custom_size:payload.customSize,
       opportunity_type:payload.opportunityType,buyer_role:payload.buyerRole,
       measured_sqft:payload.measuredSqft,waste_pct:payload.waste,required_sqft:payload.requiredSqft,
       estimate_no:payload.estimateNo,estimate_total:payload.estimateTotal,
@@ -787,5 +819,5 @@ async function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus()
   const editPartner=$('#editPartnerProfileBtn');if(editPartner)editPartner.onclick=openPartnerProfile;
   const copyReferral=$('#copyReferralLinkBtn');if(copyReferral)copyReferral.onclick=copyPartnerReferralLink;
   const savePartner=$('#savePartnerProfileBtn');if(savePartner)savePartner.onclick=savePartnerProfile;
-  ['closePartnerProfile','partnerProfileLaterBtn'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#partnerProfileDialog')?.close()});$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved to your company workspace.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const partnerMaterial=$('#partnerMaterialBtn');if(partnerMaterial)partnerMaterial.onclick=openMaterialQuote;const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const qsqft=$('#quoteMeasuredSqftInput');if(qsqft)qsqft.addEventListener('input',refreshQuoteMetrics);const useEstimate=$('#useEstimateSqftBtn');if(useEstimate)useEstimate.onclick=useEstimateSqft;document.querySelectorAll('input[name="materialOpportunityType"]').forEach(el=>el.addEventListener('change',()=>syncMaterialOpportunityUI(true)));const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',()=>openEmailDialog());const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
+  ['closePartnerProfile','partnerProfileLaterBtn'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#partnerProfileDialog')?.close()});$('#brandLogoInput').addEventListener('change',e=>{const f=e.target.files?.[0];if(!f)return;if(f.size>800000){alert('Please use a logo smaller than 800 KB.');return}const reader=new FileReader();reader.onload=()=>{brandLogoDraft=reader.result;$('#brandLogoPreview').innerHTML=`<img src="${reader.result}" alt="Brand logo">`};reader.readAsDataURL(f)});$('#removeBrandLogo').onclick=()=>{brandLogoDraft=null;$('#brandLogoPreview').textContent='LOGO'};$('#mobileSummaryBtn').onclick=()=>$('.summary-card').scrollIntoView({behavior:'smooth',block:'start'});const mobileSave=$('#mobileSaveBtn');if(mobileSave)mobileSave.onclick=()=>{if(saveCurrent())alert('Document saved to your company workspace.')};const mq=$('#materialQuoteBtn');if(mq)mq.onclick=openMaterialQuote;const partnerMaterial=$('#partnerMaterialBtn');if(partnerMaterial)partnerMaterial.onclick=openMaterialQuote;const quoteMat=$('#quoteMaterial');if(quoteMat)quoteMat.addEventListener('change',()=>renderMaterialSizeOptions(false));const qm=$('#quoteWaste');if(qm)qm.addEventListener('input',refreshQuoteMetrics);const qsqft=$('#quoteMeasuredSqftInput');if(qsqft)qsqft.addEventListener('input',refreshQuoteMetrics);const useEstimate=$('#useEstimateSqftBtn');if(useEstimate)useEstimate.onclick=useEstimateSqft;document.querySelectorAll('input[name="materialOpportunityType"]').forEach(el=>el.addEventListener('change',()=>syncMaterialOpportunityUI(true)));const sendQ=$('#sendMaterialQuoteBtn');if(sendQ)sendQ.onclick=sendMaterialQuote;['closeMaterialQuote','cancelMaterialQuote'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialQuoteDialog').close()});const emailBtn=$('#emailClientBtn');if(emailBtn)emailBtn.onclick=()=>requirePro('email',openEmailDialog);const mainEmailBtn=$('#sendDocEmailBtn');if(mainEmailBtn)mainEmailBtn.onclick=()=>requirePro('email',()=>openEmailDialog());const textBtn=$('#textClientBtn');if(textBtn)textBtn.onclick=()=>openPro('text');const followBtn=$('#followUpBtn');if(followBtn)followBtn.onclick=()=>openPro('followup');const clientBtn=$('#clientLinkBtn');if(clientBtn)clientBtn.onclick=()=>requirePro('client',async()=>{try{const d=await createCloudDocument();if(d?.public_url)window.open(d.public_url,'_blank','noopener')}catch(err){alert(err?.message||'Could not create client link')}});const proToolsBtn=$('#proToolsBtn');if(proToolsBtn)proToolsBtn.onclick=()=>openPro('pro');['closeProDialog','cancelProDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#proDialog').close()});const proInterest=$('#proInterestBtn');if(proInterest)proInterest.onclick=joinProInterest;const upgrade=$('#upgradeProBtn');if(upgrade)upgrade.onclick=()=>openPro('pro');['closeEmailDialog','cancelEmailDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#emailDialog').close()});const sendEmailBtn=$('#sendEmailNowBtn');if(sendEmailBtn)sendEmailBtn.onclick=sendEmailNow;const aiEmailBtn=$('#generateAiEmailBtn');if(aiEmailBtn)aiEmailBtn.onclick=generateAiEmailDraft;const autoBtn=$('#automationSettingsBtn');if(autoBtn)autoBtn.onclick=openAutomationSettings;const saveAuto=$('#saveAutomationBtn');if(saveAuto)saveAuto.onclick=saveAutomationSettings;['closeAutomationDialog','cancelAutomationDialog'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#automationDialog').close()});calc();const authOk=await initAccount();if(authOk===false)return;await activateProFromCheckout();await verifyPro();const q=new URLSearchParams(location.search);if(q.get('upgrade')==='pro'&&!proVerified)setTimeout(()=>openPro('pro'),150)}
 init();
