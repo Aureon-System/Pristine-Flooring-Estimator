@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=300" />
+  <link rel="stylesheet" href="styles.css?v=310" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -325,8 +325,15 @@
       <label class="opportunity-choice"><input type="radio" name="materialOpportunityType" value="already_purchased" /><span><strong>Material already purchased</strong><small>Record the project for market intelligence only. No sales lead will be created.</small></span></label>
     </div>
     <div class="quote-metric">
-      <div><span>Measured area</span><strong id="quoteMeasuredSqft">0 sqft</strong></div>
-      <div><span>Required material</span><strong id="quoteRequiredSqft">0 sqft</strong></div>
+      <div class="quote-metric-editable">
+        <span>Measured area</span>
+        <div class="quote-sqft-input-row">
+          <input id="quoteMeasuredSqftInput" type="number" min="1" max="1000000" step="1" inputmode="decimal" value="0" />
+          <b>sqft</b>
+        </div>
+        <button id="useEstimateSqftBtn" class="quote-reset-btn" type="button">Use estimate sqft</button>
+      </div>
+      <div><span>Required material</span><strong id="quoteRequiredSqft">0 sqft</strong><small>Includes waste allowance</small></div>
     </div>
     <div class="form-grid cols-2">
       <label>Material requested<select id="quoteMaterial"></select></label>
@@ -457,6 +464,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=300"></script>
+<script src="app.js?v=310"></script>
 </body>
 </html>
