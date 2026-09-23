@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=310" />
+  <link rel="stylesheet" href="styles.css?v=320" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -345,6 +345,13 @@
         <option value="another_company">Another company</option>
         <option value="unknown">Not sure yet</option>
       </select></label>
+      <div class="span-2 material-size-field">
+        <div class="material-size-head">
+          <div><strong>Product size(s)</strong><small>Select one or more sizes for this material request.</small></div>
+        </div>
+        <div id="quoteSizeOptions" class="material-size-options"></div>
+        <label class="custom-size-label">Custom size / specification<input id="quoteCustomSize" type="text" maxlength="80" placeholder="Example: 30x60, 8x72, mixed sizes..." /></label>
+      </div>
       <label>Waste allowance (%)<input id="quoteWaste" type="number" min="0" max="50" step="1" value="10" /></label>
       <label>Company / requester<input id="quoteCompany" type="text" placeholder="Your company or name" /></label>
       <label>Phone<input id="quotePhone" type="tel" placeholder="(555) 555-5555" /></label>
@@ -464,6 +471,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=310"></script>
+<script src="app.js?v=320"></script>
 </body>
 </html>
