@@ -1783,3 +1783,32 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .partner-link-box .btn{width:100%}
   .partner-metrics{grid-template-columns:1fr 1fr}
 }
+
+/* V310 editable material opportunity sqft */
+.quote-metric-editable{display:block}
+.quote-sqft-input-row{display:flex;align-items:center;gap:8px}
+.quote-sqft-input-row input{
+  width:150px;
+  min-height:42px;
+  border:1px solid #d3d9df;
+  border-radius:8px;
+  padding:8px 10px;
+  background:#fff;
+  font-size:18px;
+  font-weight:900;
+  color:#111820;
+}
+.quote-sqft-input-row b{font-size:11px;color:#68727c}
+.quote-reset-btn{
+  margin-top:7px;
+  border:0;
+  background:transparent;
+  padding:0;
+  color:#8d6429;
+  font-size:9px;
+  font-weight:850;
+  cursor:pointer;
+  text-decoration:underline;
+  text-underline-offset:2px;
+}
+.quote-metric>div>small{display:block;margin-top:5px;font-size:9px;color:#7b838b}
