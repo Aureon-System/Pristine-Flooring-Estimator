@@ -37,6 +37,9 @@ function partnerBusinessLabel(value){
 
 async function fetchPartnerNetworkData(promptProfile=false){
   if(!sb||!currentPartner)return null;
+  try{
+    await fetch(PRISTINE_API+'?action=ensure-partner-network',{method:'POST',headers:apiHeaders(),body:'{}'});
+  }catch{}
   const [profileR,codeR,eventsR]=await Promise.all([
     sb.from('partner_profiles').select('*').eq('partner_id',currentPartner.id).maybeSingle(),
     sb.from('referral_codes').select('id,code,active,created_at').eq('partner_id',currentPartner.id).eq('active',true).maybeSingle(),
