@@ -1812,3 +1812,17 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   text-underline-offset:2px;
 }
 .quote-metric>div>small{display:block;margin-top:5px;font-size:9px;color:#7b838b}
+
+/* V320 material size multi-select */
+.material-size-field{display:grid;gap:10px;padding:12px;border:1px solid #e0e4e8;border-radius:10px;background:#fafbfc}
+.material-size-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.material-size-head strong{font-size:11px}
+.material-size-head small{display:block;margin-top:3px;font-size:9px;color:#717b85}
+.material-size-options{display:flex;flex-wrap:wrap;gap:8px}
+.size-chip{position:relative;display:inline-flex;cursor:pointer}
+.size-chip input{position:absolute;opacity:0;pointer-events:none}
+.size-chip span{display:inline-flex;align-items:center;justify-content:center;min-width:70px;min-height:36px;padding:7px 10px;border:1px solid #cfd6dc;border-radius:999px;background:#fff;font-size:10px;font-weight:850;color:#33404b}
+.size-chip input:checked+span{background:#111820;border-color:#111820;color:#fff;box-shadow:0 0 0 2px rgba(183,137,63,.18)}
+.size-empty{margin:0;font-size:10px;color:#747d87}
+.custom-size-label{display:grid;gap:5px;font-size:9px;font-weight:800;color:#5e6872}
+.custom-size-label input{width:100%;border:1px solid #d1d7dc;border-radius:8px;padding:10px;background:#fff}
