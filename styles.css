@@ -2042,3 +2042,19 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   [data-workspace-module="estimate"] .intro h1{font-size:28px}
   [data-workspace-module="estimate"] .intro-copy{font-size:11px}
 }
+
+/* V401 progressive disclosure for estimate pricing */
+.advanced-pricing-toggle{
+  width:100%;margin-top:10px;min-height:38px;border:1px solid #dfe3e7;border-radius:9px;
+  background:#f7f8fa;color:#39434d;padding:0 11px;display:flex;align-items:center;justify-content:space-between;
+  font-size:9px;font-weight:900;cursor:pointer;text-align:left
+}
+.advanced-pricing-toggle:hover{background:#f1f3f5}
+.advanced-pricing-toggle b{font-size:14px;color:#9a6e31}
+.advanced-pricing-panel{display:none}
+.area-card.advanced-open .advanced-pricing-panel{display:block}
+.area-card.advanced-open .advanced-pricing-toggle{background:#f5efe4;border-color:#dfcda9;color:#5d482a}
+
+@media(max-width:680px){
+  .advanced-pricing-toggle{min-height:42px;font-size:10px}
+}
