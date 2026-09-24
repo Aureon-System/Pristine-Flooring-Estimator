@@ -60,21 +60,7 @@
   </div>
 </header>
 <main id="top" class="shell">
-<section class="language-panel" aria-labelledby="languageHeading">
-    <div>
-      <p id="languageHeading" class="language-caption">Interface language</p>
-      <p id="documentLanguageHint">Client documents: always in English.</p>
-    </div>
-    <label for="languageSelect">
-      <span class="visually-hidden">Language</span>
-      <select id="languageSelect" aria-label="Language" aria-describedby="documentLanguageHint">
-        <option value="en" lang="en">English</option>
-        <option value="pt" lang="pt-BR">Português</option>
-        <option value="es" lang="es">Español</option>
-      </select>
-    </label>
-  </section>
-  <section class="workspace-module active" data-workspace-module="home">
+<section class="workspace-module active" data-workspace-module="home">
     <div class="home-welcome">
       <div>
         <p class="kicker">PRISTINE WORKSPACE</p>
@@ -208,24 +194,7 @@
         </div>
         <p>Before fixed overhead and income tax.</p>
       </div>
-
-      <div id="brandSettings" class="brand-card">
-        <div class="brand-card-icon">B</div>
-        <div><span>PARTNER BRAND</span><strong id="brandStatus">No company brand set</strong><p>Client PDFs show only the issuing partner's brand.</p></div>
-        <button id="brandCardBtn" class="btn btn-link" type="button">Edit brand</button>
-      </div>
-
-      <div id="growthTools" class="growth-card">
-        <div class="growth-card-head">
-          <span>SALES TOOLS</span>
-          <strong>Material quotes are free. Automation is Pro.</strong>
-          <p>Request material pricing from Pristine at no charge. Email, client view, SMS and follow-up require Pro.</p>
-        </div>
-        <button id="materialQuoteBtn" class="btn btn-gold full" type="button">Request material quote</button>
-        <button id="proToolsBtn" class="btn btn-dark full" type="button">Explore Pro tools · $12.99/mo</button>
-        <button id="automationSettingsBtn" class="btn btn-secondary full" type="button">AI automation settings</button>
-      </div>
-    </aside>
+</aside>
   </section>
 
 
@@ -347,14 +316,18 @@
   </div>
 </footer>
 
-<div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div>
+<div class="mobile-total">
+  <div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div>
+  <div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div>
+</div>
+
 <nav class="mobile-app-nav" aria-label="Mobile workspace navigation">
   <button type="button" class="active" data-workspace-view="home"><span>⌂</span><small>Home</small></button>
   <button type="button" data-workspace-view="estimate"><span>＋</span><small>Estimate</small></button>
   <button type="button" data-workspace-view="estimates"><span>▤</span><small>Docs</small></button>
   <button type="button" data-workspace-view="partner"><span>◎</span><small>Partner</small></button>
   <button type="button" data-mobile-more><span>•••</span><small>More</small></button>
-</nav></div>
+</nav>
 
 <dialog id="accountDialog">
   <form class="brand-dialog account-dialog" onsubmit="return false;">
