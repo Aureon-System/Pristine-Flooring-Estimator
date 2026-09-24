@@ -944,7 +944,7 @@ async function joinProInterest(){
   const checkout=window.PRISTINE_BILLING?.plans?.pro?.checkoutUrl;
   if(checkout){window.open(checkout,'_blank','noopener')}else alert('Pro checkout is not available yet.');
 }
-function renderBrandStatus(){const b=loadBrand();$('#brandStatus').textContent=b.name||'No company brand set';const prev=$('#brandLogoPreview');if(prev){prev.innerHTML=b.logoData?`<img src="${b.logoData}" alt="Brand logo">`:'LOGO'}}
+function renderBrandStatus(){const b=loadBrand();const status=$('#brandStatus');if(status)status.textContent=b.name||'No company brand set';const prev=$('#brandLogoPreview');if(prev){prev.innerHTML=b.logoData?`<img src="${b.logoData}" alt="Brand logo">`:'LOGO'}}
 function openBrand(){const b=loadBrand();brandLogoDraft=b.logoData||null;$('#brandName').value=b.name||'';$('#brandPhone').value=b.phone||'';$('#brandEmail').value=b.email||'';$('#brandLicense').value=b.license||'';$('#brandAddress').value=b.address||'';renderBrandStatus();$('#brandDialog').showModal()}
 function saveBrandFromDialog(){saveBrandData({name:$('#brandName').value.trim(),phone:$('#brandPhone').value.trim(),email:$('#brandEmail').value.trim(),license:$('#brandLicense').value.trim(),address:$('#brandAddress').value.trim(),logoData:brandLogoDraft});renderBrandStatus()}
 async function activateProFromCheckout(){
