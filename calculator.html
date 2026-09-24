@@ -8,45 +8,59 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=320" />
+  <link rel="stylesheet" href="styles.css?v=400" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
 <header class="app-header">
-  <div class="header-inner">
-    <a class="pristine-brand pristine-brand-image" href="/" aria-label="Pristine Flooring Estimator">
+  <div class="header-inner app-shell-header">
+    <a class="pristine-brand pristine-brand-image" href="/" aria-label="Pristine Flooring">
       <img src="assets/pristine-web.webp" alt="Pristine Flooring" width="150" height="60" />
     </a>
-    <div class="workspace-title">
-      <span>PRISTINE TOOL</span>
-      <strong>Flooring Estimator</strong>
-    </div>
-    <div class="header-actions">
-      <button id="newDocBtn" class="btn btn-ghost" type="button">New estimate</button>
-      <button id="upgradeProBtn" class="btn btn-ghost pro-header-btn" type="button">Pro · $12.99</button>
-      <button id="accountBtn" class="btn btn-ghost account-btn" type="button">Sign in</button>
-      <button id="brandBtn" class="btn btn-gold" type="button">Your company brand</button>
+
+    <nav class="app-primary-nav" aria-label="Main workspace navigation">
+      <button class="app-nav-item active" type="button" data-workspace-view="home">Home</button>
+      <button class="app-nav-item" type="button" data-workspace-view="estimate">Estimate</button>
+      <button class="app-nav-item" type="button" data-workspace-view="estimates">Estimates</button>
+      <button class="app-nav-item" type="button" data-workspace-view="invoices">Invoices</button>
+      <button class="app-nav-item" type="button" data-workspace-view="partner">Partner</button>
+      <button class="app-nav-item" type="button" data-workspace-view="materials">Materials</button>
+    </nav>
+
+    <div class="header-actions app-header-actions">
+      <button id="newDocBtn" class="btn btn-gold header-new-btn" type="button">+ New estimate</button>
+      <button id="upgradeProBtn" class="plan-chip" type="button">PRO</button>
+
+      <div class="company-menu-wrap">
+        <button id="companyMenuBtn" class="company-menu-btn" type="button" aria-expanded="false">
+          <span class="company-avatar">P</span>
+          <span class="company-menu-copy"><small>Workspace</small><strong id="companyMenuName">Company</strong></span>
+          <span class="company-chevron">⌄</span>
+        </button>
+        <div id="companyMenu" class="company-menu" hidden>
+          <div class="company-menu-head">
+            <strong id="companyMenuTitle">Company workspace</strong>
+            <span id="companyMenuEmail"></span>
+          </div>
+          <button id="brandBtn" class="company-menu-item" type="button">Company branding</button>
+          <button id="accountBtn" class="company-menu-item" type="button">Account & security</button>
+          <button id="proToolsBtn" class="company-menu-item" type="button">Plan & Pro features</button>
+          <button id="automationSettingsBtn" class="company-menu-item" type="button">AI automation</button>
+          <label class="company-language">
+            <span>Interface language</span>
+            <select id="languageSelect" aria-label="Language">
+              <option value="en" lang="en">English</option>
+              <option value="pt" lang="pt-BR">Português</option>
+              <option value="es" lang="es">Español</option>
+            </select>
+          </label>
+        </div>
+      </div>
     </div>
   </div>
 </header>
-
-<nav class="workspace-nav" aria-label="Estimator navigation">
-  <a href="#builderStart">Estimate</a>
-  <a href="#documents">Documents</a>
-  <a href="#growthTools">Materials & Pro</a>
-  <a href="#partnerCenter">Partner Center</a>
-  <button id="navBrandBtn" type="button">My Brand</button>
-</nav>
-
 <main id="top" class="shell">
-  <section id="accountStatusBar" class="account-status signed-in">
-    <div>
-      <strong id="accountStatusTitle">Company workspace</strong>
-      <span id="accountStatusText">Secure cloud workspace linked to your company account.</span>
-    </div>
-    <button id="accountStatusBtn" class="btn btn-secondary" type="button">Manage account</button>
-  </section>
-  <section class="language-panel" aria-labelledby="languageHeading">
+<section class="language-panel" aria-labelledby="languageHeading">
     <div>
       <p id="languageHeading" class="language-caption">Interface language</p>
       <p id="documentLanguageHint">Client documents: always in English.</p>
@@ -60,7 +74,46 @@
       </select>
     </label>
   </section>
-  <section class="intro">
+  <section class="workspace-module active" data-workspace-module="home">
+    <div class="home-welcome">
+      <div>
+        <p class="kicker">PRISTINE WORKSPACE</p>
+        <h1 id="homeGreeting">Run your flooring business without the clutter.</h1>
+        <p>Start the next task from here. Estimates, invoices, materials and partner activity each have their own workspace.</p>
+      </div>
+      <button id="homeNewEstimateBtn" class="btn btn-gold home-primary-action" type="button">+ New estimate</button>
+    </div>
+
+    <div class="home-quick-actions">
+      <button type="button" data-home-action="estimate"><span class="home-action-icon">+</span><strong>New Estimate</strong><small>Price a flooring job</small></button>
+      <button type="button" data-home-action="materials"><span class="home-action-icon">M</span><strong>Material Quote</strong><small>Request flooring pricing</small></button>
+      <button type="button" data-home-action="partner"><span class="home-action-icon">P</span><strong>Refer Customer</strong><small>Use your Partner ID</small></button>
+      <button type="button" data-home-action="invoices"><span class="home-action-icon">$</span><strong>Invoices</strong><small>Review billing documents</small></button>
+    </div>
+
+    <div class="home-kpi-grid">
+      <article><span>Customers</span><strong id="statCustomers">0</strong><small>Unique customers</small></article>
+      <article><span>Estimates</span><strong id="statEstimates">0</strong><small id="statEstimateValue">$0.00</small></article>
+      <article><span>Invoices</span><strong id="statInvoices">0</strong><small id="statInvoiceValue">$0.00</small></article>
+      <article><span>Material opportunities</span><strong id="statMaterialLeads">0</strong><small>Partner Network</small></article>
+    </div>
+
+    <div class="home-grid">
+      <section class="panel home-recent-panel">
+        <div class="module-section-head"><div><p class="kicker">RECENT ACTIVITY</p><h2>Pick up where you left off</h2></div><button class="btn btn-link" type="button" data-workspace-view="estimates">View estimates</button></div>
+        <div id="homeRecentActivity" class="home-recent-list"><p class="empty">No activity yet.</p></div>
+      </section>
+      <section class="panel home-partner-card">
+        <p class="kicker">PARTNER NETWORK</p>
+        <h2>Turn projects into opportunity.</h2>
+        <p>Refer customers, request flooring quotes and track the commercial activity generated from your Partner ID.</p>
+        <button class="btn btn-dark" type="button" data-workspace-view="partner">Open Partner Center</button>
+      </section>
+    </div>
+  </section>
+
+  <section class="workspace-module" data-workspace-module="estimate">
+      <section class="intro">
     <div>
       <p class="kicker">FREE PROFESSIONAL ESTIMATING TOOL</p>
       <h1>Create a flooring estimate in minutes.</h1>
@@ -175,32 +228,41 @@
     </aside>
   </section>
 
-  <section id="documents" class="saved-panel panel">
-    <div class="saved-head"><div><p class="kicker" id="workspaceModeLabel">LOCAL WORKSPACE</p><h2>Saved documents</h2><p id="workspaceModeText">Open the estimate, review it, then edit, print, email or convert it into an invoice.</p></div><button id="clearDocsBtn" class="btn btn-link" type="button">Refresh workspace</button></div>
-    <div class="stats-row workspace-stats grouped-stats">
-      <div class="workspace-stat-card">
-        <span class="stat-label">Customers</span>
-        <strong id="statCustomers">0</strong>
-        <small>Unique customers</small>
-      </div>
-      <div class="workspace-stat-card estimate-stat-card">
-        <span class="stat-label">Estimates</span>
-        <div class="stat-pair"><div><small>Documents</small><strong id="statEstimates">0</strong></div><div><small>Estimated value</small><strong id="statEstimateValue">$0.00</strong></div></div>
-      </div>
-      <div class="workspace-stat-card invoice-stat-card">
-        <span class="stat-label">Invoices</span>
-        <div class="stat-pair"><div><small>Documents</small><strong id="statInvoices">0</strong></div><div><small>Invoiced value</small><strong id="statInvoiceValue">$0.00</strong></div></div>
-      </div>
-      <div class="workspace-stat-card">
-        <span class="stat-label">Material leads</span>
-        <strong id="statMaterialLeads">0</strong>
-        <small>Quote requests</small>
-      </div>
-    </div>
-    <div id="savedDocs" class="saved-list"><p class="empty">No saved documents yet.</p></div>
+
   </section>
 
-  <section id="partnerCenter" class="partner-center panel">
+  <section class="workspace-module" data-workspace-module="estimates">
+    <div class="module-page-head">
+      <div><p class="kicker">DOCUMENTS</p><h1>Estimates</h1><p>Review open quotes, follow up with customers and convert approved work into invoices.</p></div>
+      <div class="module-page-actions"><button id="clearDocsBtn" class="btn btn-secondary" type="button">Refresh</button><button class="btn btn-gold" type="button" data-new-estimate>+ New estimate</button></div>
+    </div>
+    <div class="document-kpis">
+      <article><span>Total estimates</span><strong id="estimateModuleCount">0</strong></article>
+      <article><span>Estimated value</span><strong id="estimateModuleValue">$0.00</strong></article>
+      <article><span>Accepted</span><strong id="estimateModuleAccepted">0</strong></article>
+    </div>
+    <section class="panel module-list-panel">
+      <div id="estimatesList" class="saved-list"><p class="empty">No estimates yet.</p></div>
+    </section>
+  </section>
+
+  <section class="workspace-module" data-workspace-module="invoices">
+    <div class="module-page-head">
+      <div><p class="kicker">DOCUMENTS</p><h1>Invoices</h1><p>Keep billing documents separate from estimates so collection work stays easy to find.</p></div>
+      <div class="module-page-actions"><button class="btn btn-secondary" type="button" data-workspace-view="estimate">Create invoice manually</button></div>
+    </div>
+    <div class="document-kpis">
+      <article><span>Total invoices</span><strong id="invoiceModuleCount">0</strong></article>
+      <article><span>Invoiced value</span><strong id="invoiceModuleValue">$0.00</strong></article>
+      <article><span>From estimates</span><strong id="invoiceConvertedCount">0</strong></article>
+    </div>
+    <section class="panel module-list-panel">
+      <div id="invoicesList" class="saved-list"><p class="empty">No invoices yet.</p></div>
+    </section>
+  </section>
+
+  <section class="workspace-module" data-workspace-module="partner">
+      <section id="partnerCenter" class="partner-center panel">
     <div class="partner-center-head">
       <div>
         <p class="kicker">PRISTINE PARTNER NETWORK</p>
@@ -235,7 +297,29 @@
     </div>
   </section>
 
-  <section class="pristine-cta pristine-cta-branded">
+
+  </section>
+
+  <section class="workspace-module" data-workspace-module="materials">
+    <div class="module-page-head">
+      <div><p class="kicker">MATERIAL NETWORK</p><h1>Materials</h1><p>Create flooring opportunities and keep every material request in one place.</p></div>
+      <button id="materialQuoteBtn" class="btn btn-gold" type="button">+ New material request</button>
+    </div>
+    <div class="materials-kpis">
+      <article><span>Total opportunities</span><strong id="materialsTotalCount">0</strong></article>
+      <article><span>Quote requests</span><strong id="materialsQuoteCount">0</strong></article>
+      <article><span>Customer referrals</span><strong id="materialsReferralCount">0</strong></article>
+      <article><span>Already purchased</span><strong id="materialsPurchasedCount">0</strong></article>
+    </div>
+    <section class="panel materials-list-panel">
+      <div class="module-section-head"><div><h2>Material opportunities</h2><p>Requests are attributed to your Partner ID and will flow to the distributor workspace.</p></div></div>
+      <div id="materialOpportunitiesList" class="material-opportunity-list"><p class="empty">No material opportunities yet.</p></div>
+    </section>
+    <section class="panel pro-compact-panel">
+      <div><p class="kicker">PRISTINE PRO</p><h2>Automate follow-up, not estimating.</h2><p>AI email, estimate follow-up, invoice reminders and customer communication are available in Pro.</p></div>
+      <div class="pro-compact-actions"><button class="btn btn-dark" type="button" data-open-pro>Explore Pro</button><button class="btn btn-secondary" type="button" data-open-automation>AI automation</button></div>
+    </section>
+      <section class="pristine-cta pristine-cta-branded">
     <div class="pristine-cta-logo"><img src="assets/pristine-web.webp" alt="Pristine Flooring" loading="lazy" /></div>
     <div>
       <p class="kicker light">PRISTINE FLOORING</p>
@@ -243,6 +327,8 @@
       <p>The estimator is free. Pristine can help turn project quantities into a material order.</p><p class="pristine-contact">7861 Venture Center Way, Boynton Beach, FL · 561-806-3322</p><p class="site-address"><a href="https://pristineflooring.online" target="_blank" rel="noopener">pristineflooring.online</a></p>
     </div>
     <div class="cta-buttons"><a class="btn btn-gold" href="https://wa.me/15618063322" target="_blank" rel="noopener">WhatsApp</a><a class="btn btn-light" href="tel:+15618063322">Call Pristine</a></div>
+  </section>
+
   </section>
 </main>
 
@@ -261,7 +347,14 @@
   </div>
 </footer>
 
-<div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div></div>
+<div class="mobile-total"><div><span>Project total</span><strong id="mobileTotal">$0.00</strong></div><div class="mobile-total-actions"><button id="mobileSaveBtn" type="button">Save</button><button id="mobileSummaryBtn" type="button">Review</button></div>
+<nav class="mobile-app-nav" aria-label="Mobile workspace navigation">
+  <button type="button" class="active" data-workspace-view="home"><span>⌂</span><small>Home</small></button>
+  <button type="button" data-workspace-view="estimate"><span>＋</span><small>Estimate</small></button>
+  <button type="button" data-workspace-view="estimates"><span>▤</span><small>Docs</small></button>
+  <button type="button" data-workspace-view="partner"><span>◎</span><small>Partner</small></button>
+  <button type="button" data-mobile-more><span>•••</span><small>More</small></button>
+</nav></div>
 
 <dialog id="accountDialog">
   <form class="brand-dialog account-dialog" onsubmit="return false;">
@@ -471,6 +564,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=320"></script>
+<script src="app.js?v=400"></script>
 </body>
 </html>
