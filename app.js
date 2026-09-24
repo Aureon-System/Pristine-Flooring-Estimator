@@ -348,7 +348,7 @@ function renderAreas(){
     const matOpts=materials.map(m=>`<option ${m===a.material?'selected':''}>${esc(m)}</option>`).join('');
     const patternOpts=patterns.map(p=>`<option ${p===a.pattern?'selected':''}>${esc(p)}</option>`).join('');
     const t=areaTotals(a),disabled=a.material==='Material not included'?'disabled':'';
-    el.innerHTML=`<div class="area-head"><div><span class="area-index">AREA ${String(i+1).padStart(2,'0')}</span><strong>${esc(a.description||'Installation area')}</strong></div><div class="area-head-actions"><button class="area-collapse-btn" type="button" aria-label="Expand or collapse area">⌄</button>${areas.length>1?'<button class="remove-btn" type="button" aria-label="Remove area">×</button>':''}</div></div><div class="area-body"><div class="area-grid"><label class="wide"><span class="field-title">Area description</span><input data-k="description" value="${esc(a.description)}"></label><label><span class="field-title">Area (sqft)</span><input data-k="sqft" type="number" min="0" step="1" value="${a.sqft}"></label><label class="wide"><span class="field-title">Material</span><select data-k="material">${matOpts}</select></label><label><span class="field-title">Installation pattern</span><select data-k="pattern">${patternOpts}</select></label></div><div class="crew-grid"><label><span class="field-title">Daily crew cost ($)<small class="internal-tag">INTERNAL</small></span><input data-k="dailyRate" type="number" min="0" step="0.01" value="${a.dailyRate}"></label><label><span class="field-title">Duration (work days)<small class="internal-spacer">INTERNAL</small></span><input data-k="durationDays" type="number" min="0" step="1" value="${a.durationDays}"></label><label><span class="field-title">Total labor cost<small class="internal-tag">INTERNAL</small></span><input data-derived="crewTotal" value="${money(t.crewTotal)}" disabled></label><label><span class="field-title">Labor cost / sqft<small class="internal-tag">INTERNAL</small></span><input data-derived="crewRate" value="${money(t.crewRate)} / sqft" disabled></label></div><div class="crew-formula">Labor cost / sqft = total daily crew cost × work days ÷ area sqft.</div><div class="pricing-grid"><label><span class="field-title">Selling labor / sqft<small class="internal-spacer">INTERNAL</small></span><input data-k="sellRate" type="number" min="0" step="0.01" value="${a.sellRate}"></label><label><span class="field-title">Pattern surcharge %<small class="internal-spacer">INTERNAL</small></span><input data-k="surcharge" type="number" min="0" step="0.1" value="${a.surcharge}"></label><label><span class="field-title">Effective labor rate<small class="internal-spacer">INTERNAL</small></span><input data-derived="effective" value="${money(t.effective)} / sqft" disabled></label><label><span class="field-title">Material cost / sqft<small class="internal-tag">INTERNAL</small></span><input data-k="materialCost" type="number" min="0" step="0.01" value="${a.materialCost}" ${disabled}></label><label><span class="field-title">Material sell / sqft<small class="internal-spacer">INTERNAL</small></span><input data-k="materialSell" type="number" min="0" step="0.01" value="${a.materialSell}" ${disabled}></label></div></div><div class="area-total-line"><span data-derived="meta">${Math.round(num(a.sqft)).toLocaleString()} sqft · ${esc(a.pattern)} · ${num(a.durationDays)} work day${num(a.durationDays)===1?'':'s'}${a.material==='Material not included'?' · Material not included':''}</span><b data-derived="total">${money(t.totalSell)}</b></div>`;
+    el.innerHTML=`<div class="area-head"><div><span class="area-index">AREA ${String(i+1).padStart(2,'0')}</span><strong>${esc(a.description||'Installation area')}</strong></div><div class="area-head-actions"><button class="area-collapse-btn" type="button" aria-label="Expand or collapse area">⌄</button>${areas.length>1?'<button class="remove-btn" type="button" aria-label="Remove area">×</button>':''}</div></div><div class="area-body"><div class="area-grid"><label class="wide"><span class="field-title">Area description</span><input data-k="description" value="${esc(a.description)}"></label><label><span class="field-title">Area (sqft)</span><input data-k="sqft" type="number" min="0" step="1" value="${a.sqft}"></label><label class="wide"><span class="field-title">Material</span><select data-k="material">${matOpts}</select></label><label><span class="field-title">Installation pattern</span><select data-k="pattern">${patternOpts}</select></label></div><button class="advanced-pricing-toggle" type="button" aria-expanded="false"><span>Advanced pricing & costs</span><b>＋</b></button><div class="advanced-pricing-panel"><div class="crew-grid"><label><span class="field-title">Daily crew cost ($)<small class="internal-tag">INTERNAL</small></span><input data-k="dailyRate" type="number" min="0" step="0.01" value="${a.dailyRate}"></label><label><span class="field-title">Duration (work days)<small class="internal-spacer">INTERNAL</small></span><input data-k="durationDays" type="number" min="0" step="1" value="${a.durationDays}"></label><label><span class="field-title">Total labor cost<small class="internal-tag">INTERNAL</small></span><input data-derived="crewTotal" value="${money(t.crewTotal)}" disabled></label><label><span class="field-title">Labor cost / sqft<small class="internal-tag">INTERNAL</small></span><input data-derived="crewRate" value="${money(t.crewRate)} / sqft" disabled></label></div><div class="crew-formula">Labor cost / sqft = total daily crew cost × work days ÷ area sqft.</div><div class="pricing-grid"><label><span class="field-title">Selling labor / sqft<small class="internal-spacer">INTERNAL</small></span><input data-k="sellRate" type="number" min="0" step="0.01" value="${a.sellRate}"></label><label><span class="field-title">Pattern surcharge %<small class="internal-spacer">INTERNAL</small></span><input data-k="surcharge" type="number" min="0" step="0.1" value="${a.surcharge}"></label><label><span class="field-title">Effective labor rate<small class="internal-spacer">INTERNAL</small></span><input data-derived="effective" value="${money(t.effective)} / sqft" disabled></label><label><span class="field-title">Material cost / sqft<small class="internal-tag">INTERNAL</small></span><input data-k="materialCost" type="number" min="0" step="0.01" value="${a.materialCost}" ${disabled}></label><label><span class="field-title">Material sell / sqft<small class="internal-spacer">INTERNAL</small></span><input data-k="materialSell" type="number" min="0" step="0.01" value="${a.materialSell}" ${disabled}></label></div></div></div><div class="area-total-line"><span data-derived="meta">${Math.round(num(a.sqft)).toLocaleString()} sqft · ${esc(a.pattern)} · ${num(a.durationDays)} work day${num(a.durationDays)===1?'':'s'}${a.material==='Material not included'?' · Material not included':''}</span><b data-derived="total">${money(t.totalSell)}</b></div>`;
     el.querySelectorAll('[data-k]').forEach(inp=>{
       const ev=inp.tagName==='SELECT'?'change':'input';
       inp.addEventListener(ev,()=>{
@@ -367,6 +367,12 @@ function renderAreas(){
     });
     const toggle=el.querySelector('.area-collapse-btn');
     if(toggle)toggle.onclick=()=>el.classList.toggle('mobile-collapsed');
+    const advanced=el.querySelector('.advanced-pricing-toggle');
+    if(advanced)advanced.onclick=()=>{
+      const open=el.classList.toggle('advanced-open');
+      advanced.setAttribute('aria-expanded',String(open));
+      const icon=advanced.querySelector('b');if(icon)icon.textContent=open?'−':'＋';
+    };
     const rm=el.querySelector('.remove-btn');
     if(rm)rm.onclick=()=>{areas=areas.filter(x=>x.id!==a.id);renderAreas();calc()};
     box.append(el);
@@ -393,8 +399,10 @@ function customerIdentity(d){
 function saveCurrent(){const s=snapshot();if(!(s.client.name||s.client.email||s.client.phone)){alert('Add at least a client name, email or phone before saving.');return null}const docs=loadDocs();const found=docs.findIndex(d=>d.documentNo===s.documentNo&&d.type===s.type);const existing=found>=0?docs[found]:null;const record={...s,localId:existing?.localId||id('doc'),savedAt:new Date().toISOString()};if(found>=0)docs[found]=record;else docs.unshift(record);saveDocs(docs);if(currentSession?.user&&currentPartner)upsertCloudDocument(record);return record}
 function workspaceViewFromUrl(){
   const hash=location.hash.replace(/^#/,'').trim().toLowerCase();
+  const aliases={builderstart:'estimate',documents:'estimates',partnercenter:'partner',growthtools:'materials'};
+  const normalized=aliases[hash]||hash;
   const valid=['home','estimate','estimates','invoices','partner','materials'];
-  return valid.includes(hash)?hash:'home';
+  return valid.includes(normalized)?normalized:'home';
 }
 function showWorkspace(view,opts={}){
   const valid=['home','estimate','estimates','invoices','partner','materials'];
@@ -412,6 +420,14 @@ function showWorkspace(view,opts={}){
 }
 function newEstimateWorkspace(){
   resetDoc();
+  showWorkspace('estimate',{instant:true});
+}
+function newInvoiceWorkspace(){
+  resetDoc();
+  $('#documentType').value='INVOICE';
+  $('#documentNo').value='INV-'+Math.random().toString(36).slice(2,9).toUpperCase();
+  $('#validThrough').value='';
+  calc();
   showWorkspace('estimate',{instant:true});
 }
 function documentRowHtml(d){
@@ -500,6 +516,7 @@ function setupWorkspaceNavigation(){
     else if(action==='invoices')showWorkspace('invoices');
   }));
   document.querySelectorAll('[data-new-estimate]').forEach(btn=>btn.addEventListener('click',newEstimateWorkspace));
+  document.querySelectorAll('[data-new-invoice]').forEach(btn=>btn.addEventListener('click',newInvoiceWorkspace));
   const homeNew=$('#homeNewEstimateBtn');if(homeNew)homeNew.onclick=newEstimateWorkspace;
   const companyBtn=$('#companyMenuBtn'),menu=$('#companyMenu');
   if(companyBtn&&menu)companyBtn.onclick=()=>{menu.hidden=!menu.hidden;companyBtn.setAttribute('aria-expanded',String(!menu.hidden))};
