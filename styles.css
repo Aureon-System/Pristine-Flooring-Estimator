@@ -2091,3 +2091,35 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .catalog-price-note{grid-column:1/-1!important;color:#848e98!important;font-size:8px!important}
 @media(max-width:1050px){.catalog-product-grid{grid-template-columns:1fr 1fr}.catalog-selection-panel{grid-template-columns:1fr}.catalog-selection-actions{grid-template-columns:1fr 1fr}}
 @media(max-width:680px){.catalog-toolbar{grid-template-columns:1fr 1fr}.catalog-product-grid{grid-template-columns:1fr}.catalog-calculation-grid{grid-template-columns:1fr 1fr}.catalog-selection-actions{grid-template-columns:1fr}}
+
+
+/* V432 internal Documents navigation */
+.document-switcher{
+  display:inline-flex;
+  gap:4px;
+  margin-top:14px;
+  padding:4px;
+  border:1px solid #dde2e6;
+  border-radius:10px;
+  background:#f4f6f7;
+}
+.document-switcher button{
+  min-height:34px;
+  border:0;
+  border-radius:7px;
+  background:transparent;
+  color:#68737d;
+  padding:0 14px;
+  font-size:9px;
+  font-weight:900;
+  cursor:pointer;
+}
+.document-switcher button.active{
+  background:#171d24;
+  color:#fff;
+  box-shadow:0 2px 8px rgba(20,26,32,.12);
+}
+@media(max-width:680px){
+  .document-switcher{width:100%;display:grid;grid-template-columns:1fr 1fr}
+  .document-switcher button{width:100%}
+}
