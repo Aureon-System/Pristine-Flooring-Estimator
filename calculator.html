@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=402" />
+  <link rel="stylesheet" href="styles.css?v=431" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -285,6 +285,32 @@
       <article><span>Customer referrals</span><strong id="materialsReferralCount">0</strong></article>
       <article><span>Already purchased</span><strong id="materialsPurchasedCount">0</strong></article>
     </div>
+    <section class="panel catalog-panel">
+      <div class="module-section-head">
+        <div><p class="kicker">PRISTINE PRODUCT CATALOG · PILOT</p><h2>Choose a flooring product</h2><p>Carmelo Fior pilot products with real SKU, size, box coverage and dealer reference pricing.</p></div>
+      </div>
+      <div class="catalog-toolbar">
+        <label>Collection<select id="catalogCollectionFilter"><option value="">All collections</option></select></label>
+        <label>Size<select id="catalogSizeFilter"><option value="">All sizes</option></select></label>
+        <label>Project sqft<input id="catalogProjectSqft" type="number" min="1" step="1" value="1000" /></label>
+        <label>Waste %<input id="catalogWastePct" type="number" min="0" max="30" step="1" value="10" /></label>
+      </div>
+      <div id="catalogProductGrid" class="catalog-product-grid"><p class="empty">Loading pilot catalog...</p></div>
+      <div id="catalogSelectionPanel" class="catalog-selection-panel hidden">
+        <div><p class="kicker">SELECTED PRODUCT</p><h3 id="catalogSelectedName">—</h3><p id="catalogSelectedMeta">—</p></div>
+        <div class="catalog-calculation-grid">
+          <div><span>Project area</span><strong id="catalogCalcArea">0 sqft</strong></div>
+          <div><span>Required + waste</span><strong id="catalogCalcRequired">0 sqft</strong></div>
+          <div><span>Boxes</span><strong id="catalogCalcBoxes">0</strong></div>
+          <div><span>Dealer material value</span><strong id="catalogCalcValue">$0.00</strong></div>
+        </div>
+        <div class="catalog-selection-actions">
+          <button id="catalogUseEstimateBtn" class="btn btn-secondary" type="button">Use estimate sqft</button>
+          <button id="catalogRequestQuoteBtn" class="btn btn-gold" type="button">Request distributor quote</button>
+        </div>
+        <p class="catalog-price-note">Dealer price is a pilot reference. Territory/distributor pricing remains independently editable.</p>
+      </div>
+    </section>
     <section class="panel materials-list-panel">
       <div class="module-section-head"><div><h2>Material opportunities</h2><p>Requests are attributed to your Partner ID and will flow to the distributor workspace.</p></div></div>
       <div id="materialOpportunitiesList" class="material-opportunity-list"><p class="empty">No material opportunities yet.</p></div>
@@ -542,6 +568,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=402"></script>
+<script src="app.js?v=431"></script>
 </body>
 </html>
