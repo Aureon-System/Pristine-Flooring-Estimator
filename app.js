@@ -181,7 +181,7 @@ async function signUpAccount(){
   const redirectTo=new URL('calculator.html',location.href).href;
   const {data,error}=await sb.auth.signUp({email,password,options:{data:{company_name:company},emailRedirectTo:redirectTo}});
   if(error)return setAccountMessage(error.message,true);
-  if(data.session){currentSession=data.session;await fetchCurrentPartner();await fetchPartnerNetworkData(false);await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('')}
+  if(data.session){currentSession=data.session;await fetchCurrentPartner();await fetchPartnerNetworkData(false);await loadCatalogPilot();await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('')}
   else setAccountMessage('Account created. Check your email to confirm, then sign in.');
 }
 async function signInAccount(){
@@ -484,6 +484,84 @@ function normalizeMaterialOpportunity(x){
     createdAt:x.created_at||x.createdAt||''
   };
 }
+let catalogItems=[],selectedCatalogVariant=null;
+
+async function loadCatalogPilot(){
+  if(!sb||!currentSession?.user)return;
+  const box=$('#catalogProductGrid');if(box)box.innerHTML='<p class="empty">Loading pilot catalog...</p>';
+  const {data,error}=await sb.from('catalog_variants')
+    .select('id,sku,name,size,material_type,finish,edges,sqft_per_box,boxes_per_pallet,catalog_products(collection,category),distributor_offers(full_pallet_price_sqft,cut_order_price_sqft,effective_date,distributors(name))')
+    .eq('active',true)
+    .order('name');
+  if(error){if(box)box.innerHTML='<p class="empty">'+esc(error.message)+'</p>';return}
+  catalogItems=data||[];
+  const coll=$('#catalogCollectionFilter'),size=$('#catalogSizeFilter');
+  if(coll){coll.innerHTML='<option value="">All collections</option>';[...new Set(catalogItems.map(x=>x.catalog_products?.collection).filter(Boolean))].sort().forEach(v=>coll.insertAdjacentHTML('beforeend','<option>'+esc(v)+'</option>'))}
+  if(size){size.innerHTML='<option value="">All sizes</option>';[...new Set(catalogItems.map(x=>x.size).filter(Boolean))].sort().forEach(v=>size.insertAdjacentHTML('beforeend','<option>'+esc(v)+'</option>'))}
+  renderCatalogPilot();
+}
+function selectedCatalogOffer(item){
+  const offers=Array.isArray(item?.distributor_offers)?item.distributor_offers:[];
+  return offers[0]||null;
+}
+function renderCatalogPilot(){
+  const box=$('#catalogProductGrid');if(!box)return;
+  const coll=$('#catalogCollectionFilter')?.value||'',size=$('#catalogSizeFilter')?.value||'';
+  const list=catalogItems.filter(x=>(!coll||x.catalog_products?.collection===coll)&&(!size||x.size===size));
+  if(!list.length){box.innerHTML='<p class="empty">No products match these filters.</p>';return}
+  box.innerHTML='';
+  list.forEach(item=>{
+    const offer=selectedCatalogOffer(item),el=document.createElement('article');
+    el.className='catalog-product-card'+(selectedCatalogVariant?.id===item.id?' selected':'');
+    const pallet=offer?.full_pallet_price_sqft!=null?money(offer.full_pallet_price_sqft)+'/sqft':'—';
+    const cut=offer?.cut_order_price_sqft!=null?money(offer.cut_order_price_sqft)+'/sqft':'—';
+    el.innerHTML='<div class="catalog-card-head"><div><span class="catalog-collection">'+esc(item.catalog_products?.collection||'Catalog')+'</span><strong>'+esc(item.name)+'</strong></div><span class="catalog-sku">SKU '+esc(item.sku)+'</span></div>'+
+      '<div class="catalog-tags"><span>'+esc(item.size||'')+'</span><span>'+esc(item.finish||'')+'</span><span>'+esc(item.edges||'')+'</span><span>'+esc(String(item.sqft_per_box||0))+' sqft/box</span></div>'+
+      '<div class="catalog-price-grid"><div><span>Full pallet</span><strong>'+pallet+'</strong></div><div><span>Cut order</span><strong>'+cut+'</strong></div></div>';
+    el.onclick=()=>{selectedCatalogVariant=item;renderCatalogPilot();updateCatalogCalculation()};
+    box.append(el);
+  });
+}
+function updateCatalogCalculation(){
+  const panel=$('#catalogSelectionPanel');if(!panel||!selectedCatalogVariant)return;
+  panel.classList.remove('hidden');
+  const area=Math.max(0,num($('#catalogProjectSqft')?.value||0));
+  const waste=Math.max(0,num($('#catalogWastePct')?.value||0));
+  const required=area*(1+waste/100);
+  const sqftBox=Math.max(0,num(selectedCatalogVariant.sqft_per_box||0));
+  const boxes=sqftBox?Math.ceil(required/sqftBox):0;
+  const offer=selectedCatalogOffer(selectedCatalogVariant);
+  const price=Math.max(0,num(offer?.cut_order_price_sqft||0));
+  const set=(id,v)=>{const el=$('#'+id);if(el)el.textContent=v};
+  set('catalogSelectedName',selectedCatalogVariant.name);
+  set('catalogSelectedMeta',(selectedCatalogVariant.catalog_products?.collection||'')+' · SKU '+selectedCatalogVariant.sku+' · '+selectedCatalogVariant.size+' · '+(selectedCatalogVariant.finish||'')+' · '+sqftBox+' sqft/box');
+  set('catalogCalcArea',Math.round(area).toLocaleString()+' sqft');
+  set('catalogCalcRequired',Math.ceil(required).toLocaleString()+' sqft');
+  set('catalogCalcBoxes',boxes.toLocaleString());
+  set('catalogCalcValue',money(required*price));
+}
+function useEstimateForCatalog(){
+  const sqft=Math.round(estimateAreaSqft());
+  const input=$('#catalogProjectSqft');if(input&&sqft>0){input.value=String(sqft);updateCatalogCalculation()}
+}
+function requestCatalogQuote(){
+  if(!selectedCatalogVariant)return;
+  const area=Math.max(0,num($('#catalogProjectSqft')?.value||0));
+  const waste=Math.max(0,num($('#catalogWastePct')?.value||10));
+  if(area<=0){alert('Enter the project sqft first.');return}
+  const offer=selectedCatalogOffer(selectedCatalogVariant);
+  openMaterialQuote();
+  setTimeout(()=>{
+    const measured=$('#quoteMeasuredSqftInput');if(measured)measured.value=String(Math.round(area));
+    const wasteEl=$('#quoteWaste');if(wasteEl)wasteEl.value=String(waste);
+    const material=$('#quoteMaterial');if(material){material.value='Ceramic / porcelain';renderMaterialSizeOptions(false)}
+    const custom=$('#quoteCustomSize');if(custom)custom.value=selectedCatalogVariant.size||'';
+    const notes=$('#quoteNotes');
+    if(notes)notes.value='Catalog product: '+selectedCatalogVariant.name+' | SKU '+selectedCatalogVariant.sku+' | '+selectedCatalogVariant.size+' | '+(selectedCatalogVariant.finish||'')+' | '+selectedCatalogVariant.sqft_per_box+' sqft/box | Dealer cut-order reference '+(offer?.cut_order_price_sqft!=null?money(offer.cut_order_price_sqft)+'/sqft':'N/A')+'.';
+    document.querySelectorAll('#quoteSizeOptions input[type="checkbox"]').forEach(cb=>{if(cb.value===selectedCatalogVariant.size)cb.checked=true});
+    refreshQuoteMetrics();
+  },80);
+}
 function renderMaterialOpportunities(){
   const box=$('#materialOpportunitiesList');if(!box)return;
   const cloud=currentMaterialOpportunities.map(normalizeMaterialOpportunity);
@@ -524,6 +602,12 @@ function setupWorkspaceNavigation(){
   const more=$('[data-mobile-more]');if(more&&companyBtn)more.onclick=()=>companyBtn.click();
   document.querySelectorAll('[data-open-pro]').forEach(btn=>btn.onclick=()=>openPro('pro'));
   document.querySelectorAll('[data-open-automation]').forEach(btn=>btn.onclick=openAutomationSettings);
+  const cc=$('#catalogCollectionFilter');if(cc)cc.onchange=renderCatalogPilot;
+  const cs=$('#catalogSizeFilter');if(cs)cs.onchange=renderCatalogPilot;
+  const ca=$('#catalogProjectSqft');if(ca)ca.oninput=updateCatalogCalculation;
+  const cw=$('#catalogWastePct');if(cw)cw.oninput=updateCatalogCalculation;
+  const cue=$('#catalogUseEstimateBtn');if(cue)cue.onclick=useEstimateForCatalog;
+  const crq=$('#catalogRequestQuoteBtn');if(crq)crq.onclick=requestCatalogQuote;
   showWorkspace(workspaceViewFromUrl(),{updateUrl:false,scroll:false});
 }
 function loadSavedDocument(d,scroll=true){
