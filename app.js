@@ -191,7 +191,7 @@ async function signInAccount(){
   setAccountMessage('Signing in...');
   const {data,error}=await sb.auth.signInWithPassword({email,password});
   if(error)return setAccountMessage(error.message,true);
-  currentSession=data.session;await fetchCurrentPartner();await fetchPartnerNetworkData(false);await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('');
+  currentSession=data.session;await fetchCurrentPartner();await fetchPartnerNetworkData(false);await loadCatalogPilot();await syncCloudDocuments(true);updateAccountUI();$('#accountDialog')?.close();setAccountMessage('');
 }
 async function signOutAccount(){
   if(!sb)return;
@@ -261,11 +261,11 @@ async function initAccount(){
   if(!sb){updateAccountUI();return}
   const {data}=await sb.auth.getSession();currentSession=data.session||null;
   if(!currentSession){location.replace('/?signin=1');return false}
-  await fetchCurrentPartner();await fetchPartnerNetworkData(true);await syncCloudDocuments(true);
+  await fetchCurrentPartner();await fetchPartnerNetworkData(true);await loadCatalogPilot();await syncCloudDocuments(true);
   updateAccountUI();
   const q=new URLSearchParams(location.search);
   if(q.get('reset')==='1'&&currentSession){setTimeout(()=>$('#resetPasswordDialog')?.showModal(),150)}
-  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await fetchPartnerNetworkData(false);await syncCloudDocuments(true);updateAccountUI();renderSaved()}else{currentPartner=null;currentPartnerProfile=null;currentReferralCode=null;location.replace('/?signin=1')}});
+  sb.auth.onAuthStateChange(async(_event,session)=>{currentSession=session||null;if(currentSession){await fetchCurrentPartner();await fetchPartnerNetworkData(false);await loadCatalogPilot();await syncCloudDocuments(true);updateAccountUI();renderSaved()}else{currentPartner=null;currentPartnerProfile=null;currentReferralCode=null;location.replace('/?signin=1')}});
 }
 
 let proVerified=false;
@@ -410,6 +410,8 @@ function showWorkspace(view,opts={}){
   currentWorkspaceView=view;
   document.querySelectorAll('[data-workspace-module]').forEach(el=>el.classList.toggle('active',el.dataset.workspaceModule===view));
   document.querySelectorAll('[data-workspace-view]').forEach(el=>el.classList.toggle('active',el.dataset.workspaceView===view));
+  document.querySelectorAll('[data-documents-nav]').forEach(el=>el.classList.toggle('active',view==='estimates'||view==='invoices'));
+  if(view==='materials'&&currentSession?.user&&(!catalogItems.length))loadCatalogPilot();
   document.body.dataset.workspaceView=view;
   const mobileTotal=$('.mobile-total');
   if(mobileTotal)mobileTotal.classList.toggle('workspace-visible',view==='estimate');
