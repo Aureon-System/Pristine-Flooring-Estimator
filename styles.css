@@ -2058,3 +2058,36 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:680px){
   .advanced-pricing-toggle{min-height:42px;font-size:10px}
 }
+
+
+/* V431 live Materials catalog pilot */
+.catalog-panel{margin-bottom:14px}
+.catalog-toolbar{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:14px}
+.catalog-toolbar label{display:grid;gap:5px;font-size:9px;font-weight:850;color:#5d6873}
+.catalog-toolbar select,.catalog-toolbar input{width:100%;min-height:42px;border:1px solid #d6dce1;border-radius:9px;background:#fff;padding:0 10px}
+.catalog-product-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.catalog-product-card{border:1px solid #e0e4e8;border-radius:12px;background:#fff;padding:13px;cursor:pointer;display:grid;gap:10px}
+.catalog-product-card:hover,.catalog-product-card.selected{border-color:#c7a76f;box-shadow:0 6px 22px rgba(48,39,24,.08)}
+.catalog-card-head{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.catalog-card-head>div{display:grid;gap:3px;min-width:0}
+.catalog-card-head strong{font-size:12px;overflow:hidden;text-overflow:ellipsis}
+.catalog-collection{font-size:7px;color:#9a6e31;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
+.catalog-sku{font-size:7px;font-weight:900;background:#f0f2f4;color:#5d6872;padding:5px 7px;border-radius:999px;white-space:nowrap}
+.catalog-tags{display:flex;gap:5px;flex-wrap:wrap}
+.catalog-tags span{font-size:7px;color:#65707a;border:1px solid #e2e6e9;border-radius:999px;padding:4px 6px}
+.catalog-price-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.catalog-price-grid div{background:#f7f8f9;border-radius:8px;padding:8px}
+.catalog-price-grid span{display:block;font-size:7px;color:#858e97;text-transform:uppercase}
+.catalog-price-grid strong{display:block;margin-top:3px;font-size:11px}
+.catalog-selection-panel{margin-top:12px;border-radius:13px;background:#151b22;color:#fff;padding:14px;display:grid;grid-template-columns:minmax(220px,1.1fr) minmax(380px,1.7fr) auto;gap:14px;align-items:center}
+.catalog-selection-panel.hidden{display:none}
+.catalog-selection-panel h3{margin:3px 0 4px;font-size:17px}
+.catalog-selection-panel p{margin:0;color:#aeb6bf;font-size:9px}
+.catalog-calculation-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.catalog-calculation-grid div{background:#222a32;border-radius:8px;padding:9px}
+.catalog-calculation-grid span{display:block;font-size:7px;color:#8e98a3;text-transform:uppercase}
+.catalog-calculation-grid strong{display:block;margin-top:4px;font-size:12px}
+.catalog-selection-actions{display:grid;gap:7px}
+.catalog-price-note{grid-column:1/-1!important;color:#848e98!important;font-size:8px!important}
+@media(max-width:1050px){.catalog-product-grid{grid-template-columns:1fr 1fr}.catalog-selection-panel{grid-template-columns:1fr}.catalog-selection-actions{grid-template-columns:1fr 1fr}}
+@media(max-width:680px){.catalog-toolbar{grid-template-columns:1fr 1fr}.catalog-product-grid{grid-template-columns:1fr}.catalog-calculation-grid{grid-template-columns:1fr 1fr}.catalog-selection-actions{grid-template-columns:1fr}}
