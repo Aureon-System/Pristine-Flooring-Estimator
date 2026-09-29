@@ -7,7 +7,7 @@ const DOC_KEY='pristine_workspace_docs_v3', BRAND_KEY='pristine_partner_brand_v3
 const SUPABASE_URL='https://lueomnmkbbrllxbnpxph.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
-let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,currentPartnerEvents=[],currentMaterialOpportunities=[],cloudSyncBusy=false;
+let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,currentPartnerEvents=[],currentMaterialOpportunities=[],currentMaterialQuotes=[],currentOpportunityEvents=[],currentNetworkRole=null,cloudSyncBusy=false;
 let currentWorkspaceView='home';
 let currentDocumentsSubview='estimates';
 let currentProjectGeo={lat:null,lng:null,county:'',distributor:null};
@@ -17,6 +17,22 @@ function workspaceKey(base){return base+workspaceSuffix()}
 function loadWorkspaceJSON(base,fallback){try{return JSON.parse(localStorage.getItem(workspaceKey(base))||JSON.stringify(fallback))}catch{return fallback}}
 function saveWorkspaceJSON(base,value){try{localStorage.setItem(workspaceKey(base),JSON.stringify(value))}catch{}}
 function setAccountMessage(message,isError=false){const el=$('#accountMessage');if(!el)return;el.textContent=message||'';el.classList.toggle('error',!!isError)}
+
+async function fetchNetworkRole(){
+  if(!currentSession?.access_token)return null;
+  try{
+    const r=await fetch(PRISTINE_API+'?action=network-role',{headers:apiHeaders(false)});
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Could not load workspace roles');
+    currentNetworkRole=d;
+    const dist=$('#distributorWorkspaceLink'),admin=$('#adminWorkspaceLink');
+    if(dist)dist.classList.toggle('hidden',!(d.distributors||[]).length);
+    if(admin)admin.classList.toggle('hidden',!d.admin);
+    return d;
+  }catch(e){console.error('Network role',e);return null}
+}
+function networkStatusLabel(s){return String(s||'new').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}
+
 async function fetchCurrentPartner(){
   if(!sb||!currentSession?.user)return null;
   const {data,error}=await sb.from('partners').select('*').eq('owner_id',currentSession.user.id).maybeSingle();
@@ -57,6 +73,21 @@ async function fetchPartnerNetworkData(promptProfile=false){
   currentReferralCode=codeR.data||null;
   currentPartnerEvents=eventsR.data||[];
   currentMaterialOpportunities=leadsR.data||[];
+  const leadIds=currentMaterialOpportunities.map(x=>x.id).filter(Boolean);
+  if(leadIds.length){
+    const [quotesR,opportunityEventsR]=await Promise.all([
+      sb.from('material_quotes').select('id,material_lead_id,distributor_id,status,quantity_sqft,boxes,unit_price_sqft,subtotal,freight,tax,total,eta_days,expires_at,notes,created_at,submitted_at,accepted_at,distributors(name)').in('material_lead_id',leadIds).order('created_at',{ascending:false}),
+      sb.from('opportunity_events').select('id,material_lead_id,actor_type,event_type,message,metadata,created_at').in('material_lead_id',leadIds).order('created_at',{ascending:true})
+    ]);
+    if(quotesR.error)console.error(quotesR.error);
+    if(opportunityEventsR.error)console.error(opportunityEventsR.error);
+    currentMaterialQuotes=quotesR.data||[];
+    currentOpportunityEvents=opportunityEventsR.data||[];
+  }else{
+    currentMaterialQuotes=[];
+    currentOpportunityEvents=[];
+  }
+  await fetchNetworkRole();
   renderPartnerCenter(currentPartnerEvents);
   renderMaterialOpportunities();
   if(promptProfile && currentPartnerProfile && !currentPartnerProfile.profile_completed){
@@ -521,6 +552,7 @@ function normalizeMaterialOpportunity(x){
     customSize:x.custom_size||x.customSize||'',
     required:Number(x.required_sqft??x.requiredSqft??0),
     measured:Number(x.measured_sqft??x.measuredSqft??0),
+    waste:Number(x.waste_pct??x.wastePct??0),
     status:x.status||'new',
     estimateNo:x.estimate_no||x.estimateNo||'',
     notes:x.notes||'',
