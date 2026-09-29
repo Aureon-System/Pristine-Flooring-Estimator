@@ -2165,3 +2165,50 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .catalog-selection-actions{min-width:0}
   .material-opportunity-row{grid-template-columns:1fr}
 }
+
+
+/* V450 delivery location + single distributor price */
+.address-tools{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  padding:9px 10px;
+  border:1px dashed #d8dee3;
+  border-radius:10px;
+  background:#fafbfc;
+}
+.address-tools .btn{min-height:34px}
+.address-tools span{
+  font-size:8px;
+  color:#6f7983;
+  line-height:1.4;
+}
+.catalog-price-grid.single{grid-template-columns:1fr}
+.catalog-price-grid.single div{
+  display:grid;
+  grid-template-columns:1fr auto;
+  grid-template-rows:auto auto;
+  gap:2px 10px;
+  align-items:center;
+}
+.catalog-price-grid.single div span{
+  grid-column:1;
+  grid-row:1;
+}
+.catalog-price-grid.single div strong{
+  grid-column:2;
+  grid-row:1 / 3;
+  font-size:13px;
+}
+.catalog-price-grid.single div small{
+  grid-column:1;
+  grid-row:2;
+  font-size:7px;
+  color:#8a939c;
+}
+@media(max-width:680px){
+  .address-tools{align-items:stretch}
+  .address-tools .btn{flex:1 1 calc(50% - 4px)}
+  .address-tools span{flex:1 1 100%}
+}
