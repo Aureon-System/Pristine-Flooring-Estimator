@@ -2123,3 +2123,45 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .document-switcher{width:100%;display:grid;grid-template-columns:1fr 1fr}
   .document-switcher button{width:100%}
 }
+
+
+/* V441 estimate-to-catalog and editable material opportunities */
+.estimate-catalog-prompt,.estimate-product-card{
+  margin-top:10px;border:1px solid #dfe3e7;border-radius:11px;padding:11px 12px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;background:#fafbfc
+}
+.estimate-catalog-prompt>div,.estimate-product-card>div:first-child{display:grid;gap:3px;min-width:0}
+.estimate-catalog-prompt strong,.estimate-product-card strong{font-size:10px}
+.estimate-catalog-prompt small,.estimate-product-card small{font-size:8px;color:#78828c;line-height:1.45}
+.estimate-product-card{background:#fbf7ef;border-color:#ddc79e}
+.estimate-product-card>div:first-child>span{font-size:7px;font-weight:900;color:#9a6e31;text-transform:uppercase;letter-spacing:.07em}
+.estimate-product-pricing{display:grid;gap:2px;text-align:right;margin-left:auto}
+.estimate-product-pricing>span{font-size:11px;font-weight:900;color:#20262d}
+.estimate-product-pricing small{font-size:7px}
+.catalog-calculation-grid{grid-template-columns:repeat(5,1fr)}
+.catalog-inline-price{
+  width:100%;min-height:32px;border:1px solid #46505a;border-radius:6px;background:#fff;color:#171d24;
+  padding:0 7px;font-size:11px;font-weight:900
+}
+.catalog-selection-actions{min-width:165px}
+.material-opportunity-row{grid-template-columns:minmax(210px,1.1fr) minmax(220px,1fr) minmax(170px,.7fr) auto}
+.material-opportunity-actions{display:flex!important;justify-content:flex-end}
+.material-opportunity-actions .btn{min-height:34px;white-space:nowrap}
+.opportunity-edit-summary{
+  display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px;
+  padding:12px 14px;border-radius:10px;background:#f5f7f8;border:1px solid #e0e4e7
+}
+.opportunity-edit-summary span{font-size:9px;color:#6c7680;font-weight:800}
+.opportunity-edit-summary strong{font-size:18px}
+@media(max-width:980px){
+  .catalog-calculation-grid{grid-template-columns:repeat(3,1fr)}
+  .material-opportunity-row{grid-template-columns:1fr 1fr}
+  .material-opportunity-actions{justify-content:flex-start}
+}
+@media(max-width:680px){
+  .estimate-catalog-prompt,.estimate-product-card{align-items:stretch;flex-direction:column}
+  .estimate-product-pricing{text-align:left;margin-left:0}
+  .catalog-calculation-grid{grid-template-columns:1fr 1fr}
+  .catalog-selection-actions{min-width:0}
+  .material-opportunity-row{grid-template-columns:1fr}
+}
