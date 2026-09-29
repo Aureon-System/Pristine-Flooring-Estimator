@@ -778,9 +778,11 @@ function renderMaterialOpportunities(){
     const productLabel=x.productName||x.material;
     const productMeta=[x.productSku?'SKU '+x.productSku:'',sizes].filter(Boolean).join(' · ');
     const priceMeta=x.unitPrice>0?money(x.unitPrice)+'/sqft':'Price not set';
+    const latestQuote=currentMaterialQuotes.find(q=>q.material_lead_id===x.id&&['submitted','accepted'].includes(q.status));
+    const networkMeta=latestQuote?('Distributor quote '+money(latestQuote.total)+(latestQuote.eta_days!=null?' · ETA '+latestQuote.eta_days+' days':'')):networkStatusLabel(x.status);
     el.innerHTML='<div><span class="material-status '+esc(x.status)+'">'+esc(String(x.status).toUpperCase())+'</span><strong>'+esc(x.project)+'</strong><small>'+esc(typeLabel)+(x.estimateNo?' · '+esc(x.estimateNo):'')+'</small></div>'+
       '<div><span>Product</span><strong>'+esc(productLabel)+'</strong><small>'+esc(productMeta)+'</small></div>'+
-      '<div><span>Required</span><strong>'+Math.round(x.required).toLocaleString()+' sqft</strong><small>'+Math.round(x.measured).toLocaleString()+' measured · '+esc(priceMeta)+(x.boxes?' · '+x.boxes+' boxes':'')+'</small></div>'+
+      '<div><span>Required</span><strong>'+Math.round(x.required).toLocaleString()+' sqft</strong><small>'+Math.round(x.measured).toLocaleString()+' measured · '+esc(priceMeta)+(x.boxes?' · '+x.boxes+' boxes':'')+'</small><small class="network-result">'+esc(networkMeta)+'</small></div>'+
       '<div class="material-opportunity-actions"><button class="btn btn-secondary material-edit-btn" type="button">View / Edit</button></div>';
     el.querySelector('.material-edit-btn').onclick=()=>openMaterialOpportunityEditor(x);
     box.append(el);
