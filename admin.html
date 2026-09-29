@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pristine Dev Control Center</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin.css?v=3">
+  <link rel="stylesheet" href="admin.css?v=4">
 </head>
 <body>
   <aside class="admin-sidebar">
@@ -160,6 +160,7 @@
           <article><span>Distributor action</span><strong id="networkDistributorReview">0</strong><small>New / review / quote ready</small></article>
           <article><span>Awaiting industry</span><strong id="networkAwaitingIndustry">0</strong><small>Supply confirmation required</small></article>
           <article><span>Quoted value</span><strong id="networkQuoteValue">$0</strong><small>Submitted + accepted quotes</small></article>
+          <article><span>Open orders</span><strong id="networkOpenOrders">0</strong><small id="networkOrderValue">$0 accepted value</small></article>
         </div>
 
         <div class="split-grid">
@@ -195,6 +196,11 @@
           <div class="table-wrap"><table><thead><tr><th>Created</th><th>Installer</th><th>Project</th><th>Product</th><th>Required</th><th>Distributor</th><th>Status</th></tr></thead><tbody id="networkOpportunityRows"></tbody></table></div>
         </article>
 
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">QUOTE → ORDER → FULFILLMENT</p><h2>Material orders</h2><p>Accepted distributor quotes and their fulfillment status.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Created</th><th>Project</th><th>Product</th><th>Distributor</th><th>Total</th><th>Method</th><th>Scheduled</th><th>Status</th></tr></thead><tbody id="networkOrderRows"></tbody></table></div>
+        </article>
+
         <div class="split-grid">
           <article class="panel">
             <div class="panel-head"><div><p class="eyebrow">DISTRIBUTORS</p><h2>Network distributors</h2></div></div>
@@ -228,6 +234,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=3"></script>
+  <script src="admin.js?v=4"></script>
 </body>
 </html>
