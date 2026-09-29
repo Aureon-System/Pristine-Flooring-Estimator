@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=432" />
+  <link rel="stylesheet" href="styles.css?v=440" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -301,10 +301,12 @@
           <div><span>Project area</span><strong id="catalogCalcArea">0 sqft</strong></div>
           <div><span>Required + waste</span><strong id="catalogCalcRequired">0 sqft</strong></div>
           <div><span>Boxes</span><strong id="catalogCalcBoxes">0</strong></div>
-          <div><span>Dealer material value</span><strong id="catalogCalcValue">$0.00</strong></div>
+          <div><span>Price / sqft</span><input id="catalogPriceSqft" class="catalog-inline-price" type="number" min="0" step="0.01" value="0" /></div>
+          <div><span>Material value</span><strong id="catalogCalcValue">$0.00</strong></div>
         </div>
         <div class="catalog-selection-actions">
           <button id="catalogUseEstimateBtn" class="btn btn-secondary" type="button">Use estimate sqft</button>
+          <button id="catalogUseInEstimateBtn" class="btn btn-dark hidden" type="button">Use in estimate</button>
           <button id="catalogRequestQuoteBtn" class="btn btn-gold" type="button">Request distributor quote</button>
         </div>
         <p class="catalog-price-note">Dealer price is a pilot reference. Territory/distributor pricing remains independently editable.</p>
@@ -461,6 +463,27 @@
   </form>
 </dialog>
 
+<dialog id="materialOpportunityEditDialog">
+  <form class="brand-dialog" onsubmit="return false;">
+    <div class="dialog-head"><div><p class="kicker">MATERIAL OPPORTUNITY</p><h2>Edit material request</h2></div><button id="closeMaterialOpportunityEdit" class="icon-btn" type="button" aria-label="Close">×</button></div>
+    <p class="dialog-note">Adjust quantity, waste, pricing or notes before the distributor works the opportunity.</p>
+    <div class="form-grid cols-2">
+      <label>Project<input id="editOpportunityProject" type="text" /></label>
+      <label>Status<select id="editOpportunityStatus"><option value="new">New</option><option value="contacted">Contacted</option><option value="quoted">Quoted</option><option value="won">Won</option><option value="lost">Lost</option></select></label>
+      <label>Measured sqft<input id="editOpportunityMeasured" type="number" min="1" step="1" /></label>
+      <label>Waste %<input id="editOpportunityWaste" type="number" min="0" max="50" step="1" /></label>
+      <label>Required sqft<input id="editOpportunityRequired" type="number" min="1" step="1" /></label>
+      <label>Price / sqft<input id="editOpportunityPrice" type="number" min="0" step="0.01" /></label>
+      <label>SKU<input id="editOpportunitySku" type="text" /></label>
+      <label>Product<input id="editOpportunityProduct" type="text" /></label>
+      <label class="span-2">Notes<textarea id="editOpportunityNotes" rows="4"></textarea></label>
+    </div>
+    <div class="opportunity-edit-summary"><span>Estimated material value</span><strong id="editOpportunityValue">$0.00</strong></div>
+    <p id="editOpportunityMessage" class="account-message"></p>
+    <div class="dialog-actions split-actions"><button id="cancelMaterialOpportunityEdit" class="btn btn-secondary" type="button">Cancel</button><button id="saveMaterialOpportunityEdit" class="btn btn-gold" type="button">Save changes</button></div>
+  </form>
+</dialog>
+
 <dialog id="partnerProfileDialog">
   <form class="brand-dialog partner-profile-dialog" onsubmit="return false;">
     <div class="dialog-head"><div><p class="kicker">PRISTINE PARTNER NETWORK</p><h2>Tell us about your flooring business</h2></div><button id="closePartnerProfile" class="icon-btn" type="button" aria-label="Close">×</button></div>
@@ -567,6 +590,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=432"></script>
+<script src="app.js?v=440"></script>
 </body>
 </html>
