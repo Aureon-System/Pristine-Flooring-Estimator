@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=441" />
+  <link rel="stylesheet" href="styles.css?v=450" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -124,7 +124,15 @@
           <label>Project name<input id="projectName" type="text" placeholder="Project name" /></label>
           <label>Email<input id="clientEmail" type="email" placeholder="client@email.com" /></label>
           <label>Phone<input id="clientPhone" type="tel" placeholder="(555) 555-5555" /></label>
-          <label class="span-2">Project / billing address<input id="projectAddress" type="text" placeholder="Project address" /></label>
+          <label class="span-2">Project street address<input id="projectAddress" type="text" placeholder="Street address" /></label>
+          <label>City<input id="projectCity" type="text" placeholder="City" /></label>
+          <label>State<input id="projectState" type="text" maxlength="2" placeholder="FL" /></label>
+          <label>ZIP code<input id="projectZip" type="text" inputmode="numeric" maxlength="10" placeholder="33437" /></label>
+          <div class="address-tools span-2">
+            <button id="validateProjectAddressBtn" class="btn btn-secondary" type="button">Validate address</button>
+            <button id="useProjectLocationBtn" class="btn btn-secondary" type="button">Use current location</button>
+            <span id="projectGeoStatus">ZIP will help route material delivery.</span>
+          </div>
           <label>Document no.<input id="documentNo" type="text" /></label>
           <label>Issue date<input id="issueDate" type="date" /></label>
           <label>Valid through<input id="validThrough" type="date" /></label>
@@ -309,7 +317,7 @@
           <button id="catalogUseInEstimateBtn" class="btn btn-dark hidden" type="button">Use in estimate</button>
           <button id="catalogRequestQuoteBtn" class="btn btn-gold" type="button">Request distributor quote</button>
         </div>
-        <p class="catalog-price-note">Dealer price is a pilot reference. Territory/distributor pricing remains independently editable.</p>
+        <p class="catalog-price-note">One price per distributor/SKU. The value can be adjusted for this project without changing the product master.</p>
       </div>
     </section>
     <section class="panel materials-list-panel">
@@ -455,7 +463,11 @@
       <label>Phone<input id="quotePhone" type="tel" placeholder="(555) 555-5555" /></label>
       <label>Email<input id="quoteEmail" type="email" placeholder="you@company.com" /></label>
       <label>Project name<input id="quoteProject" type="text" /></label>
-      <label class="span-2">Project address<input id="quoteAddress" type="text" /></label>
+      <label class="span-2">Project street address<input id="quoteAddress" type="text" /></label>
+      <label>City<input id="quoteCity" type="text" /></label>
+      <label>State<input id="quoteState" type="text" maxlength="2" /></label>
+      <label>ZIP code<input id="quoteZip" type="text" inputmode="numeric" maxlength="10" /></label>
+      <div class="address-tools span-2"><span id="quoteGeoStatus">Delivery territory follows the project ZIP.</span></div>
       <label class="span-2">Material notes<textarea id="quoteNotes" rows="4" placeholder="Color, size, finish, delivery timing, preferred product..."></textarea></label>
     </div>
     <label id="quoteConsentRow" class="consent-row"><input id="quoteConsent" type="checkbox" /> <span>I authorize sharing these project details with Pristine Flooring and its assigned distributor for material pricing.</span></label>
@@ -592,6 +604,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=441"></script>
+<script src="app.js?v=450"></script>
 </body>
 </html>
