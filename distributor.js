@@ -30,7 +30,7 @@ function render(){
   $('#metricIndustry').textContent=leads.filter(x=>x.status==='awaiting_manufacturer').length;
   $('#metricQuoted').textContent=quotes.filter(x=>x.status==='submitted').length;
   $('#metricValue').textContent=money(quotes.filter(x=>['submitted','accepted'].includes(x.status)).reduce((s,x)=>s+Number(x.total||0),0));
-  renderOpportunities();renderSupply();renderQuotes();
+  renderOpportunities();renderSupply();renderQuotes();renderOrders();renderCatalog();
 }
 function renderOpportunities(){
   const filter=$('#statusFilter').value;
@@ -44,20 +44,81 @@ function renderSupply(){
 function renderQuotes(){
   $('#quoteRows').innerHTML=(data.quotes||[]).map(q=>'<tr><td>'+date(q.created_at)+'</td><td>'+esc(shortId(q.material_lead_id))+'</td><td>'+Number(q.quantity_sqft||0).toLocaleString()+' sqft</td><td>'+money(q.unit_price_sqft)+'</td><td>'+money(q.total)+'</td><td>'+((q.eta_days??null)!==null?esc(q.eta_days+' days'):'—')+'</td><td><span class="status '+esc(q.status)+'">'+esc(statusLabel(q.status))+'</span></td></tr>').join('')||'<tr><td colspan="7">No quotes submitted yet.</td></tr>';
 }
+function renderOrders(){
+  const orders=data.orders||[];
+  $('#orderList').innerHTML=orders.map(o=>{
+    const lead=(data.leads||[]).find(l=>l.id===o.material_lead_id)||{};
+    const statuses=['accepted','confirmed','processing','ready','out_for_delivery','delivered','picked_up','cancelled'];
+    return '<article class="opp-card order-card"><div class="opp-main"><strong>'+esc(lead.product_name||lead.material||'Material order')+'</strong><small>'+esc(lead.product_sku?'SKU '+lead.product_sku:'Order '+shortId(o.id))+'</small><small>'+esc(lead.project_name||'Project')+' · '+esc([o.delivery_city,o.delivery_state,o.delivery_zip].filter(Boolean).join(', ')||'Delivery location pending')+'</small></div><div class="opp-cell"><small>Order total</small><strong>'+money(o.total)+'</strong></div><div class="order-controls"><select data-order-status="'+esc(o.id)+'">'+statuses.map(st=>'<option value="'+st+'" '+(o.status===st?'selected':'')+'>'+statusLabel(st)+'</option>').join('')+'</select><select data-order-method="'+esc(o.id)+'"><option value="delivery" '+(o.delivery_method==='delivery'?'selected':'')+'>Delivery</option><option value="pickup" '+(o.delivery_method==='pickup'?'selected':'')+'>Pickup</option></select><input data-order-schedule="'+esc(o.id)+'" type="datetime-local" value="'+esc(o.scheduled_for?String(o.scheduled_for).slice(0,16):'')+'" aria-label="Scheduled date"><input data-order-track="'+esc(o.id)+'" value="'+esc(o.tracking_reference||'')+'" placeholder="PO / tracking / delivery ref"><button class="btn dark" data-order-save="'+esc(o.id)+'" type="button">Save fulfillment</button></div></article>';
+  }).join('')||'<div class="empty">Accepted quotes will appear here as material orders.</div>';
+  document.querySelectorAll('[data-order-save]').forEach(b=>b.onclick=()=>updateOrder(b.dataset.orderSave));
+}
+function renderCatalog(){
+  const body=$('#catalogRows');if(!body)return;
+  const role=String(data.membership?.role||'');
+  const canEdit=['owner','manager'].includes(role);
+  const note=$('#catalogRoleNote');
+  if(note)note.textContent=canEdit?'Owner/manager pricing controls are active.':'Catalog pricing is read-only for your '+statusLabel(role)+' role.';
+  const q=String($('#catalogSearch')?.value||'').trim().toLowerCase();
+  const offers=(data.offers||[]).filter(o=>{
+    const v=o.catalog_variants||{},p=v.catalog_products||{};
+    return !q||[v.sku,v.name,v.size,p.collection,p.category].some(x=>String(x||'').toLowerCase().includes(q));
+  });
+  body.innerHTML=offers.map(o=>{
+    const v=o.catalog_variants||{},p=v.catalog_products||{};
+    const disabled=canEdit?'':' disabled';
+    return '<tr><td><strong>'+esc(v.name||'Product')+'</strong><small class="table-sub">'+esc(p.collection||'')+'</small></td><td>'+esc(v.sku||'—')+'</td><td>'+esc(v.size||'—')+'</td><td><input class="network-inline-input" data-offer-price="'+esc(o.id)+'" type="number" min="0" step=".01" value="'+Number(o.price_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-stock="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.stock_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-lead="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.lead_time_days||0)+'"'+disabled+'></td><td><select class="network-status-select" data-offer-availability="'+esc(o.id)+'"'+disabled+'>'+['available','limited','backorder','unavailable'].map(a=>'<option value="'+a+'" '+(String(o.availability||'available')===a?'selected':'')+'>'+statusLabel(a)+'</option>').join('')+'</select></td><td>'+(canEdit?'<button class="network-respond-btn" data-offer-save="'+esc(o.id)+'" type="button">Save</button>':'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="8">No catalog offers match this search.</td></tr>';
+  document.querySelectorAll('[data-offer-save]').forEach(b=>b.onclick=()=>updateOffer(b.dataset.offerSave));
+}
+async function updateOrder(id){
+  const btn=document.querySelector('[data-order-save="'+CSS.escape(id)+'"]');
+  if(btn){btn.disabled=true;btn.textContent='Saving…'}
+  try{
+    await api('distributor-update-order',{method:'POST',body:{
+      distributor_id:data.membership.distributor_id,
+      order_id:id,
+      status:document.querySelector('[data-order-status="'+CSS.escape(id)+'"]')?.value,
+      delivery_method:document.querySelector('[data-order-method="'+CSS.escape(id)+'"]')?.value,
+      scheduled_for:document.querySelector('[data-order-schedule="'+CSS.escape(id)+'"]')?.value||null,
+      tracking_reference:document.querySelector('[data-order-track="'+CSS.escape(id)+'"]')?.value||''
+    }});
+    await load();
+  }catch(e){alert(e.message||'Could not update order')}
+  finally{if(btn){btn.disabled=false;btn.textContent='Save fulfillment'}}
+}
+async function updateOffer(id){
+  const btn=document.querySelector('[data-offer-save="'+CSS.escape(id)+'"]');
+  if(btn){btn.disabled=true;btn.textContent='Saving…'}
+  try{
+    await api('distributor-update-offer',{method:'POST',body:{
+      distributor_id:data.membership.distributor_id,
+      offer_id:id,
+      price_sqft:Number(document.querySelector('[data-offer-price="'+CSS.escape(id)+'"]')?.value||0),
+      stock_sqft:Number(document.querySelector('[data-offer-stock="'+CSS.escape(id)+'"]')?.value||0),
+      lead_time_days:Number(document.querySelector('[data-offer-lead="'+CSS.escape(id)+'"]')?.value||0),
+      availability:document.querySelector('[data-offer-availability="'+CSS.escape(id)+'"]')?.value||'available'
+    }});
+    await load();activateTab('catalog');
+  }catch(e){alert(e.message||'Could not update catalog price')}
+  finally{if(btn){btn.disabled=false;btn.textContent='Save'}}
+}
 function shortId(id){return id?String(id).slice(0,8).toUpperCase():'—'}
 function leadEvents(id){return (data.events||[]).filter(x=>x.material_lead_id===id)}
 function leadQuotes(id){return (data.quotes||[]).filter(x=>x.material_lead_id===id)}
 function leadSupply(id){return (data.supply_requests||[]).filter(x=>x.material_lead_id===id)}
+function leadOrders(id){return (data.orders||[]).filter(x=>x.material_lead_id===id)}
 
 function openLead(id){
   const l=(data.leads||[]).find(x=>x.id===id);if(!l)return;currentLead=l;
   $('#drawerTitle').textContent=l.product_name||l.material||'Material request';
   $('#drawerMeta').textContent=(l.product_sku?'SKU '+l.product_sku+' · ':'')+Number(l.required_sqft||0).toLocaleString()+' sqft · '+([l.project_city,l.project_state,l.project_zip].filter(Boolean).join(', ')||'Delivery location pending');
-  const latestSupply=leadSupply(id)[0],latestQuote=leadQuotes(id)[0];
+  const latestSupply=leadSupply(id)[0],latestQuote=leadQuotes(id)[0],latestOrder=leadOrders(id)[0];
   $('#drawerBody').innerHTML='<section class="detail-card"><h3>Opportunity</h3><div class="detail-grid"><div><span>Installer</span><strong>'+esc(l.partners?.company_name||l.requester_company||'—')+'</strong></div><div><span>Customer / requester</span><strong>'+esc(l.requester_name||'—')+'</strong></div><div><span>Project</span><strong>'+esc(l.project_name||'—')+'</strong></div><div><span>Required</span><strong>'+Number(l.required_sqft||0).toLocaleString()+' sqft'+(l.calculated_boxes?' · '+l.calculated_boxes+' boxes':'')+'</strong></div><div><span>Product</span><strong>'+esc([l.product_name,l.product_sku,l.custom_size].filter(Boolean).join(' · ')||l.material)+'</strong></div><div><span>Estimate</span><strong>'+esc(l.estimate_no||'—')+'</strong></div></div></section>'+
   '<section class="detail-card"><h3>Distributor status</h3><div class="form-grid"><label class="wide">Workflow status<select id="drawerStatus">'+['new','distributor_review','awaiting_manufacturer','quote_ready','quoted','accepted','declined','ordered','fulfilled','lost'].map(s=>'<option value="'+s+'" '+(l.status===s?'selected':'')+'>'+statusLabel(s)+'</option>').join('')+'</select></label></div><div class="action-row"><button id="updateStatusBtn" class="btn dark" type="button">Update status</button></div><p id="statusMessage" class="form-message"></p></section>'+
   '<section class="detail-card"><h3>Check inventory / request industry</h3><p class="form-message">'+(latestSupply?'Latest industry request: '+statusLabel(latestSupply.status)+(latestSupply.response_notes?' · '+esc(latestSupply.response_notes):''):'If stock is insufficient, request the shortage from the manufacturer without re-entering project data.')+'</p><div class="form-grid"><label>Shortage sqft<input id="supplySqft" type="number" min="0" step="1" value="'+Number(l.required_sqft||0)+'"></label><label>Boxes<input id="supplyBoxes" type="number" min="0" step="1" value="'+Number(l.calculated_boxes||0)+'"></label><label class="wide">Notes<textarea id="supplyNotes" rows="3" placeholder="Stock shortage, requested color/lot, delivery constraints…"></textarea></label></div><div class="action-row"><button id="requestSupplyBtn" class="btn secondary" type="button">Request from Industry</button></div><p id="supplyMessage" class="form-message"></p></section>'+
   '<section class="detail-card"><h3>Return quote to installer</h3><p class="form-message">'+(latestQuote?'Latest submitted quote: '+money(latestQuote.total):'Create the material quote that the installer will receive in Pristine.')+'</p><div class="form-grid"><label>Quantity sqft<input id="quoteQty" type="number" min="0" step="1" value="'+Number(l.required_sqft||0)+'"></label><label>Unit price / sqft<input id="quoteUnit" type="number" min="0" step=".01" value="'+Number(l.unit_price_sqft||0)+'"></label><label>Freight<input id="quoteFreight" type="number" min="0" step=".01" value="0"></label><label>Tax<input id="quoteTax" type="number" min="0" step=".01" value="0"></label><label>ETA days<input id="quoteEta" type="number" min="0" step="1"></label><label>Valid through<input id="quoteExpires" type="date"></label><label class="wide">Quote notes<textarea id="quoteNotes" rows="3"></textarea></label></div><div class="action-row"><button id="submitQuoteBtn" class="btn gold" type="button">Submit quote to installer</button></div><p id="quoteMessage" class="form-message"></p></section>'+
+  (latestOrder?'<section class="detail-card"><h3>Accepted order</h3><div class="detail-grid"><div><span>Status</span><strong>'+esc(statusLabel(latestOrder.status))+'</strong></div><div><span>Total</span><strong>'+money(latestOrder.total)+'</strong></div><div><span>Fulfillment</span><strong>'+esc(statusLabel(latestOrder.delivery_method))+'</strong></div><div><span>Reference</span><strong>'+esc(latestOrder.tracking_reference||'—')+'</strong></div></div></section>':'')+
   '<section class="detail-card"><h3>Shared timeline</h3><div class="timeline">'+(leadEvents(id).map(e=>'<div class="timeline-item"><strong>'+esc(statusLabel(e.event_type))+'</strong><p>'+esc(e.message||'Network activity')+'</p><small>'+date(e.created_at)+' · '+esc(statusLabel(e.actor_type))+'</small></div>').join('')||'<div class="empty">No network timeline events yet.</div>')+'</div></section>';
   $('#updateStatusBtn').onclick=updateStatus;$('#requestSupplyBtn').onclick=requestSupply;$('#submitQuoteBtn').onclick=submitQuote;
   $('#opportunityDrawer').classList.remove('hidden');$('#opportunityDrawer').setAttribute('aria-hidden','false');
@@ -76,7 +137,9 @@ async function submitQuote(){
   const id=currentLead.id;
   try{$('#quoteMessage').textContent='Submitting quote…';await api('distributor-submit-quote',{method:'POST',body:{distributor_id:data.membership.distributor_id,lead_id:id,quantity_sqft:Number($('#quoteQty').value||0),unit_price_sqft:Number($('#quoteUnit').value||0),freight:Number($('#quoteFreight').value||0),tax:Number($('#quoteTax').value||0),eta_days:Number($('#quoteEta').value||0),expires_at:$('#quoteExpires').value||null,notes:$('#quoteNotes').value}});await load();openLead(id)}catch(e){$('#quoteMessage').textContent=e.message}
 }
-$('#statusFilter').onchange=renderOpportunities;$('#refreshBtn').onclick=load;$('#signOutBtn').onclick=async()=>{await sb.auth.signOut();location.href='/'};
+$('#statusFilter').onchange=renderOpportunities;
+if($('#catalogSearch'))$('#catalogSearch').oninput=renderCatalog;
+$('#refreshBtn').onclick=load;$('#signOutBtn').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
 (async()=>{
   try{const {data:s}=await sb.auth.getSession();session=s.session;if(!session){location.href='/?distributor=1';return}await load()}
