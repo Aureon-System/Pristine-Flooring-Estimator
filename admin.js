@@ -3,10 +3,61 @@ const SUPABASE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const API=SUPABASE_URL+'/functions/v1/pristine-api';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
-let summary=null,session=null;
+let summary=null,network=null,session=null;
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0));
 const date=v=>v?new Date(v).toLocaleDateString('en-US'):'—';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+
+async function apiRequest(action,opts={}){
+  const r=await fetch(API+'?action='+encodeURIComponent(action),{method:opts.method||'GET',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined});
+  const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Request failed');return d;
+}
+async function fetchNetwork(){
+  network=await apiRequest('admin-network-summary');
+  renderNetwork();
+}
+function networkStatusLabel(s){return String(s||'new').replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase())}
+function renderNetwork(){
+  if(!network)return;
+  const m=network.metrics||{};
+  $('#networkOpportunities').textContent=m.opportunities||0;
+  $('#networkDistributorReview').textContent=m.distributor_review||0;
+  $('#networkAwaitingIndustry').textContent=m.awaiting_manufacturer||0;
+  $('#networkQuoteValue').textContent=money(m.quote_value||0);
+  $('#networkOpenSupply').textContent=(m.open_supply_requests||0)+' open';
+  const distributors=new Map((network.distributors||[]).map(d=>[d.id,d]));
+  const distSelect=$('#networkDistributorSelect');
+  if(distSelect)distSelect.innerHTML=(network.distributors||[]).map(d=>'<option value="'+esc(d.id)+'">'+esc(d.name)+'</option>').join('')||'<option value="">No distributors configured</option>';
+  $('#networkOpportunityRows').innerHTML=(network.leads||[]).map(l=>'<tr><td>'+date(l.created_at)+'</td><td>'+esc(l.partners?.company_name||l.requester_company||'—')+'</td><td>'+esc([l.project_name,l.project_city,l.project_state].filter(Boolean).join(' · ')||'—')+'</td><td>'+esc(l.product_name||l.product_sku||l.material||'—')+'</td><td>'+Number(l.required_sqft||0).toLocaleString()+' sqft</td><td>'+esc(distributors.get(l.assigned_distributor_id)?.name||'Unassigned')+'</td><td><span class="status-pill '+esc(l.status)+'">'+esc(networkStatusLabel(l.status))+'</span></td></tr>').join('')||'<tr><td colspan="7">No network opportunities yet.</td></tr>';
+  $('#networkSupplyRows').innerHTML=(network.supply_requests||[]).map(s=>'<tr><td>'+esc(s.distributors?.name||'—')+'</td><td>'+esc(s.catalog_variants?.sku||'—')+'</td><td>'+Number(s.requested_sqft||0).toLocaleString()+' sqft</td><td><span class="status-pill '+esc(s.status)+'">'+esc(networkStatusLabel(s.status))+'</span></td><td><input class="network-inline-input" data-supply-available="'+esc(s.id)+'" type="number" min="0" step="1" value="'+(s.available_sqft??s.requested_sqft??0)+'"></td><td><input class="network-inline-input" data-supply-cost="'+esc(s.id)+'" type="number" min="0" step=".01" value="'+(s.cost_sqft??'')+'"></td><td><input class="network-inline-input" data-supply-eta="'+esc(s.id)+'" type="number" min="0" step="1" value="'+(s.eta_days??'')+'"></td><td><input class="network-response-input" data-supply-note="'+esc(s.id)+'" value="'+esc(s.response_notes||'')+'" placeholder="Availability / lot / timing"></td><td><select class="network-status-select" data-supply-status="'+esc(s.id)+'"><option value="confirmed">Confirmed</option><option value="partial">Partial</option><option value="unavailable">Unavailable</option><option value="cancelled">Cancelled</option></select><button class="network-respond-btn" data-supply-id="'+esc(s.id)+'" type="button">Respond</button></td></tr>').join('')||'<tr><td colspan="9">No manufacturer supply requests yet.</td></tr>';
+  document.querySelectorAll('.network-respond-btn').forEach(b=>b.onclick=()=>respondSupply(b.dataset.supplyId));
+  $('#networkDistributorCards').innerHTML=(network.distributors||[]).map(d=>'<div class="network-card"><strong>'+esc(d.name)+'</strong><span>'+esc(d.warehouse_address||d.office_address||'Address pending')+'</span><small>'+esc(d.email||'Contact pending')+'</small></div>').join('')||'<p class="form-message">No distributors configured.</p>';
+  $('#networkMemberRows').innerHTML=(network.members||[]).map(x=>'<tr><td>'+esc(x.distributors?.name||'—')+'</td><td>'+esc(networkStatusLabel(x.role))+'</td><td><span class="status-pill '+(x.active?'active':'')+'">'+(x.active?'Active':'Inactive')+'</span></td></tr>').join('')||'<tr><td colspan="3">No distributor users linked yet.</td></tr>';
+}
+async function respondSupply(id){
+  const btn=document.querySelector('[data-supply-id="'+id+'"]');if(btn)btn.disabled=true;
+  try{
+    await apiRequest('admin-supply-response',{method:'POST',body:{
+      request_id:id,
+      status:document.querySelector('[data-supply-status="'+id+'"]').value,
+      available_sqft:Number(document.querySelector('[data-supply-available="'+id+'"]').value||0),
+      cost_sqft:Number(document.querySelector('[data-supply-cost="'+id+'"]').value||0),
+      eta_days:Number(document.querySelector('[data-supply-eta="'+id+'"]').value||0),
+      notes:document.querySelector('[data-supply-note="'+id+'"]').value
+    }});
+    await fetchNetwork();
+  }catch(e){alert(e.message)}finally{if(btn)btn.disabled=false}
+}
+async function addDistributorMember(){
+  const msg=$('#networkMemberMessage');msg.textContent='Linking account…';
+  try{
+    const d=await apiRequest('admin-add-distributor-member',{method:'POST',body:{distributor_id:$('#networkDistributorSelect').value,email:$('#networkMemberEmail').value.trim(),role:$('#networkMemberRole').value}});
+    msg.textContent='Access added for '+(d.account?.email||'account')+'.';
+    $('#networkMemberEmail').value='';
+    await fetchNetwork();
+  }catch(e){msg.textContent=e.message}
+}
 
 function activateTab(name){
   document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.tab===name));
@@ -20,7 +71,7 @@ async function fetchSummary(){
   const r=await fetch(API+'?action=admin-summary',{headers:{Authorization:'Bearer '+session.access_token}});
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error(d.error||'Admin access failed');
-  summary=d;render();$('#adminRole').textContent='Admin · '+d.role;
+  summary=d;render();$('#adminRole').textContent='Admin · '+d.role;\n  try{await fetchNetwork()}catch(e){console.error('Network workspace:',e)}
 }
 function render(){
   const m=summary.metrics||{};
@@ -66,7 +117,7 @@ async function saveCost(){
   if(error)return $('#costMessage').textContent=error.message;
   $('#costMessage').textContent='Cost added.';$('#costDescription').value='';$('#costAmount').value='';$('#costNotes').value='';await fetchSummary();
 }
-$('#saveCost').onclick=saveCost;$('#refreshAdmin').onclick=fetchSummary;$('#costDate').value=new Date().toISOString().slice(0,10);
+$('#saveCost').onclick=saveCost;$('#refreshAdmin').onclick=fetchSummary;$('#costDate').value=new Date().toISOString().slice(0,10);\n$('#addDistributorMemberBtn').onclick=addDistributorMember;
 $('#adminSignOut').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
 (async()=>{
