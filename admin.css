@@ -34,3 +34,5 @@
 .status-pill.unavailable,.status-pill.lost,.status-pill.declined{background:#fdecec;color:#9b2e2e}
 #addDistributorMemberBtn{margin-top:12px}
 @media(max-width:900px){.network-role-flow{grid-template-columns:1fr}.network-role-flow>b{transform:rotate(90deg);text-align:center}}
+
+.network-preview-link{font-size:9px;font-weight:850;color:#8a641f;text-decoration:none;margin-top:4px}.network-preview-link:hover{text-decoration:underline}
