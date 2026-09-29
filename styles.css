@@ -2212,3 +2212,25 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .address-tools .btn{flex:1 1 calc(50% - 4px)}
   .address-tools span{flex:1 1 100%}
 }
+
+
+/* V460 unified Partner + Documents workspace */
+.documents-partner-workspace{display:none}
+.documents-partner-workspace.active{display:block}
+.documents-partner-workspace>.partner-center{margin-bottom:22px}
+.documents-workspace{
+  border-top:1px solid #dfe4e8;
+  padding-top:22px;
+}
+.documents-main-head{margin-bottom:14px}
+.documents-subpanel{display:none}
+.documents-subpanel.active{display:block}
+.documents-partner-workspace .partner-center{
+  background:linear-gradient(180deg,#fff 0%,#fbfcfd 100%);
+  border:1px solid #dfe4e8;
+}
+.documents-partner-workspace .partner-center-head h2{font-size:24px}
+@media(max-width:760px){
+  .documents-partner-workspace>.partner-center{margin-bottom:16px}
+  .documents-workspace{padding-top:16px}
+}
