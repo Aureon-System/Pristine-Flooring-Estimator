@@ -25,6 +25,8 @@ function renderNetwork(){
   $('#networkDistributorReview').textContent=m.distributor_review||0;
   $('#networkAwaitingIndustry').textContent=m.awaiting_manufacturer||0;
   $('#networkQuoteValue').textContent=money(m.quote_value||0);
+  $('#networkOpenOrders').textContent=m.open_orders||0;
+  $('#networkOrderValue').textContent=money(m.order_value||0)+' accepted value';
   $('#networkOpenSupply').textContent=(m.open_supply_requests||0)+' open';
   const distributors=new Map((network.distributors||[]).map(d=>[d.id,d]));
   const distSelect=$('#networkDistributorSelect');
@@ -34,6 +36,7 @@ function renderNetwork(){
   document.querySelectorAll('.network-respond-btn').forEach(b=>b.onclick=()=>respondSupply(b.dataset.supplyId));
   $('#networkDistributorCards').innerHTML=(network.distributors||[]).map(d=>'<div class="network-card"><strong>'+esc(d.name)+'</strong><span>'+esc(d.warehouse_address||d.office_address||'Address pending')+'</span><small>'+esc(d.email||'Contact pending')+'</small><a class="network-preview-link" href="distributor.html?distributor_id='+encodeURIComponent(d.id)+'" target="_blank" rel="noopener">Open distributor workspace →</a></div>').join('')||'<p class="form-message">No distributors configured.</p>';
   $('#networkMemberRows').innerHTML=(network.members||[]).map(x=>'<tr><td>'+esc(x.distributors?.name||'—')+'</td><td>'+esc(networkStatusLabel(x.role))+'</td><td><span class="status-pill '+(x.active?'active':'')+'">'+(x.active?'Active':'Inactive')+'</span></td></tr>').join('')||'<tr><td colspan="3">No distributor users linked yet.</td></tr>';
+  $('#networkOrderRows').innerHTML=(network.orders||[]).map(o=>'<tr><td>'+date(o.created_at)+'</td><td>'+esc(o.material_leads?.project_name||'—')+'</td><td>'+esc(o.material_leads?.product_name||o.material_leads?.product_sku||'—')+'</td><td>'+esc(o.distributors?.name||'—')+'</td><td>'+money(o.total)+'</td><td>'+esc(networkStatusLabel(o.delivery_method))+'</td><td>'+esc(o.scheduled_for?new Date(o.scheduled_for).toLocaleString('en-US'):'—')+'</td><td><span class="status-pill '+esc(o.status)+'">'+esc(networkStatusLabel(o.status))+'</span></td></tr>').join('')||'<tr><td colspan="8">No accepted material orders yet.</td></tr>';
 }
 async function respondSupply(id){
   const btn=document.querySelector('[data-supply-id="'+id+'"]');if(btn)btn.disabled=true;
