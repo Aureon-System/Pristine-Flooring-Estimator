@@ -699,6 +699,21 @@ function openMaterialOpportunityEditor(item){
   set('editOpportunityMaterial',[item.material,...item.sizes,item.customSize].filter(Boolean).join(' · '));
   set('editOpportunityNotes',item.notes||'');
   const msg=$('#editOpportunityMessage');if(msg)msg.textContent='';
+  const statusEl=$('#editOpportunityStatus');if(statusEl)statusEl.disabled=Boolean(item.id);
+  const networkPanel=$('#materialOpportunityNetworkPanel');
+  if(networkPanel){
+    const quotes=currentMaterialQuotes.filter(q=>q.material_lead_id===item.id);
+    const latestQuote=quotes[0]||null;
+    const events=currentOpportunityEvents.filter(e=>e.material_lead_id===item.id);
+    if(item.id){
+      networkPanel.classList.remove('hidden');
+      const quoteHtml=latestQuote
+        ? '<div><span>DISTRIBUTOR QUOTE</span><strong>'+money(latestQuote.total)+'</strong><small>'+esc(latestQuote.distributors?.name||'Assigned distributor')+(latestQuote.eta_days!=null?' · ETA '+latestQuote.eta_days+' days':'')+'</small></div>'
+        : '<div><span>DISTRIBUTOR QUOTE</span><strong>Pending</strong><small>The assigned distributor is processing this request.</small></div>';
+      const timelineHtml=events.map(e=>'<div><b></b><p><strong>'+esc(networkStatusLabel(e.event_type))+'</strong><span>'+esc(e.message||'Network activity')+'</span><small>'+new Date(e.created_at).toLocaleString('en-US')+' · '+esc(networkStatusLabel(e.actor_type))+'</small></p></div>').join('');
+      networkPanel.innerHTML='<div class="opportunity-network-head"><div><span>SHARED NETWORK STATUS</span><strong>'+esc(networkStatusLabel(item.status))+'</strong></div>'+quoteHtml+'</div><div class="opportunity-network-timeline">'+(timelineHtml||'<p class="empty">The shared timeline will appear as the distributor processes this request.</p>')+'</div>';
+    }else networkPanel.classList.add('hidden');
+  }
   updateOpportunityEditSummary(false);
   dlg.showModal();
 }
