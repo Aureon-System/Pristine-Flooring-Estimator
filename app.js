@@ -684,6 +684,20 @@ function requestCatalogQuote(){
     refreshQuoteMetrics();
   },80);
 }
+
+async function decideMaterialQuote(quoteId,decision,leadId){
+  const label=decision==='accepted'?'accept':'decline';
+  if(!confirm('Do you want to '+label+' this distributor quote?'))return;
+  try{
+    const r=await fetch(PRISTINE_API+'?action=installer-quote-decision',{method:'POST',headers:apiHeaders(),body:JSON.stringify({quote_id:quoteId,decision})});
+    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not update quote');
+    await fetchPartnerNetworkData(false);
+    renderSaved();
+    const fresh=currentMaterialOpportunities.find(x=>x.id===leadId);
+    if(fresh)openMaterialOpportunityEditor(normalizeMaterialOpportunity(fresh));
+  }catch(e){alert(e?.message||'Could not update quote')}
+}
+
 function openMaterialOpportunityEditor(item){
   currentEditingMaterialOpportunity=item;
   const dlg=$('#materialOpportunityEditDialog');if(!dlg)return;
@@ -708,11 +722,13 @@ function openMaterialOpportunityEditor(item){
     const events=currentOpportunityEvents.filter(e=>e.material_lead_id===item.id);
     if(item.id){
       networkPanel.classList.remove('hidden');
+      const quoteActions=latestQuote?.status==='submitted'?'<div class="installer-quote-actions"><button class="btn btn-gold" data-quote-decision="accepted" data-quote-id="'+esc(latestQuote.id)+'" type="button">Accept quote</button><button class="btn btn-secondary" data-quote-decision="declined" data-quote-id="'+esc(latestQuote.id)+'" type="button">Decline</button></div>':'';
       const quoteHtml=latestQuote
-        ? '<div><span>DISTRIBUTOR QUOTE</span><strong>'+money(latestQuote.total)+'</strong><small>'+esc(latestQuote.distributors?.name||'Assigned distributor')+(latestQuote.eta_days!=null?' · ETA '+latestQuote.eta_days+' days':'')+'</small></div>'
+        ? '<div><span>DISTRIBUTOR QUOTE</span><strong>'+money(latestQuote.total)+'</strong><small>'+esc(latestQuote.distributors?.name||'Assigned distributor')+(latestQuote.eta_days!=null?' · ETA '+latestQuote.eta_days+' days':'')+' · '+esc(networkStatusLabel(latestQuote.status))+'</small>'+quoteActions+'</div>'
         : '<div><span>DISTRIBUTOR QUOTE</span><strong>Pending</strong><small>The assigned distributor is processing this request.</small></div>';
       const timelineHtml=events.map(e=>'<div><b></b><p><strong>'+esc(networkStatusLabel(e.event_type))+'</strong><span>'+esc(e.message||'Network activity')+'</span><small>'+new Date(e.created_at).toLocaleString('en-US')+' · '+esc(networkStatusLabel(e.actor_type))+'</small></p></div>').join('');
       networkPanel.innerHTML='<div class="opportunity-network-head"><div><span>SHARED NETWORK STATUS</span><strong>'+esc(networkStatusLabel(item.status))+'</strong></div>'+quoteHtml+'</div><div class="opportunity-network-timeline">'+(timelineHtml||'<p class="empty">The shared timeline will appear as the distributor processes this request.</p>')+'</div>';
+      networkPanel.querySelectorAll('[data-quote-decision]').forEach(btn=>btn.onclick=()=>decideMaterialQuote(btn.dataset.quoteId,btn.dataset.quoteDecision,item.id));
     }else networkPanel.classList.add('hidden');
   }
   updateOpportunityEditSummary(false);
