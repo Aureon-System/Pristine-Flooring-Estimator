@@ -8,7 +8,7 @@
   <meta name="description" content="Free professional flooring estimate and invoice builder." />
   <link rel="canonical" href="https://pristineflooring.online/calculator.html" />
   <meta property="og:url" content="https://pristineflooring.online/calculator.html" />
-  <link rel="stylesheet" href="styles.css?v=450" />
+  <link rel="stylesheet" href="styles.css?v=460" />
   <link rel="stylesheet" href="i18n.css?v=170" />
 </head>
 <body data-deploy-trigger="aureon-cloudflare-v3" data-build="workspace-v4-email" data-ui-version="i18n-v1">
@@ -21,8 +21,7 @@
     <nav class="app-primary-nav" aria-label="Main workspace navigation">
       <button class="app-nav-item active" type="button" data-workspace-view="home">Home</button>
       <button class="app-nav-item" type="button" data-workspace-view="estimate">Estimate</button>
-      <button class="app-nav-item" type="button" data-documents-nav data-workspace-view="estimates">Documents</button>
-      <button class="app-nav-item" type="button" data-workspace-view="partner">Partner</button>
+      <button class="app-nav-item" type="button" data-documents-nav data-workspace-view="documents">Partner &amp; Documents</button>
       <button class="app-nav-item" type="button" data-workspace-view="materials">Materials</button>
     </nav>
 
@@ -42,9 +41,9 @@
             <span id="companyMenuEmail"></span>
           </div>
           <div class="mobile-menu-shortcuts">
-            <button class="company-menu-item" type="button" data-workspace-view="invoices">Invoices</button>
+            <button class="company-menu-item" type="button" data-documents-subview="invoices">Invoices</button>
             <button class="company-menu-item" type="button" data-workspace-view="materials">Materials</button>
-            <button class="company-menu-item" type="button" data-workspace-view="partner">Partner Center</button>
+            <button class="company-menu-item" type="button" data-workspace-view="documents">Partner & Documents</button>
           </div>
           <button id="brandBtn" class="company-menu-item" type="button">Company branding</button>
           <button id="accountBtn" class="company-menu-item" type="button">Account & security</button>
@@ -77,7 +76,7 @@
     <div class="home-quick-actions">
       <button type="button" data-home-action="estimate"><span class="home-action-icon">+</span><strong>New Estimate</strong><small>Price a flooring job</small></button>
       <button type="button" data-home-action="materials"><span class="home-action-icon">M</span><strong>Material Quote</strong><small>Request flooring pricing</small></button>
-      <button type="button" data-home-action="partner"><span class="home-action-icon">P</span><strong>Refer Customer</strong><small>Use your Partner ID</small></button>
+      <button type="button" data-home-action="documents"><span class="home-action-icon">P</span><strong>Refer Customer</strong><small>Use your Partner ID</small></button>
       <button type="button" data-home-action="invoices"><span class="home-action-icon">$</span><strong>Invoices</strong><small>Review billing documents</small></button>
     </div>
 
@@ -90,14 +89,14 @@
 
     <div class="home-grid">
       <section class="panel home-recent-panel">
-        <div class="module-section-head"><div><p class="kicker">RECENT ACTIVITY</p><h2>Pick up where you left off</h2></div><button class="btn btn-link" type="button" data-workspace-view="estimates">View estimates</button></div>
+        <div class="module-section-head"><div><p class="kicker">RECENT ACTIVITY</p><h2>Pick up where you left off</h2></div><button class="btn btn-link" type="button" data-documents-subview="estimates">View estimates</button></div>
         <div id="homeRecentActivity" class="home-recent-list"><p class="empty">No activity yet.</p></div>
       </section>
       <section class="panel home-partner-card">
         <p class="kicker">PARTNER NETWORK</p>
         <h2>Turn projects into opportunity.</h2>
         <p>Refer customers, request flooring quotes and track the commercial activity generated from your Partner ID.</p>
-        <button class="btn btn-dark" type="button" data-workspace-view="partner">Open Partner Center</button>
+        <button class="btn btn-dark" type="button" data-workspace-view="documents">Open Partner Center</button>
       </section>
     </div>
   </section>
@@ -212,38 +211,8 @@
 
   </section>
 
-  <section class="workspace-module" data-workspace-module="estimates">
-    <div class="module-page-head">
-      <div><p class="kicker">DOCUMENTS</p><h1>Estimates</h1><p>Review open quotes, follow up with customers and convert approved work into invoices.</p><div class="document-switcher"><button class="active" type="button" data-workspace-view="estimates">Estimates</button><button type="button" data-workspace-view="invoices">Invoices</button></div></div>
-      <div class="module-page-actions"><button id="clearDocsBtn" class="btn btn-secondary" type="button">Refresh</button><button class="btn btn-gold" type="button" data-new-estimate>+ New estimate</button></div>
-    </div>
-    <div class="document-kpis">
-      <article><span>Total estimates</span><strong id="estimateModuleCount">0</strong></article>
-      <article><span>Estimated value</span><strong id="estimateModuleValue">$0.00</strong></article>
-      <article><span>Accepted</span><strong id="estimateModuleAccepted">0</strong></article>
-    </div>
-    <section class="panel module-list-panel">
-      <div id="estimatesList" class="saved-list"><p class="empty">No estimates yet.</p></div>
-    </section>
-  </section>
-
-  <section class="workspace-module" data-workspace-module="invoices">
-    <div class="module-page-head">
-      <div><p class="kicker">DOCUMENTS</p><h1>Invoices</h1><p>Keep billing documents separate from estimates so collection work stays easy to find.</p><div class="document-switcher"><button type="button" data-workspace-view="estimates">Estimates</button><button class="active" type="button" data-workspace-view="invoices">Invoices</button></div></div>
-      <div class="module-page-actions"><button class="btn btn-gold" type="button" data-new-invoice>+ New invoice</button></div>
-    </div>
-    <div class="document-kpis">
-      <article><span>Total invoices</span><strong id="invoiceModuleCount">0</strong></article>
-      <article><span>Invoiced value</span><strong id="invoiceModuleValue">$0.00</strong></article>
-      <article><span>From estimates</span><strong id="invoiceConvertedCount">0</strong></article>
-    </div>
-    <section class="panel module-list-panel">
-      <div id="invoicesList" class="saved-list"><p class="empty">No invoices yet.</p></div>
-    </section>
-  </section>
-
-  <section class="workspace-module" data-workspace-module="partner">
-      <section id="partnerCenter" class="partner-center panel">
+  <section class="workspace-module documents-partner-workspace" data-workspace-module="documents">
+    <section id="partnerCenter" class="partner-center panel">
     <div class="partner-center-head">
       <div>
         <p class="kicker">PRISTINE PARTNER NETWORK</p>
@@ -278,7 +247,46 @@
     </div>
   </section>
 
+    <section class="documents-workspace">
+      <div class="module-page-head documents-main-head">
+        <div>
+          <p class="kicker">DOCUMENTS</p>
+          <h1>Documents</h1>
+          <p>Manage estimates and invoices from the same Partner workspace.</p>
+          <div class="document-switcher">
+            <button class="active" type="button" data-documents-subview="estimates">Estimates</button>
+            <button type="button" data-documents-subview="invoices">Invoices</button>
+          </div>
+        </div>
+        <div class="module-page-actions">
+          <button id="clearDocsBtn" class="btn btn-secondary" type="button">Refresh</button>
+          <button class="btn btn-gold" type="button" data-new-estimate>+ New estimate</button>
+          <button class="btn btn-secondary" type="button" data-new-invoice>+ New invoice</button>
+        </div>
+      </div>
 
+      <div class="documents-subpanel active" data-documents-panel="estimates">
+        <div class="document-kpis">
+          <article><span>Total estimates</span><strong id="estimateModuleCount">0</strong></article>
+          <article><span>Estimated value</span><strong id="estimateModuleValue">$0.00</strong></article>
+          <article><span>Accepted</span><strong id="estimateModuleAccepted">0</strong></article>
+        </div>
+        <section class="panel module-list-panel">
+          <div id="estimatesList" class="saved-list"><p class="empty">No estimates yet.</p></div>
+        </section>
+      </div>
+
+      <div class="documents-subpanel" data-documents-panel="invoices">
+        <div class="document-kpis">
+          <article><span>Total invoices</span><strong id="invoiceModuleCount">0</strong></article>
+          <article><span>Invoiced value</span><strong id="invoiceModuleValue">$0.00</strong></article>
+          <article><span>From estimates</span><strong id="invoiceConvertedCount">0</strong></article>
+        </div>
+        <section class="panel module-list-panel">
+          <div id="invoicesList" class="saved-list"><p class="empty">No invoices yet.</p></div>
+        </section>
+      </div>
+    </section>
   </section>
 
   <section class="workspace-module" data-workspace-module="materials">
@@ -364,8 +372,7 @@
 <nav class="mobile-app-nav" aria-label="Mobile workspace navigation">
   <button type="button" class="active" data-workspace-view="home"><span>⌂</span><small>Home</small></button>
   <button type="button" data-workspace-view="estimate"><span>＋</span><small>Estimate</small></button>
-  <button type="button" data-workspace-view="estimates"><span>▤</span><small>Docs</small></button>
-  <button type="button" data-workspace-view="partner"><span>◎</span><small>Partner</small></button>
+  <button type="button" data-workspace-view="documents"><span>◎</span><small>Partner</small></button>
   <button type="button" data-mobile-more><span>•••</span><small>More</small></button>
 </nav>
 
@@ -604,6 +611,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=450"></script>
+<script src="app.js?v=460"></script>
 </body>
 </html>
