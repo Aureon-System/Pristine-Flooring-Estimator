@@ -7,7 +7,7 @@ const DOC_KEY='pristine_workspace_docs_v3', BRAND_KEY='pristine_partner_brand_v3
 const SUPABASE_URL='https://lueomnmkbbrllxbnpxph.supabase.co';
 const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
-let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,currentPartnerEvents=[],currentMaterialOpportunities=[],currentMaterialQuotes=[],currentOpportunityEvents=[],currentNetworkRole=null,cloudSyncBusy=false;
+let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,currentPartnerEvents=[],currentMaterialOpportunities=[],currentMaterialQuotes=[],currentMaterialOrders=[],currentOpportunityEvents=[],currentNetworkRole=null,cloudSyncBusy=false;
 let currentWorkspaceView='home';
 let currentDocumentsSubview='estimates';
 let currentProjectGeo={lat:null,lng:null,county:'',distributor:null};
@@ -75,16 +75,20 @@ async function fetchPartnerNetworkData(promptProfile=false){
   currentMaterialOpportunities=leadsR.data||[];
   const leadIds=currentMaterialOpportunities.map(x=>x.id).filter(Boolean);
   if(leadIds.length){
-    const [quotesR,opportunityEventsR]=await Promise.all([
+    const [quotesR,ordersR,opportunityEventsR]=await Promise.all([
       sb.from('material_quotes').select('id,material_lead_id,distributor_id,status,quantity_sqft,boxes,unit_price_sqft,subtotal,freight,tax,total,eta_days,expires_at,notes,created_at,submitted_at,accepted_at,distributors(name)').in('material_lead_id',leadIds).order('created_at',{ascending:false}),
+      sb.from('material_orders').select('id,material_lead_id,quote_id,distributor_id,status,delivery_method,delivery_address,delivery_city,delivery_state,delivery_zip,quantity_sqft,boxes,total,eta_days,scheduled_for,tracking_reference,notes,created_at,updated_at,fulfilled_at').in('material_lead_id',leadIds).order('created_at',{ascending:false}),
       sb.from('opportunity_events').select('id,material_lead_id,actor_type,event_type,message,metadata,created_at').in('material_lead_id',leadIds).order('created_at',{ascending:true})
     ]);
     if(quotesR.error)console.error(quotesR.error);
+    if(ordersR.error)console.error(ordersR.error);
     if(opportunityEventsR.error)console.error(opportunityEventsR.error);
     currentMaterialQuotes=quotesR.data||[];
+    currentMaterialOrders=ordersR.data||[];
     currentOpportunityEvents=opportunityEventsR.data||[];
   }else{
     currentMaterialQuotes=[];
+    currentMaterialOrders=[];
     currentOpportunityEvents=[];
   }
   await fetchNetworkRole();
@@ -584,6 +588,11 @@ async function loadCatalogPilot(){
 }
 function selectedCatalogOffer(item){
   const offers=Array.isArray(item?.distributor_offers)?item.distributor_offers:[];
+  const routedId=currentProjectGeo?.distributor?.id||null;
+  if(routedId){
+    const routed=offers.find(o=>o?.distributors?.id===routedId);
+    if(routed)return routed;
+  }
   return offers[0]||null;
 }
 function renderCatalogPilot(){
@@ -719,6 +728,7 @@ function openMaterialOpportunityEditor(item){
   if(networkPanel){
     const quotes=currentMaterialQuotes.filter(q=>q.material_lead_id===item.id);
     const latestQuote=quotes[0]||null;
+    const order=currentMaterialOrders.find(o=>o.material_lead_id===item.id)||null;
     const events=currentOpportunityEvents.filter(e=>e.material_lead_id===item.id);
     if(item.id){
       networkPanel.classList.remove('hidden');
@@ -726,8 +736,9 @@ function openMaterialOpportunityEditor(item){
       const quoteHtml=latestQuote
         ? '<div><span>DISTRIBUTOR QUOTE</span><strong>'+money(latestQuote.total)+'</strong><small>'+esc(latestQuote.distributors?.name||'Assigned distributor')+(latestQuote.eta_days!=null?' · ETA '+latestQuote.eta_days+' days':'')+' · '+esc(networkStatusLabel(latestQuote.status))+'</small>'+quoteActions+'</div>'
         : '<div><span>DISTRIBUTOR QUOTE</span><strong>Pending</strong><small>The assigned distributor is processing this request.</small></div>';
+      const orderHtml=order?'<div><span>MATERIAL ORDER</span><strong>'+esc(networkStatusLabel(order.status))+'</strong><small>'+esc(networkStatusLabel(order.delivery_method))+(order.scheduled_for?' · '+new Date(order.scheduled_for).toLocaleString('en-US'):'')+(order.tracking_reference?' · Ref '+esc(order.tracking_reference):'')+'</small></div>':'';
       const timelineHtml=events.map(e=>'<div><b></b><p><strong>'+esc(networkStatusLabel(e.event_type))+'</strong><span>'+esc(e.message||'Network activity')+'</span><small>'+new Date(e.created_at).toLocaleString('en-US')+' · '+esc(networkStatusLabel(e.actor_type))+'</small></p></div>').join('');
-      networkPanel.innerHTML='<div class="opportunity-network-head"><div><span>SHARED NETWORK STATUS</span><strong>'+esc(networkStatusLabel(item.status))+'</strong></div>'+quoteHtml+'</div><div class="opportunity-network-timeline">'+(timelineHtml||'<p class="empty">The shared timeline will appear as the distributor processes this request.</p>')+'</div>';
+      networkPanel.innerHTML='<div class="opportunity-network-head"><div><span>SHARED NETWORK STATUS</span><strong>'+esc(networkStatusLabel(item.status))+'</strong></div>'+quoteHtml+orderHtml+'</div><div class="opportunity-network-timeline">'+(timelineHtml||'<p class="empty">The shared timeline will appear as the distributor processes this request.</p>')+'</div>';
       networkPanel.querySelectorAll('[data-quote-decision]').forEach(btn=>btn.onclick=()=>decideMaterialQuote(btn.dataset.quoteId,btn.dataset.quoteDecision,item.id));
     }else networkPanel.classList.add('hidden');
   }
@@ -1035,6 +1046,7 @@ async function geocodeProjectAddress(useCurrent=false){
     if(a.zip&&$('#projectZip'))$('#projectZip').value=a.zip;
     currentProjectGeo={lat:a.lat??null,lng:a.lng??null,county:a.county||'',distributor:d.distributor||null};
     if(status)status.textContent=(a.zip?'ZIP '+a.zip:'Location confirmed')+(a.county?' · '+a.county:'')+(d.distributor?.name?' · Routed to '+d.distributor.name:'');
+    if(catalogItems.length)renderCatalogPilot();
   }catch(err){
     if(status)status.textContent=err?.message||'Could not validate address.';
   }
