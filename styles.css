@@ -2249,3 +2249,5 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .opportunity-network-timeline>div:last-child b:after{display:none}
 .opportunity-network-timeline p{margin:0;display:grid;gap:2px}.opportunity-network-timeline strong{font-size:10px}.opportunity-network-timeline span{font-size:10px;color:#69737c}.opportunity-network-timeline small{font-size:8px;color:#929aa2}
 @media(max-width:680px){.opportunity-network-head{grid-template-columns:1fr}}
+
+.installer-quote-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.installer-quote-actions .btn{min-height:34px;padding:0 11px;font-size:9px}
