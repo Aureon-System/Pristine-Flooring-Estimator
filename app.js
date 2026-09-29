@@ -9,6 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
 let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,currentPartnerEvents=[],currentMaterialOpportunities=[],cloudSyncBusy=false;
 let currentWorkspaceView='home';
+let currentDocumentsSubview='estimates';
 let currentProjectGeo={lat:null,lng:null,county:'',distributor:null};
 function apiHeaders(json=true){const h={};if(json)h['content-type']='application/json';if(currentSession?.access_token)h.Authorization='Bearer '+currentSession.access_token;return h}
 function workspaceSuffix(){return currentSession?.user?.id?':'+currentSession.user.id:':guest'}
@@ -412,24 +413,43 @@ function customerIdentity(d){
 function saveCurrent(){const s=snapshot();if(!(s.client.name||s.client.email||s.client.phone)){alert('Add at least a client name, email or phone before saving.');return null}const docs=loadDocs();const found=docs.findIndex(d=>d.documentNo===s.documentNo&&d.type===s.type);const existing=found>=0?docs[found]:null;const record={...s,localId:existing?.localId||id('doc'),savedAt:new Date().toISOString()};if(found>=0)docs[found]=record;else docs.unshift(record);saveDocs(docs);if(currentSession?.user&&currentPartner)upsertCloudDocument(record);return record}
 function workspaceViewFromUrl(){
   const hash=location.hash.replace(/^#/,'').trim().toLowerCase();
-  const aliases={builderstart:'estimate',documents:'estimates',partnercenter:'partner',growthtools:'materials'};
+  const aliases={builderstart:'estimate',estimates:'documents',invoices:'documents',partner:'documents',partnercenter:'documents',growthtools:'materials'};
+  if(hash==='invoices')currentDocumentsSubview='invoices';
+  if(hash==='estimates'||hash==='partner'||hash==='partnercenter'||hash==='documents')currentDocumentsSubview=currentDocumentsSubview||'estimates';
   const normalized=aliases[hash]||hash;
-  const valid=['home','estimate','estimates','invoices','partner','materials'];
+  const valid=['home','estimate','documents','materials'];
   return valid.includes(normalized)?normalized:'home';
 }
+function showDocumentsSubview(view='estimates',opts={}){
+  currentDocumentsSubview=view==='invoices'?'invoices':'estimates';
+  document.querySelectorAll('[data-documents-panel]').forEach(el=>el.classList.toggle('active',el.dataset.documentsPanel===currentDocumentsSubview));
+  document.querySelectorAll('[data-documents-subview]').forEach(el=>el.classList.toggle('active',el.dataset.documentsSubview===currentDocumentsSubview));
+  if(currentWorkspaceView!=='documents')showWorkspace('documents',{...opts,documentsSubview:currentDocumentsSubview});
+  else if(opts.scroll!==false)document.querySelector('.documents-workspace')?.scrollIntoView({behavior:opts.instant?'auto':'smooth',block:'start'});
+}
 function showWorkspace(view,opts={}){
-  const valid=['home','estimate','estimates','invoices','partner','materials'];
+  if(view==='estimates'||view==='invoices'||view==='partner'){
+    if(view==='invoices')currentDocumentsSubview='invoices';
+    else if(view==='estimates')currentDocumentsSubview='estimates';
+    view='documents';
+  }
+  const valid=['home','estimate','documents','materials'];
   if(!valid.includes(view))view='home';
   currentWorkspaceView=view;
   document.querySelectorAll('[data-workspace-module]').forEach(el=>el.classList.toggle('active',el.dataset.workspaceModule===view));
   document.querySelectorAll('[data-workspace-view]').forEach(el=>el.classList.toggle('active',el.dataset.workspaceView===view));
-  document.querySelectorAll('[data-documents-nav]').forEach(el=>el.classList.toggle('active',view==='estimates'||view==='invoices'));
+  document.querySelectorAll('[data-documents-nav]').forEach(el=>el.classList.toggle('active',view==='documents'));
+  if(view==='documents'){
+    if(opts.documentsSubview)currentDocumentsSubview=opts.documentsSubview==='invoices'?'invoices':'estimates';
+    document.querySelectorAll('[data-documents-panel]').forEach(el=>el.classList.toggle('active',el.dataset.documentsPanel===currentDocumentsSubview));
+    document.querySelectorAll('[data-documents-subview]').forEach(el=>el.classList.toggle('active',el.dataset.documentsSubview===currentDocumentsSubview));
+  }
   if(view==='materials'&&currentSession?.user&&(!catalogItems.length))loadCatalogPilot();
   document.body.dataset.workspaceView=view;
   const mobileTotal=$('.mobile-total');
   if(mobileTotal)mobileTotal.classList.toggle('workspace-visible',view==='estimate');
   if(opts.updateUrl!==false){
-    try{history.replaceState({},'',location.pathname+location.search+'#'+view)}catch{}
+    try{history.replaceState({},'',location.pathname+location.search+'#'+(view==='documents'&&currentDocumentsSubview==='invoices'?'invoices':view))}catch{}
   }
   if(opts.scroll!==false)window.scrollTo({top:0,behavior:opts.instant?'auto':'smooth'});
 }
@@ -724,12 +744,17 @@ function setupWorkspaceNavigation(){
     const view=e.currentTarget.dataset.workspaceView;if(view)showWorkspace(view);
     const menu=$('#companyMenu');if(menu)menu.hidden=true;
   }));
+  document.querySelectorAll('[data-documents-subview]').forEach(btn=>btn.addEventListener('click',e=>{
+    const view=e.currentTarget.dataset.documentsSubview;showDocumentsSubview(view||'estimates');
+    const menu=$('#companyMenu');if(menu)menu.hidden=true;
+  }));
   document.querySelectorAll('[data-home-action]').forEach(btn=>btn.addEventListener('click',()=>{
     const action=btn.dataset.homeAction;
     if(action==='estimate')newEstimateWorkspace();
     else if(action==='materials'){showWorkspace('materials');currentCatalogQuoteContext=null}
-    else if(action==='partner')showWorkspace('partner');
-    else if(action==='invoices')showWorkspace('invoices');
+    else if(action==='documents')showWorkspace('documents');
+    else if(action==='partner')showWorkspace('documents');
+    else if(action==='invoices'){currentDocumentsSubview='invoices';showWorkspace('documents',{documentsSubview:'invoices'})};
   }));
   document.querySelectorAll('[data-new-estimate]').forEach(btn=>btn.addEventListener('click',newEstimateWorkspace));
   document.querySelectorAll('[data-new-invoice]').forEach(btn=>btn.addEventListener('click',newInvoiceWorkspace));
