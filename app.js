@@ -9,6 +9,7 @@ const SUPABASE_PUBLISHABLE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const sb=window.supabase?.createClient?window.supabase.createClient(SUPABASE_URL,SUPABASE_PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}}):null;
 let currentSession=null,currentPartner=null,currentPartnerProfile=null,currentReferralCode=null,currentPartnerEvents=[],currentMaterialOpportunities=[],cloudSyncBusy=false;
 let currentWorkspaceView='home';
+let currentProjectGeo={lat:null,lng:null,county:'',distributor:null};
 function apiHeaders(json=true){const h={};if(json)h['content-type']='application/json';if(currentSession?.access_token)h.Authorization='Bearer '+currentSession.access_token;return h}
 function workspaceSuffix(){return currentSession?.user?.id?':'+currentSession.user.id:':guest'}
 function workspaceKey(base){return base+workspaceSuffix()}
@@ -45,7 +46,7 @@ async function fetchPartnerNetworkData(promptProfile=false){
     sb.from('partner_profiles').select('*').eq('partner_id',currentPartner.id).maybeSingle(),
     sb.from('referral_codes').select('id,code,active,created_at').eq('partner_id',currentPartner.id).eq('active',true).maybeSingle(),
     sb.from('referral_events').select('event_type,created_at,material_lead_id,metadata').eq('partner_id',currentPartner.id).order('created_at',{ascending:false}),
-    sb.from('material_leads').select('id,opportunity_type,buyer_role,project_name,project_address,material,product_sizes,custom_size,measured_sqft,waste_pct,required_sqft,estimate_no,estimate_total,status,notes,created_at,updated_at,catalog_variant_id,product_sku,product_name,unit_price_sqft,calculated_boxes').eq('partner_id',currentPartner.id).order('created_at',{ascending:false})
+    sb.from('material_leads').select('id,opportunity_type,buyer_role,project_name,project_address,project_city,project_state,project_zip,project_lat,project_lng,assigned_distributor_id,material,product_sizes,custom_size,measured_sqft,waste_pct,required_sqft,estimate_no,estimate_total,status,notes,created_at,updated_at,catalog_variant_id,product_sku,product_name,unit_price_sqft,calculated_boxes').eq('partner_id',currentPartner.id).order('created_at',{ascending:false})
   ]);
   if(profileR.error)console.error(profileR.error);
   if(codeR.error)console.error(codeR.error);
@@ -334,7 +335,7 @@ function saveLeads(d){saveWorkspaceJSON(LEAD_KEY,d);renderSaved()}
 function defaultArea(){return{id:id('area'),description:'Floor installation',material:'Material not included',sqft:0,pattern:'Straight',dailyRate:0,dailyRateMode:'crew_total',crewSize:1,durationDays:1,crewRate:0,sellRate:6,surcharge:0,materialCost:0,materialSell:0}}
 function areaTotals(a){const sq=num(a.sqft),dailyRate=num(a.dailyRate),durationDays=num(a.durationDays),crewTotal=dailyRate*durationDays,calculatedCrewRate=sq>0&&crewTotal>0?crewTotal/sq:num(a.crewRate),surcharge=num(a.surcharge)/100,effective=num(a.sellRate)*(1+surcharge),laborSell=sq*effective,laborCost=sq*calculatedCrewRate,included=a.material!=='Material not included',materialQty=a.catalogVariantId?sq*(1+num(a.catalogWastePct??10)/100):sq,matSell=included?materialQty*num(a.materialSell):0,matCost=included?materialQty*num(a.materialCost):0;return{dailyRate,durationDays,crewTotal,crewRate:calculatedCrewRate,effective,laborSell,laborCost,materialQty,matSell,matCost,totalSell:laborSell+matSell,totalCost:laborCost+matCost}}
 function addonTotals(a){return{sell:num(a.qty)*num(a.sellRate),cost:num(a.qty)*num(a.costRate)}}
-function state(){const areaCalc=areas.map(a=>({...a,...areaTotals(a)})),addonCalc=addons.map(a=>({...a,...addonTotals(a)}));const installationSell=areaCalc.reduce((s,a)=>s+a.laborSell,0),materialSell=areaCalc.reduce((s,a)=>s+a.matSell,0),addonsSell=addonCalc.reduce((s,a)=>s+a.sell,0),durationDays=areaCalc.reduce((s,a)=>s+num(a.durationDays),0),baseSell=installationSell+materialSell+addonsSell,discount=Math.min(baseSell,num($('#discount').value)),net=baseSell-discount,taxRate=num($('#taxRate').value),tax=net*taxRate/100,total=net+tax,coreCost=areaCalc.reduce((s,a)=>s+a.totalCost,0)+addonCalc.reduce((s,a)=>s+a.cost,0),otherCosts=num($('#otherInternalCosts').value),cost=coreCost+otherCosts,contribution=net-cost,margin=net>0?contribution/net*100:0;return{client:{name:$('#clientName').value,project:$('#projectName').value,email:$('#clientEmail').value,phone:$('#clientPhone').value,address:$('#projectAddress').value},documentNo:$('#documentNo').value,issueDate:$('#issueDate').value,validThrough:$('#validThrough').value,type:$('#documentType').value,areas:areaCalc,addons:addonCalc,durationDays,discount,taxRate,tax,installationSell,materialSell,addonsSell,baseSell,net,total,coreCost,otherCosts,cost,contribution,margin,clientNotes:$('#clientNotes').value,terms:$('#terms').value,brand:loadBrand()}}
+function state(){const areaCalc=areas.map(a=>({...a,...areaTotals(a)})),addonCalc=addons.map(a=>({...a,...addonTotals(a)}));const installationSell=areaCalc.reduce((s,a)=>s+a.laborSell,0),materialSell=areaCalc.reduce((s,a)=>s+a.matSell,0),addonsSell=addonCalc.reduce((s,a)=>s+a.sell,0),durationDays=areaCalc.reduce((s,a)=>s+num(a.durationDays),0),baseSell=installationSell+materialSell+addonsSell,discount=Math.min(baseSell,num($('#discount').value)),net=baseSell-discount,taxRate=num($('#taxRate').value),tax=net*taxRate/100,total=net+tax,coreCost=areaCalc.reduce((s,a)=>s+a.totalCost,0)+addonCalc.reduce((s,a)=>s+a.cost,0),otherCosts=num($('#otherInternalCosts').value),cost=coreCost+otherCosts,contribution=net-cost,margin=net>0?contribution/net*100:0;return{client:{name:$('#clientName').value,project:$('#projectName').value,email:$('#clientEmail').value,phone:$('#clientPhone').value,address:$('#projectAddress').value,city:$('#projectCity')?.value||'',state:$('#projectState')?.value||'',zip:$('#projectZip')?.value||'',lat:currentProjectGeo.lat,lng:currentProjectGeo.lng,county:currentProjectGeo.county||'',distributor:currentProjectGeo.distributor||null},documentNo:$('#documentNo').value,issueDate:$('#issueDate').value,validThrough:$('#validThrough').value,type:$('#documentType').value,areas:areaCalc,addons:addonCalc,durationDays,discount,taxRate,tax,installationSell,materialSell,addonsSell,baseSell,net,total,coreCost,otherCosts,cost,contribution,margin,clientNotes:$('#clientNotes').value,terms:$('#terms').value,brand:loadBrand()}}
 function syncAreaCard(el,a){const t=areaTotals(a);const crewTotal=el.querySelector('[data-derived="crewTotal"]'),crewRate=el.querySelector('[data-derived="crewRate"]'),effective=el.querySelector('[data-derived="effective"]'),meta=el.querySelector('[data-derived="meta"]'),total=el.querySelector('[data-derived="total"]');if(crewTotal)crewTotal.value=money(t.crewTotal);if(crewRate)crewRate.value=money(t.crewRate)+' / sqft';if(effective)effective.value=money(t.effective)+' / sqft';if(meta)meta.textContent=Math.round(num(a.sqft)).toLocaleString()+' sqft · '+a.pattern+' · '+num(a.durationDays)+' work day'+(num(a.durationDays)===1?'':'s')+(a.material==='Material not included'?' · Material not included':'');if(total)total.textContent=money(t.totalSell);calc()}
 function renderAreas(){
   const box=$('#areas');box.innerHTML='';
@@ -395,7 +396,7 @@ function fillCatalog(){const sel=$('#addonPreset');let currentGroup=null,groupEl
 function addCatalog(idx){const c=catalog[idx];if(!c)return;addons.push({id:id('add'),name:c[1],unit:c[2],qty:1,costRate:c[3],sellRate:c[4]});renderAddons()}
 function renderAddons(){const box=$('#addons');box.innerHTML='';addons.forEach(a=>{const row=document.createElement('div');row.className='addon-row';row.innerHTML=`<label>Service<input data-k="name" value="${esc(a.name)}"></label><label>Qty<input data-k="qty" type="number" min="0" step="0.01" value="${a.qty}"></label><label>Unit<select data-k="unit">${['sqft','lf','each','room','flat'].map(u=>`<option ${u===a.unit?'selected':''}>${u}</option>`).join('')}</select></label><label>Cost rate <span class="internal-tag">INTERNAL</span><input data-k="costRate" type="number" min="0" step="0.01" value="${a.costRate}"></label><label>Sell rate<input data-k="sellRate" type="number" min="0" step="0.01" value="${a.sellRate}"></label><button class="remove-btn" type="button" aria-label="Remove">×</button>`;row.querySelectorAll('[data-k]').forEach(inp=>{const ev=inp.tagName==='SELECT'?'change':'input';inp.addEventListener(ev,()=>{a[inp.dataset.k]=['qty','costRate','sellRate'].includes(inp.dataset.k)?num(inp.value):inp.value;calc()})});row.querySelector('.remove-btn').onclick=()=>{addons=addons.filter(x=>x.id!==a.id);renderAddons()};box.append(row)});calc()}
 function calc(){const s=state();$('#summaryType').textContent=s.type==='INVOICE'?'Invoice':'Estimate';$('#grandTotal').textContent=money(s.total);$('#mobileTotal').textContent=money(s.total);$('#installationSell').textContent=money(s.installationSell);$('#materialSell').textContent=s.materialSell>0?money(s.materialSell):'Not included';$('#addonsSell').textContent=money(s.addonsSell);const durationView=$('#durationView');if(durationView)durationView.textContent=s.durationDays+' work day'+(s.durationDays===1?'':'s');$('#discountView').textContent='− '+money(s.discount);$('#taxView').textContent=money(s.tax);$('#internalCosts').textContent=money(s.coreCost);$('#otherCostsView').textContent=money(s.otherCosts);$('#contribution').textContent=money(s.contribution);$('#marginPct').textContent=s.margin.toFixed(1)+'%';$('#contribution').style.color=s.contribution<0?'#a33b3b':'#187552';$('#downloadBtn').textContent=`Download ${s.type==='INVOICE'?'invoice':'estimate'} PDF`;const emailMain=$('#sendDocEmailBtn');if(emailMain)emailMain.textContent=`PRO · Email ${s.type==='INVOICE'?'invoice':'estimate'}`;$('#convertBtn').style.display=s.type==='INVOICE'?'none':'flex'}
-function resetDoc(){areas=[defaultArea()];addons=[];$('#clientName').value='';$('#projectName').value='';$('#clientEmail').value='';$('#clientPhone').value='';$('#projectAddress').value='';$('#documentType').value='ESTIMATE';$('#documentNo').value='EST-'+Math.random().toString(36).slice(2,9).toUpperCase();$('#issueDate').value=today();$('#validThrough').value=addDays(today(),30);$('#discount').value=0;$('#taxRate').value=0;$('#otherInternalCosts').value=0;$('#clientNotes').value='';renderAreas();renderAddons();calc()}
+function resetDoc(){areas=[defaultArea()];addons=[];$('#clientName').value='';$('#projectName').value='';$('#clientEmail').value='';$('#clientPhone').value='';$('#projectAddress').value='';if($('#projectCity'))$('#projectCity').value='';if($('#projectState'))$('#projectState').value='';if($('#projectZip'))$('#projectZip').value='';currentProjectGeo={lat:null,lng:null,county:'',distributor:null};const geoStatus=$('#projectGeoStatus');if(geoStatus)geoStatus.textContent='ZIP will help route material delivery.';$('#documentType').value='ESTIMATE';$('#documentNo').value='EST-'+Math.random().toString(36).slice(2,9).toUpperCase();$('#issueDate').value=today();$('#validThrough').value=addDays(today(),30);$('#discount').value=0;$('#taxRate').value=0;$('#otherInternalCosts').value=0;$('#clientNotes').value='';renderAreas();renderAddons();calc()}
 function snapshot(){return JSON.parse(JSON.stringify(state()))}
 function customerIdentity(d){
   const c=d?.client||{};
@@ -488,6 +489,13 @@ function normalizeMaterialOpportunity(x){
     type:x.opportunity_type||x.opportunityType||'quote_for_me',
     buyer:x.buyer_role||x.buyerRole||'unknown',
     project:x.project_name||x.project||'Untitled project',
+    address:x.project_address||x.address||'',
+    city:x.project_city||x.city||'',
+    state:x.project_state||x.state||'',
+    zip:x.project_zip||x.zip||'',
+    lat:x.project_lat??x.lat??null,
+    lng:x.project_lng??x.lng??null,
+    assignedDistributorId:x.assigned_distributor_id||x.assignedDistributorId||null,
     material:x.material||'Material',
     sizes:Array.isArray(x.product_sizes)?x.product_sizes:(Array.isArray(x.productSizes)?x.productSizes:[]),
     customSize:x.custom_size||x.customSize||'',
@@ -511,7 +519,7 @@ async function loadCatalogPilot(){
   if(!sb||!currentSession?.user)return;
   const box=$('#catalogProductGrid');if(box)box.innerHTML='<p class="empty">Loading pilot catalog...</p>';
   const {data,error}=await sb.from('catalog_variants')
-    .select('id,sku,name,size,material_type,finish,edges,sqft_per_box,boxes_per_pallet,catalog_products(collection,category),distributor_offers(full_pallet_price_sqft,cut_order_price_sqft,effective_date,distributors(name))')
+    .select('id,sku,name,size,material_type,finish,edges,sqft_per_box,boxes_per_pallet,catalog_products(collection,category),distributor_offers(price_sqft,effective_date,distributors(id,name))')
     .eq('active',true)
     .order('name');
   if(error){if(box)box.innerHTML='<p class="empty">'+esc(error.message)+'</p>';return}
@@ -534,12 +542,12 @@ function renderCatalogPilot(){
   list.forEach(item=>{
     const offer=selectedCatalogOffer(item),el=document.createElement('article');
     el.className='catalog-product-card'+(selectedCatalogVariant?.id===item.id?' selected':'');
-    const pallet=offer?.full_pallet_price_sqft!=null?money(offer.full_pallet_price_sqft)+'/sqft':'—';
-    const cut=offer?.cut_order_price_sqft!=null?money(offer.cut_order_price_sqft)+'/sqft':'—';
+    const distributorName=offer?.distributors?.name||'Distributor not assigned';
+    const price=offer?.price_sqft!=null?money(offer.price_sqft)+'/sqft':'Set price';
     el.innerHTML='<div class="catalog-card-head"><div><span class="catalog-collection">'+esc(item.catalog_products?.collection||'Catalog')+'</span><strong>'+esc(item.name)+'</strong></div><span class="catalog-sku">SKU '+esc(item.sku)+'</span></div>'+
       '<div class="catalog-tags"><span>'+esc(item.size||'')+'</span><span>'+esc(item.finish||'')+'</span><span>'+esc(item.edges||'')+'</span><span>'+esc(String(item.sqft_per_box||0))+' sqft/box</span></div>'+
-      '<div class="catalog-price-grid"><div><span>Full pallet</span><strong>'+pallet+'</strong></div><div><span>Cut order</span><strong>'+cut+'</strong></div></div>';
-    el.onclick=()=>{selectedCatalogVariant=item;const p=$('#catalogPriceSqft');if(p)p.value=String(num(selectedCatalogOffer(item)?.cut_order_price_sqft||0));renderCatalogPilot();updateCatalogCalculation()};
+      '<div class="catalog-price-grid single"><div><span>'+esc(distributorName)+'</span><strong>'+price+'</strong><small>Distributor price</small></div></div>';
+    el.onclick=()=>{selectedCatalogVariant=item;const p=$('#catalogPriceSqft');if(p)p.value=String(num(selectedCatalogOffer(item)?.price_sqft||0));renderCatalogPilot();updateCatalogCalculation()};
     box.append(el);
   });
 }
@@ -553,8 +561,8 @@ function updateCatalogCalculation(){
   const boxes=sqftBox?Math.ceil(required/sqftBox):0;
   const offer=selectedCatalogOffer(selectedCatalogVariant);
   const priceInput=$('#catalogPriceSqft');
-  if(priceInput&&document.activeElement!==priceInput&&num(priceInput.value)===0)priceInput.value=String(num(offer?.cut_order_price_sqft||0));
-  const price=Math.max(0,num(priceInput?.value||offer?.cut_order_price_sqft||0));
+  if(priceInput&&document.activeElement!==priceInput&&num(priceInput.value)===0)priceInput.value=String(num(offer?.price_sqft||0));
+  const price=Math.max(0,num(priceInput?.value||offer?.price_sqft||0));
   const set=(id,v)=>{const el=$('#'+id);if(el)el.textContent=v};
   set('catalogSelectedName',selectedCatalogVariant.name);
   set('catalogSelectedMeta',(selectedCatalogVariant.catalog_products?.collection||'')+' · SKU '+selectedCatalogVariant.sku+' · '+selectedCatalogVariant.size+' · '+(selectedCatalogVariant.finish||'')+' · '+sqftBox+' sqft/box');
@@ -581,7 +589,7 @@ function useCatalogProductInEstimate(){
   if(!selectedCatalogVariant||!catalogTargetAreaId)return;
   const area=areas.find(x=>x.id===catalogTargetAreaId);if(!area)return;
   const offer=selectedCatalogOffer(selectedCatalogVariant);
-  const dealer=num(offer?.cut_order_price_sqft||0);
+  const dealer=num(offer?.price_sqft||0);
   const sell=num($('#catalogPriceSqft')?.value||dealer);
   area.catalogVariantId=selectedCatalogVariant.id;
   area.catalogSku=selectedCatalogVariant.sku;
@@ -607,7 +615,7 @@ function requestCatalogQuote(){
   const waste=Math.max(0,num($('#catalogWastePct')?.value||10));
   if(area<=0){alert('Enter the project sqft first.');return}
   const offer=selectedCatalogOffer(selectedCatalogVariant);
-  const price=num($('#catalogPriceSqft')?.value||offer?.cut_order_price_sqft||0);
+  const price=num($('#catalogPriceSqft')?.value||offer?.price_sqft||0);
   const required=Math.ceil(area*(1+waste/100));
   const boxes=num(selectedCatalogVariant.sqft_per_box)>0?Math.ceil(required/num(selectedCatalogVariant.sqft_per_box)):0;
   currentCatalogQuoteContext={variantId:selectedCatalogVariant.id,sku:selectedCatalogVariant.sku,name:selectedCatalogVariant.name,unitPrice:price,boxes,size:selectedCatalogVariant.size,finish:selectedCatalogVariant.finish};
@@ -754,6 +762,11 @@ function loadSavedDocument(d,scroll=true){
   $('#clientEmail').value=c.email||'';
   $('#clientPhone').value=c.phone||'';
   $('#projectAddress').value=c.address||'';
+  if($('#projectCity'))$('#projectCity').value=c.city||'';
+  if($('#projectState'))$('#projectState').value=c.state||'';
+  if($('#projectZip'))$('#projectZip').value=c.zip||'';
+  currentProjectGeo={lat:c.lat??null,lng:c.lng??null,county:c.county||'',distributor:c.distributor||null};
+  const geoStatus=$('#projectGeoStatus');if(geoStatus)geoStatus.textContent=c.zip?('ZIP '+c.zip+(c.county?' · '+c.county:'')+(c.distributor?.name?' · '+c.distributor.name:'')):'ZIP will help route material delivery.';
   $('#documentType').value=d.type==='INVOICE'?'INVOICE':'ESTIMATE';
   $('#documentNo').value=d.documentNo||'';
   $('#issueDate').value=d.issueDate||today();
@@ -909,6 +922,32 @@ function renderMaterialSizeOptions(preserve=true){
     : '<p class="size-empty">No standard presets for this material. Use Custom size below.</p>';
 }
 
+async function geocodeProjectAddress(useCurrent=false){
+  const status=$('#projectGeoStatus');
+  if(status)status.textContent=useCurrent?'Locating project...':'Validating address...';
+  try{
+    let payload={street:$('#projectAddress')?.value.trim()||'',city:$('#projectCity')?.value.trim()||'',state:($('#projectState')?.value||'').trim().toUpperCase(),zip:$('#projectZip')?.value.trim()||''};
+    if(useCurrent){
+      const pos=await new Promise((resolve,reject)=>{
+        if(!navigator.geolocation)return reject(new Error('Location is not available on this device.'));
+        navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+      });
+      payload={lat:pos.coords.latitude,lng:pos.coords.longitude};
+    }
+    const res=await fetch(PRISTINE_API+'?action=geocode-project',{method:'POST',headers:apiHeaders(),body:JSON.stringify(payload)});
+    const d=await res.json();
+    if(!res.ok||!d.ok)throw new Error(d.error||'Address could not be validated');
+    const a=d.address||{};
+    if(a.street&&$('#projectAddress'))$('#projectAddress').value=a.street;
+    if(a.city&&$('#projectCity'))$('#projectCity').value=a.city;
+    if(a.state&&$('#projectState'))$('#projectState').value=a.state;
+    if(a.zip&&$('#projectZip'))$('#projectZip').value=a.zip;
+    currentProjectGeo={lat:a.lat??null,lng:a.lng??null,county:a.county||'',distributor:d.distributor||null};
+    if(status)status.textContent=(a.zip?'ZIP '+a.zip:'Location confirmed')+(a.county?' · '+a.county:'')+(d.distributor?.name?' · Routed to '+d.distributor.name:'');
+  }catch(err){
+    if(status)status.textContent=err?.message||'Could not validate address.';
+  }
+}
 function openMaterialQuote(){
   const s=state(),sel=$('#quoteMaterial');
   if(sel){sel.innerHTML=materials.filter(m=>m!=='Material not included').map(m=>'<option>'+esc(m)+'</option>').join('');const preferred=s.areas.find(a=>a.material&&a.material!=='Material not included')?.material;if(preferred)sel.value=preferred}
@@ -917,6 +956,10 @@ function openMaterialQuote(){
   const first=document.querySelector('input[name="materialOpportunityType"][value="quote_for_me"]');if(first)first.checked=true;
   $('#quoteProject').value=s.client.project||'';
   $('#quoteAddress').value=s.client.address||'';
+  if($('#quoteCity'))$('#quoteCity').value=s.client.city||'';
+  if($('#quoteState'))$('#quoteState').value=s.client.state||'';
+  if($('#quoteZip'))$('#quoteZip').value=s.client.zip||'';
+  const qgs=$('#quoteGeoStatus');if(qgs)qgs.textContent=s.client.zip?('ZIP '+s.client.zip+(s.client.distributor?.name?' · '+s.client.distributor.name:'')):'Delivery territory follows the project ZIP.';
   $('#quoteWaste').value=10;
   const sqftInput=$('#quoteMeasuredSqftInput');if(sqftInput)sqftInput.value=String(Math.round(estimateAreaSqft()));
   $('#quoteNotes').value='';
@@ -937,6 +980,12 @@ function materialLeadPayload(){
     email:$('#quoteEmail').value.trim(),
     project:$('#quoteProject').value.trim(),
     address:$('#quoteAddress').value.trim(),
+    city:$('#quoteCity')?.value.trim()||'',
+    state:($('#quoteState')?.value||'').trim().toUpperCase(),
+    zip:$('#quoteZip')?.value.trim()||'',
+    lat:currentProjectGeo.lat,
+    lng:currentProjectGeo.lng,
+    assignedDistributorId:currentProjectGeo.distributor?.id||null,
     material:$('#quoteMaterial').value,
     productSizes:selectedMaterialSizes(),
     customSize:$('#quoteCustomSize').value.trim(),
@@ -965,7 +1014,7 @@ async function sendMaterialQuote(){
   try{
     const cloudPayload={
       company:payload.company,name:payload.company,phone:payload.phone,email:payload.email,
-      project:payload.project,address:payload.address,material:payload.material,
+      project:payload.project,address:payload.address,city:payload.city,state:payload.state,zip:payload.zip,lat:payload.lat,lng:payload.lng,assigned_distributor_id:payload.assignedDistributorId,material:payload.material,
       product_sizes:payload.productSizes,custom_size:payload.customSize,
       catalog_variant_id:payload.catalogVariantId,product_sku:payload.productSku,product_name:payload.productName,
       unit_price_sqft:payload.unitPriceSqft,calculated_boxes:payload.calculatedBoxes,
@@ -1193,6 +1242,9 @@ async function activateProFromCheckout(){
   }
 }
 async function init(){fillCatalog();resetDoc();renderSaved();renderBrandStatus();setupWorkspaceNavigation();['discount','taxRate','otherInternalCosts','documentType'].forEach(id=>$('#'+id).addEventListener('input',calc));$('#addAreaBtn').onclick=()=>{areas.push(defaultArea());renderAreas()};$('#addPresetBtn').onclick=()=>{if($('#addonPreset').value!=='')addCatalog(Number($('#addonPreset').value))};$('#addCustomAddonBtn').onclick=()=>{addons.push({id:id('add'),name:'Custom work',unit:'flat',qty:1,costRate:0,sellRate:0});renderAddons()};$('#newDocBtn').onclick=()=>{if(confirm('Start a new estimate? Unsaved changes will be cleared.'))newEstimateWorkspace()};$('#saveBtn').onclick=()=>{if(saveCurrent())alert('Document saved to your company workspace.')};$('#previewBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,false)};$('#downloadBtn').onclick=()=>{const s=currentForDocument();if(s)previewDocument(s,true)};$('#convertBtn').onclick=convertToInvoice;$('#clearDocsBtn').onclick=async()=>{const btn=$('#clearDocsBtn');if(btn){btn.disabled=true;btn.textContent='Refreshing...'}await syncCloudDocuments(true);if(btn){btn.disabled=false;btn.textContent='Refresh workspace'}};const brandBtn=$('#brandBtn');if(brandBtn)brandBtn.onclick=openBrand;const brandCard=$('#brandCardBtn');if(brandCard)brandCard.onclick=openBrand;const navBrand=$('#navBrandBtn');if(navBrand)navBrand.onclick=openBrand;$('#saveBrandBtn').addEventListener('click',saveBrandFromDialog);
+  const validateAddress=$('#validateProjectAddressBtn');if(validateAddress)validateAddress.onclick=()=>geocodeProjectAddress(false);
+  const useLocation=$('#useProjectLocationBtn');if(useLocation)useLocation.onclick=()=>geocodeProjectAddress(true);
+  ['projectAddress','projectCity','projectState','projectZip'].forEach(id=>{const el=$('#'+id);if(el)el.addEventListener('input',()=>{currentProjectGeo={lat:null,lng:null,county:'',distributor:null};const gs=$('#projectGeoStatus');if(gs)gs.textContent='Address changed · validate to refresh ZIP and delivery territory.'})});
   const accountBtn=$('#accountBtn');if(accountBtn)accountBtn.onclick=openAccountDialog;
   const accountStatusBtn=$('#accountStatusBtn');if(accountStatusBtn)accountStatusBtn.onclick=openAccountDialog;
   const closeAccount=$('#closeAccountDialog');if(closeAccount)closeAccount.onclick=()=>$('#accountDialog').close();
