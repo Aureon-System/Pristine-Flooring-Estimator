@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pristine Dev Control Center</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin.css?v=2">
+  <link rel="stylesheet" href="admin.css?v=3">
 </head>
 <body>
   <aside class="admin-sidebar">
@@ -16,11 +16,11 @@
       <button class="nav-item active" data-tab="overview">Overview</button>
       <button class="nav-item" data-tab="subscriptions">Subscriptions</button>
       <button class="nav-item" data-tab="costs">Costs</button>
-      <button class="nav-item" data-tab="ai">AI & Automation</button>
+      <button class="nav-item" data-tab="ai">AI & Automation</button>\n      <button class="nav-item" data-tab="network">Partner Network</button>
       <button class="nav-item" data-tab="system">System Health</button>
     </nav>
     <div class="sidebar-bottom">
-      <a href="calculator.html">← Estimator</a>
+      <a href="calculator.html">← Installer Workspace</a>\n      <a href="distributor.html">Distributor Workspace</a>
       <button id="adminSignOut" type="button">Sign out</button>
     </div>
   </aside>
@@ -153,6 +153,60 @@
         </article>
       </section>
 
+
+      <section class="tab-panel" data-panel="network">
+        <div class="metric-grid network-metrics">
+          <article><span>Material opportunities</span><strong id="networkOpportunities">0</strong><small>Installer demand in network</small></article>
+          <article><span>Distributor action</span><strong id="networkDistributorReview">0</strong><small>New / review / quote ready</small></article>
+          <article><span>Awaiting industry</span><strong id="networkAwaitingIndustry">0</strong><small>Supply confirmation required</small></article>
+          <article><span>Quoted value</span><strong id="networkQuoteValue">$0</strong><small>Submitted + accepted quotes</small></article>
+        </div>
+
+        <div class="split-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">NETWORK ACCESS</p><h2>Distributor team access</h2><p>Link an existing Pristine account to a distributor workspace.</p></div><a class="btn secondary" href="distributor.html" target="_blank" rel="noopener">Open Distributor UI</a></div>
+            <div class="form-grid">
+              <label>Distributor<select id="networkDistributorSelect"></select></label>
+              <label>Pristine account email<input id="networkMemberEmail" type="email" placeholder="user@distributor.com"></label>
+              <label>Role<select id="networkMemberRole"><option value="owner">Owner</option><option value="manager">Manager</option><option value="sales" selected>Sales</option><option value="warehouse">Warehouse</option></select></label>
+            </div>
+            <button id="addDistributorMemberBtn" class="btn gold" type="button">Add distributor access</button>
+            <p id="networkMemberMessage" class="form-message"></p>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">CONNECTED ROLES</p><h2>Three integrated workspaces</h2></div></div>
+            <div class="network-role-flow">
+              <div><strong>Installer</strong><span>Estimate → Material Request</span></div>
+              <b>→</b>
+              <div><strong>Distributor</strong><span>Inventory → Quote / Supply Request</span></div>
+              <b>→</b>
+              <div><strong>Admin / Industry</strong><span>Availability → Cost → ETA</span></div>
+            </div>
+          </article>
+        </div>
+
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">DISTRIBUTOR → INDUSTRY</p><h2>Open supply requests</h2><p>Confirm manufacturer availability so the distributor can finish the installer quote.</p></div><span id="networkOpenSupply">0 open</span></div>
+          <div class="table-wrap"><table><thead><tr><th>Distributor</th><th>SKU</th><th>Requested</th><th>Status</th><th>Available sqft</th><th>Cost / sqft</th><th>ETA days</th><th>Response</th><th></th></tr></thead><tbody id="networkSupplyRows"></tbody></table></div>
+        </article>
+
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">INSTALLER → DISTRIBUTOR → INDUSTRY</p><h2>Network opportunities</h2><p>One transaction shared across all three interfaces.</p></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Created</th><th>Installer</th><th>Project</th><th>Product</th><th>Required</th><th>Distributor</th><th>Status</th></tr></thead><tbody id="networkOpportunityRows"></tbody></table></div>
+        </article>
+
+        <div class="split-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">DISTRIBUTORS</p><h2>Network distributors</h2></div></div>
+            <div id="networkDistributorCards" class="network-cards"></div>
+          </article>
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">MEMBERS</p><h2>Authorized distributor users</h2></div></div>
+            <div class="table-wrap"><table><thead><tr><th>Distributor</th><th>Role</th><th>Status</th></tr></thead><tbody id="networkMemberRows"></tbody></table></div>
+          </article>
+        </div>
+      </section>
+
       <section class="tab-panel" data-panel="system">
         <div class="feature-grid health-grid">
           <article><span>AUTH</span><h3>Supabase Auth</h3><p>Company accounts, session persistence and tenant ownership.</p><strong class="health-ok">Active</strong></article>
@@ -174,6 +228,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=2"></script>
+  <script src="admin.js?v=3"></script>
 </body>
 </html>
