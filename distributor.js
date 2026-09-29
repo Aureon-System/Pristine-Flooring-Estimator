@@ -7,6 +7,7 @@ const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0));
 const date=v=>v?new Date(v).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'—';
 let session=null,data=null,currentLead=null;
+const requestedDistributorId=new URLSearchParams(location.search).get('distributor_id')||'';
 
 async function api(action,opts={}){
   const r=await fetch(API+'?action='+encodeURIComponent(action)+(opts.query||''),{method:opts.method||'GET',headers:{Authorization:'Bearer '+session.access_token,'Content-Type':'application/json'},body:opts.body?JSON.stringify(opts.body):undefined});
@@ -17,7 +18,7 @@ function activateTab(name){document.querySelectorAll('.tab').forEach(x=>x.classL
 document.querySelectorAll('.tab').forEach(x=>x.onclick=()=>activateTab(x.dataset.tab));
 
 async function load(){
-  const d=await api('distributor-dashboard');
+  const d=await api('distributor-dashboard',{query:requestedDistributorId?'&distributor_id='+encodeURIComponent(requestedDistributorId):''});
   data=d;
   $('#distributorName').textContent=d.distributor?.name||'Distributor Workspace';
   $('#accessGate').classList.add('hidden');$('#distApp').classList.remove('hidden');
