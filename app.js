@@ -63,7 +63,7 @@ async function fetchPartnerNetworkData(promptProfile=false){
     sb.from('partner_profiles').select('*').eq('partner_id',currentPartner.id).maybeSingle(),
     sb.from('referral_codes').select('id,code,active,created_at').eq('partner_id',currentPartner.id).eq('active',true).maybeSingle(),
     sb.from('referral_events').select('event_type,created_at,material_lead_id,metadata').eq('partner_id',currentPartner.id).order('created_at',{ascending:false}),
-    sb.from('material_leads').select('id,opportunity_type,buyer_role,project_name,project_address,project_city,project_state,project_zip,project_lat,project_lng,assigned_distributor_id,material,product_sizes,custom_size,measured_sqft,waste_pct,required_sqft,estimate_no,estimate_total,status,notes,created_at,updated_at,catalog_variant_id,product_sku,product_name,unit_price_sqft,calculated_boxes').eq('partner_id',currentPartner.id).order('created_at',{ascending:false})
+    sb.from('material_leads').select('id,opportunity_type,buyer_role,project_name,project_address,project_city,project_state,project_county,project_zip,project_lat,project_lng,assigned_distributor_id,material,product_sizes,custom_size,measured_sqft,waste_pct,required_sqft,estimate_no,estimate_total,status,notes,created_at,updated_at,catalog_variant_id,product_sku,product_name,unit_price_sqft,calculated_boxes').eq('partner_id',currentPartner.id).order('created_at',{ascending:false})
   ]);
   if(profileR.error)console.error(profileR.error);
   if(codeR.error)console.error(codeR.error);
@@ -543,6 +543,7 @@ function normalizeMaterialOpportunity(x){
     address:x.project_address||x.address||'',
     city:x.project_city||x.city||'',
     state:x.project_state||x.state||'',
+    county:x.project_county||x.county||'',
     zip:x.project_zip||x.zip||'',
     lat:x.project_lat??x.lat??null,
     lng:x.project_lng??x.lng??null,
@@ -1057,6 +1058,7 @@ function materialLeadPayload(){
     city:$('#quoteCity')?.value.trim()||'',
     state:($('#quoteState')?.value||'').trim().toUpperCase(),
     zip:$('#quoteZip')?.value.trim()||'',
+    county:currentProjectGeo.county||'',
     lat:currentProjectGeo.lat,
     lng:currentProjectGeo.lng,
     assignedDistributorId:currentProjectGeo.distributor?.id||null,
@@ -1088,7 +1090,7 @@ async function sendMaterialQuote(){
   try{
     const cloudPayload={
       company:payload.company,name:payload.company,phone:payload.phone,email:payload.email,
-      project:payload.project,address:payload.address,city:payload.city,state:payload.state,zip:payload.zip,lat:payload.lat,lng:payload.lng,assigned_distributor_id:payload.assignedDistributorId,material:payload.material,
+      project:payload.project,address:payload.address,city:payload.city,state:payload.state,county:payload.county,zip:payload.zip,lat:payload.lat,lng:payload.lng,assigned_distributor_id:payload.assignedDistributorId,material:payload.material,
       product_sizes:payload.productSizes,custom_size:payload.customSize,
       catalog_variant_id:payload.catalogVariantId,product_sku:payload.productSku,product_name:payload.productName,
       unit_price_sqft:payload.unitPriceSqft,calculated_boxes:payload.calculatedBoxes,
