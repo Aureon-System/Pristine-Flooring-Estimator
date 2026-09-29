@@ -623,6 +623,69 @@ function requestCatalogQuote(){
     refreshQuoteMetrics();
   },80);
 }
+function openMaterialOpportunityEditor(item){
+  currentEditingMaterialOpportunity=item;
+  const dlg=$('#materialOpportunityEditDialog');if(!dlg)return;
+  const set=(id,v)=>{const el=$('#'+id);if(el)el.value=v??''};
+  set('editOpportunityProject',item.project);
+  set('editOpportunityStatus',item.status||'new');
+  set('editOpportunityMeasured',Math.round(item.measured||0));
+  set('editOpportunityWaste',num(item.waste??0));
+  set('editOpportunityRequired',Math.round(item.required||0));
+  set('editOpportunityPrice',num(item.unitPrice||0));
+  set('editOpportunitySku',item.productSku||'');
+  set('editOpportunityProduct',item.productName||'');
+  set('editOpportunityBoxes',Math.round(item.boxes||0));
+  set('editOpportunityMaterial',[item.material,...item.sizes,item.customSize].filter(Boolean).join(' · '));
+  set('editOpportunityNotes',item.notes||'');
+  const msg=$('#editOpportunityMessage');if(msg)msg.textContent='';
+  updateOpportunityEditSummary(false);
+  dlg.showModal();
+}
+function updateOpportunityEditSummary(recalcRequired=true){
+  const measured=Math.max(0,num($('#editOpportunityMeasured')?.value||0));
+  const waste=Math.max(0,num($('#editOpportunityWaste')?.value||0));
+  if(recalcRequired){
+    const required=$('#editOpportunityRequired');if(required)required.value=String(Math.ceil(measured*(1+waste/100)));
+  }
+  const required=num($('#editOpportunityRequired')?.value||0);
+  const price=num($('#editOpportunityPrice')?.value||0);
+  const value=$('#editOpportunityValue');if(value)value.textContent=money(required*price);
+}
+async function saveMaterialOpportunityEdit(){
+  if(!currentEditingMaterialOpportunity?.id||!currentPartner)return;
+  const btn=$('#saveMaterialOpportunityEdit'),msg=$('#editOpportunityMessage');
+  if(btn){btn.disabled=true;btn.textContent='Saving...'}
+  if(msg)msg.textContent='';
+  const measured=Math.max(0,num($('#editOpportunityMeasured')?.value||0));
+  const waste=Math.max(0,num($('#editOpportunityWaste')?.value||0));
+  const required=Math.max(0,num($('#editOpportunityRequired')?.value||0));
+  const price=Math.max(0,num($('#editOpportunityPrice')?.value||0));
+  const boxes=Math.max(0,Math.round(num($('#editOpportunityBoxes')?.value||0)));
+  const row={
+    project_name:$('#editOpportunityProject')?.value.trim()||null,
+    status:$('#editOpportunityStatus')?.value||'new',
+    measured_sqft:measured,
+    waste_pct:waste,
+    required_sqft:required,
+    unit_price_sqft:price,
+    product_sku:$('#editOpportunitySku')?.value.trim()||null,
+    product_name:$('#editOpportunityProduct')?.value.trim()||null,
+    calculated_boxes:boxes,
+    notes:$('#editOpportunityNotes')?.value.trim()||null,
+    updated_at:new Date().toISOString()
+  };
+  const {error}=await sb.from('material_leads').update(row).eq('id',currentEditingMaterialOpportunity.id).eq('partner_id',currentPartner.id);
+  if(error){
+    if(msg){msg.textContent=error.message;msg.classList.add('error')}
+  }else{
+    await fetchPartnerNetworkData(false);
+    renderSaved();
+    $('#materialOpportunityEditDialog')?.close();
+    currentEditingMaterialOpportunity=null;
+  }
+  if(btn){btn.disabled=false;btn.textContent='Save changes'}
+}
 function renderMaterialOpportunities(){
   const box=$('#materialOpportunitiesList');if(!box)return;
   const cloud=currentMaterialOpportunities.map(normalizeMaterialOpportunity);
@@ -636,9 +699,14 @@ function renderMaterialOpportunities(){
     el.className='material-opportunity-row';
     const sizes=[...x.sizes,x.customSize].filter(Boolean).join(', ')||'Size not specified';
     const typeLabel=x.type==='send_to_customer'?'Customer referral':x.type==='already_purchased'?'Already purchased':'Quote request';
+    const productLabel=x.productName||x.material;
+    const productMeta=[x.productSku?'SKU '+x.productSku:'',sizes].filter(Boolean).join(' · ');
+    const priceMeta=x.unitPrice>0?money(x.unitPrice)+'/sqft':'Price not set';
     el.innerHTML='<div><span class="material-status '+esc(x.status)+'">'+esc(String(x.status).toUpperCase())+'</span><strong>'+esc(x.project)+'</strong><small>'+esc(typeLabel)+(x.estimateNo?' · '+esc(x.estimateNo):'')+'</small></div>'+
-      '<div><span>Material</span><strong>'+esc(x.material)+'</strong><small>'+esc(sizes)+'</small></div>'+
-      '<div><span>Required</span><strong>'+Math.round(x.required).toLocaleString()+' sqft</strong><small>'+Math.round(x.measured).toLocaleString()+' measured</small></div>';
+      '<div><span>Product</span><strong>'+esc(productLabel)+'</strong><small>'+esc(productMeta)+'</small></div>'+
+      '<div><span>Required</span><strong>'+Math.round(x.required).toLocaleString()+' sqft</strong><small>'+Math.round(x.measured).toLocaleString()+' measured · '+esc(priceMeta)+(x.boxes?' · '+x.boxes+' boxes':'')+'</small></div>'+
+      '<div class="material-opportunity-actions"><button class="btn btn-secondary material-edit-btn" type="button">View / Edit</button></div>';
+    el.querySelector('.material-edit-btn').onclick=()=>openMaterialOpportunityEditor(x);
     box.append(el);
   });
 }
@@ -671,6 +739,10 @@ function setupWorkspaceNavigation(){
   const crq=$('#catalogRequestQuoteBtn');if(crq)crq.onclick=requestCatalogQuote;
   const cui=$('#catalogUseInEstimateBtn');if(cui)cui.onclick=useCatalogProductInEstimate;
   const cpp=$('#catalogPriceSqft');if(cpp)cpp.oninput=updateCatalogCalculation;
+  ['editOpportunityMeasured','editOpportunityWaste'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=()=>updateOpportunityEditSummary(true)});
+  ['editOpportunityRequired','editOpportunityPrice','editOpportunityBoxes'].forEach(id=>{const el=$('#'+id);if(el)el.oninput=()=>updateOpportunityEditSummary(false)});
+  const saveOpp=$('#saveMaterialOpportunityEdit');if(saveOpp)saveOpp.onclick=saveMaterialOpportunityEdit;
+  ['closeMaterialOpportunityEdit','cancelMaterialOpportunityEdit'].forEach(id=>{const el=$('#'+id);if(el)el.onclick=()=>$('#materialOpportunityEditDialog')?.close()});
   showWorkspace(workspaceViewFromUrl(),{updateUrl:false,scroll:false});
 }
 function loadSavedDocument(d,scroll=true){
