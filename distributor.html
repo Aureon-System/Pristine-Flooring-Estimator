@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Pristine Distributor Workspace</title>
+  <link rel="stylesheet" href="distributor.css?v=1">
+</head>
+<body>
+<header class="dist-header">
+  <a href="/" class="brand"><img src="assets/pristine-web.webp" alt="Pristine Flooring"></a>
+  <div class="workspace-title"><span>DISTRIBUTOR WORKSPACE</span><strong id="distributorName">Pristine Partner Network</strong></div>
+  <div class="header-actions"><a class="btn secondary" href="calculator.html">Installer Workspace</a><button id="signOutBtn" class="btn ghost" type="button">Sign out</button></div>
+</header>
+<main class="dist-shell">
+  <section id="accessGate" class="access-gate"><div class="gate-card"><p class="eyebrow">PRISTINE NETWORK</p><h1>Checking distributor access…</h1><p>Your Pristine account must be linked to an authorized distributor.</p></div></section>
+  <div id="distApp" class="hidden">
+    <section class="hero"><div><p class="eyebrow">MATERIAL DISTRIBUTION</p><h1>Process installer demand from request to material sale.</h1><p>Review incoming opportunities, verify inventory, request manufacturer supply when needed and return a quote to the installer.</p></div><button id="refreshBtn" class="btn dark" type="button">Refresh network</button></section>
+    <section class="metric-grid">
+      <article><span>Open requests</span><strong id="metricOpen">0</strong><small>Needs distributor action</small></article>
+      <article><span>Awaiting industry</span><strong id="metricIndustry">0</strong><small>Supply confirmation pending</small></article>
+      <article><span>Quotes submitted</span><strong id="metricQuoted">0</strong><small>Returned to installers</small></article>
+      <article><span>Quoted value</span><strong id="metricValue">$0</strong><small>Submitted material quotes</small></article>
+    </section>
+    <nav class="workspace-tabs" aria-label="Distributor workspace sections">
+      <button class="tab active" data-tab="opportunities" type="button">Opportunities</button>
+      <button class="tab" data-tab="supply" type="button">Industry Requests</button>
+      <button class="tab" data-tab="quotes" type="button">Quotes</button>
+    </nav>
+    <section class="tab-panel active" data-panel="opportunities"><article class="panel">
+      <div class="panel-head"><div><p class="eyebrow">INSTALLER → DISTRIBUTOR</p><h2>Material opportunities</h2><p>Requests routed to your territory from Pristine installers.</p></div><select id="statusFilter"><option value="">All statuses</option><option value="new">New</option><option value="distributor_review">Distributor review</option><option value="awaiting_manufacturer">Awaiting industry</option><option value="quote_ready">Quote ready</option><option value="quoted">Quoted</option><option value="accepted">Accepted</option><option value="ordered">Ordered</option><option value="fulfilled">Fulfilled</option><option value="lost">Lost</option></select></div>
+      <div id="opportunityList" class="opportunity-list"></div>
+    </article></section>
+    <section class="tab-panel" data-panel="supply"><article class="panel">
+      <div class="panel-head"><div><p class="eyebrow">DISTRIBUTOR → INDUSTRY</p><h2>Manufacturer supply requests</h2><p>Shortages and replenishment requests connected to installer opportunities.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Created</th><th>Opportunity</th><th>SKU</th><th>Requested</th><th>Status</th><th>Industry response</th></tr></thead><tbody id="supplyRows"></tbody></table></div>
+    </article></section>
+    <section class="tab-panel" data-panel="quotes"><article class="panel">
+      <div class="panel-head"><div><p class="eyebrow">DISTRIBUTOR → INSTALLER</p><h2>Submitted quotes</h2><p>Pricing returned through the Pristine Partner Network.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>Created</th><th>Opportunity</th><th>Qty</th><th>$/sqft</th><th>Total</th><th>ETA</th><th>Status</th></tr></thead><tbody id="quoteRows"></tbody></table></div>
+    </article></section>
+  </div>
+</main>
+<div id="opportunityDrawer" class="drawer hidden" aria-hidden="true">
+  <button id="drawerBackdrop" class="drawer-backdrop" type="button" aria-label="Close"></button>
+  <aside class="drawer-panel"><div class="drawer-head"><div><p class="eyebrow">NETWORK OPPORTUNITY</p><h2 id="drawerTitle">Material request</h2><p id="drawerMeta"></p></div><button id="closeDrawerBtn" class="close-btn" type="button">×</button></div><div id="drawerBody"></div></aside>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="distributor.js?v=1"></script>
+</body>
+</html>
