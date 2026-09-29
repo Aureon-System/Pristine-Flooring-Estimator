@@ -71,7 +71,8 @@ async function fetchSummary(){
   const r=await fetch(API+'?action=admin-summary',{headers:{Authorization:'Bearer '+session.access_token}});
   const d=await r.json();
   if(!r.ok||!d.ok)throw new Error(d.error||'Admin access failed');
-  summary=d;render();$('#adminRole').textContent='Admin · '+d.role;\n  try{await fetchNetwork()}catch(e){console.error('Network workspace:',e)}
+  summary=d;render();$('#adminRole').textContent='Admin · '+d.role;
+  try{await fetchNetwork()}catch(e){console.error('Network workspace:',e)}
 }
 function render(){
   const m=summary.metrics||{};
@@ -117,7 +118,8 @@ async function saveCost(){
   if(error)return $('#costMessage').textContent=error.message;
   $('#costMessage').textContent='Cost added.';$('#costDescription').value='';$('#costAmount').value='';$('#costNotes').value='';await fetchSummary();
 }
-$('#saveCost').onclick=saveCost;$('#refreshAdmin').onclick=fetchSummary;$('#costDate').value=new Date().toISOString().slice(0,10);\n$('#addDistributorMemberBtn').onclick=addDistributorMember;
+$('#saveCost').onclick=saveCost;$('#refreshAdmin').onclick=fetchSummary;$('#costDate').value=new Date().toISOString().slice(0,10);
+$('#addDistributorMemberBtn').onclick=addDistributorMember;
 $('#adminSignOut').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
 (async()=>{
