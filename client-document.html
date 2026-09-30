@@ -26,6 +26,7 @@
 <script>
 const API='https://lueomnmkbbrllxbnpxph.supabase.co/functions/v1/pristine-api';
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const safeImageData=v=>{const s=String(v??'').trim();return /^data:image\/(?:png|jpeg|webp|gif);base64,[a-z0-9+/=\r\n]+$/i.test(s)?s:''};
 const money=n=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(n)||0);
 const params=new URLSearchParams(location.search);
 const token=params.get('token');
@@ -76,9 +77,11 @@ function render(d){
  doc=d;const p=d.payload||{},b=p.brand||{},c=p.client||{},areas=p.areas||[],addons=(p.addons||[]).filter(a=>Number(a.sell||0)>0);
  const rows=areas.map(a=>'<tr><td><strong>'+esc(a.description||'Floor installation')+'</strong><br><span class="muted">'+esc(a.material||'')+' · '+esc(a.pattern||'')+'</span></td><td>'+Math.round(Number(a.sqft||0)).toLocaleString()+' sqft</td><td>'+money(Number(a.laborSell||0)+Number(a.matSell||0))+'</td></tr>').join('')+
  addons.map(a=>'<tr><td>'+esc(a.name)+'</td><td>'+esc(a.qty)+' '+esc(a.unit)+'</td><td>'+money(a.sell)+'</td></tr>').join('');
- const logo=b.logoData?'<img src="'+b.logoData+'" alt="Company logo">':'';
+ const logoSrc=safeImageData(b.logoData);
+ const logo=logoSrc?'<span id="issuerLogoMount"></span>':'';
  const status=d.status==='accepted'?'<span class="status">Accepted ✓</span>':(d.document_type==='ESTIMATE'?(isDemo?'<button type="button" disabled title="Preview only">Accept estimate · preview</button>':'<button id="acceptBtn" type="button">Accept estimate</button>'):'');
  document.getElementById('app').innerHTML='<div class="head"><div class="issuer">'+logo+'<div><strong>'+esc(b.name||'Project Document')+'</strong><div class="muted">'+esc([b.address,b.phone,b.email,b.license].filter(Boolean).join(' · '))+'</div></div></div><div class="docmeta"><b>'+esc(d.document_type)+' '+esc(d.document_no)+'</b><span>Project document</span></div></div><div class="body"><div class="grid"><div><small>Client</small>'+esc(c.name||'-')+'<br><span class="muted">'+esc(c.email||'')+' '+esc(c.phone||'')+'</span></div><div><small>Project</small>'+esc(d.project_name||c.project||'-')+'<br><span class="muted">'+esc(d.project_address||c.address||'')+'</span></div></div><table><thead><tr><th>Scope</th><th>Quantity</th><th>Amount</th></tr></thead><tbody>'+rows+'</tbody></table><div class="totals"><div><span>Subtotal</span><b>'+money(p.baseSell||0)+'</b></div><div><span>Discount</span><b>− '+money(p.discount||0)+'</b></div>'+(Number(p.taxRate||0)>0?'<div><span>Tax</span><b>'+money(p.tax||0)+'</b></div>':'')+'<div class="grand"><span>Total</span><b>'+money(d.total)+'</b></div></div><section class="notes"><div><h3>Notes</h3><p>'+esc(p.clientNotes||'')+'</p></div><div><h3>Terms & payment</h3><p>'+esc(p.terms||'')+'</p></div></section></div><div class="accept"><div><strong>'+esc(d.document_type==='ESTIMATE'?'Estimate status':'Document status')+'</strong><div class="muted">'+esc(d.status||'')+'</div></div>'+status+'</div>';
+ if(logoSrc){const mount=document.getElementById('issuerLogoMount');if(mount){const img=document.createElement('img');img.src=logoSrc;img.alt='Company logo';mount.replaceWith(img)}}
  const btn=document.getElementById('acceptBtn');if(btn)btn.onclick=()=>{document.getElementById('acceptName').value=c.name||'';document.getElementById('acceptEmail').value=c.email||'';document.getElementById('acceptDialog').showModal()};
 }
 async function load(){
