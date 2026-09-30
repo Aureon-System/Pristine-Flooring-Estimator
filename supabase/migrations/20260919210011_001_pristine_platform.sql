@@ -1,6 +1,4 @@
 -- Pristine Flooring Estimator cloud platform
--- Apply with Supabase migrations after a dedicated project is authorized.
-
 create extension if not exists pgcrypto;
 
 create table if not exists public.partners (
@@ -126,7 +124,3 @@ using (partner_id in (select id from public.partners where owner_id = auth.uid()
 create policy "communications_partner_select" on public.communications
 for select to authenticated
 using (partner_id in (select id from public.partners where owner_id = auth.uid()));
-
--- Public inserts and public document access are intentionally NOT granted.
--- Public/guest operations should go through protected Edge Functions using
--- service-role credentials and explicit input validation/rate limiting.
