@@ -2,8 +2,12 @@
   "name": "pristine-flooring-estimator",
   "version": "3.0.0",
   "private": true,
-  "description": "Pristine Flooring Estimator - static Cloudflare Workers application",
+  "description": "Pristine Flooring Estimator - Cloudflare Workers static frontend with Supabase backend",
   "scripts": {
-    "build": "echo \"Static site - no build step required\""
+    "build": "node scripts/build-static.mjs",
+    "check:js": "node --check app.js && node --check admin.js && node --check distributor.js && node --check landing.js && node --check i18n.js && node --check locales.js && node --check billing-config.js",
+    "test": "node --test tests/*.test.mjs",
+    "ci": "npm run check:js && npm run build && npm test",
+    "smoke:production": "node scripts/smoke-production.mjs"
   }
 }

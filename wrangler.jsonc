@@ -1,10 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pristine-flooring-estimator",
-  "compatibility_date": "2026-09-19",
+  "compatibility_date": "2026-09-29",
   "assets": {
-    "directory": ".",
+    "directory": "./dist",
     "html_handling": "auto-trailing-slash",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "404-page"
   }
 }

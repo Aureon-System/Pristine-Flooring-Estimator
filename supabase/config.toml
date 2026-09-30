@@ -1,0 +1,6 @@
+# Supabase Edge Function configuration captured from the active production function.
+# pristine-api v33 currently relies on route-level authorization, webhook signature
+# validation, and service-to-service secrets inside the handler.
+
+[functions.pristine-api]
+verify_jwt = false
