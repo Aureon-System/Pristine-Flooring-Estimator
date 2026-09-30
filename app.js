@@ -27,8 +27,34 @@ async function fetchNetworkRole(){
     if(!r.ok||!d.ok)throw new Error(d.error||'Could not load workspace roles');
     currentNetworkRole=d;
     const dist=$('#distributorWorkspaceLink'),admin=$('#adminWorkspaceLink');
-    if(dist)dist.classList.toggle('hidden',!(d.distributors||[]).length);
+    const distributorMemberships=d.distributors||[];
+    if(dist)dist.classList.toggle('hidden',!distributorMemberships.length);
     if(admin)admin.classList.toggle('hidden',!d.admin);
+    const params=new URLSearchParams(location.search);
+    const distributorEstimator=params.get('workspace')==='distributor-estimator';
+    const adminPreview=params.get('workspace')==='admin-preview';
+    if(d.admin && !adminPreview && /(?:^|\/)calculator\.html$/i.test(location.pathname)){
+      location.replace('admin.html');
+      return d;
+    }
+    if(distributorMemberships.length && !d.admin && !distributorEstimator && /(?:^|\/)calculator\.html$/i.test(location.pathname)){
+      location.replace('distributor.html');
+      return d;
+    }
+    if(adminPreview && d.admin){
+      document.body.classList.add('admin-preview-mode');
+      const greeting=$('#homeGreeting');if(greeting)greeting.textContent='Installer workspace preview';
+    }
+    if(distributorEstimator && distributorMemberships.length){
+      document.body.classList.add('distributor-estimator-mode');
+      const greeting=$('#homeGreeting');if(greeting)greeting.textContent='Distributor customer estimating workspace';
+      document.querySelectorAll('[data-workspace-view="materials"],[data-home-action="materials"],[data-home-action="partner"]').forEach(el=>el.classList.add('hidden'));
+      const documentsNav=document.querySelector('[data-workspace-view="documents"]');if(documentsNav)documentsNav.textContent='Customer Documents';
+      const partnerCenter=$('#partnerCenter');if(partnerCenter)partnerCenter.classList.add('hidden');
+      const homePartner=document.querySelector('.home-partner-card');if(homePartner)homePartner.classList.add('hidden');
+      const materialDialogOption=document.querySelector('input[name="materialOpportunityType"][value="already_purchased"]')?.closest('.opportunity-choice');
+      if(materialDialogOption)materialDialogOption.classList.add('hidden');
+    }
     return d;
   }catch(e){console.error('Network role',e);return null}
 }
@@ -93,9 +119,15 @@ async function fetchPartnerNetworkData(promptProfile=false){
     currentOpportunityEvents=[];
   }
   await fetchNetworkRole();
+  const params=new URLSearchParams(location.search);
+  const distributorOnly=(currentNetworkRole?.distributors||[]).length>0 && !currentNetworkRole?.admin;
+  const distributorEstimator=params.get('workspace')==='distributor-estimator';
+  if(distributorOnly && !distributorEstimator){
+    return {profile:currentPartnerProfile,code:currentReferralCode,events:currentPartnerEvents,leads:currentMaterialOpportunities};
+  }
   renderPartnerCenter(currentPartnerEvents);
   renderMaterialOpportunities();
-  if(promptProfile && currentPartnerProfile && !currentPartnerProfile.profile_completed){
+  if(promptProfile && !distributorOnly && currentPartnerProfile && !currentPartnerProfile.profile_completed){
     const key='pristine_partner_profile_prompted:'+currentPartner.id;
     if(!sessionStorage.getItem(key)){
       sessionStorage.setItem(key,'1');

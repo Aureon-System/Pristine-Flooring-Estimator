@@ -4,24 +4,24 @@
 <link rel="canonical" href="https://pristineflooring.online/admin.html">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Pristine Dev Control Center</title>
+  <title>Pristine Admin & Dev Control Center</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin.css?v=4">
+  <link rel="stylesheet" href="admin.css?v=5">
 </head>
 <body>
   <aside class="admin-sidebar">
     <a class="admin-brand" href="/"><img src="assets/pristine-web.webp" alt="Pristine Flooring"></a>
-    <div class="admin-label">PLATFORM CONTROL</div>
+    <div class="admin-label">ADMIN · DEV · INDUSTRY</div>
     <nav>
-      <button class="nav-item active" data-tab="overview">Network Operations</button>
-      <button class="nav-item" data-tab="network">Industry / Supply</button>
+      <button class="nav-item active" data-tab="overview">Executive Dashboard</button>
+      <button class="nav-item" data-tab="network">Network & Industry</button>
       <button class="nav-item" data-tab="subscriptions">Subscriptions & Revenue</button>
       <button class="nav-item" data-tab="costs">Costs</button>
       <button class="nav-item" data-tab="ai">AI & Automation</button>
-      <button class="nav-item" data-tab="system">Platform / Dev</button>
+      <button class="nav-item" data-tab="system">Developer Operations</button>
     </nav>
     <div class="sidebar-bottom">
-      <a href="calculator.html">← Installer Workspace</a>\n      <a href="distributor.html">Distributor Workspace</a>
+      <a href="calculator.html?workspace=admin-preview">Preview Installer UI</a>\n      <a href="distributor.html">Preview Distributor UI</a>
       <button id="adminSignOut" type="button">Sign out</button>
     </div>
   </aside>
@@ -30,7 +30,7 @@
     <header class="admin-topbar">
       <div>
         <p class="eyebrow">PRISTINE PLATFORM</p>
-        <h1>Network, Industry & Platform Control</h1>
+        <h1>Admin & Developer Control Center</h1>
       </div>
       <div class="topbar-status">
         <span id="adminRole">Checking access...</span>
@@ -215,6 +215,21 @@
       </section>
 
       <section class="tab-panel" data-panel="system">
+        <div class="dev-release-grid">
+          <article class="panel dev-release-card"><span>PRODUCTION BUILD</span><strong>2026.09.30.1</strong><small>Full-box quantity + role workspace routing</small></article>
+          <article class="panel dev-release-card"><span>EDGE API</span><strong>v33</strong><small>pristine-api · Supabase Edge Functions</small></article>
+          <article class="panel dev-release-card"><span>DATABASE</span><strong>25 migrations</strong><small>Production history reconciled in Git</small></article>
+          <article class="panel dev-release-card"><span>BILLING</span><strong>Sandbox</strong><small>Stripe live checkout remains intentionally disabled</small></article>
+        </div>
+        <article class="panel dev-toolbox">
+          <div class="panel-head"><div><p class="eyebrow">DEVELOPER TOOLBOX</p><h2>Production operations</h2><p>Fast access to the systems used to operate, diagnose and release Pristine.</p></div></div>
+          <div class="dev-tool-links">
+            <a class="btn secondary" href="https://github.com/Aureon-System/Pristine-Flooring-Estimator" target="_blank" rel="noopener">GitHub Repository</a>
+            <a class="btn secondary" href="https://supabase.com/dashboard/project/lueomnmkbbrllxbnpxph" target="_blank" rel="noopener">Supabase Project</a>
+            <a class="btn secondary" href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Cloudflare</a>
+            <a class="btn secondary" href="https://dashboard.stripe.com/test" target="_blank" rel="noopener">Stripe Sandbox</a>
+          </div>
+        </article>
         <div class="feature-grid health-grid">
           <article><span>AUTH</span><h3>Supabase Auth</h3><p>Company accounts, session persistence and tenant ownership.</p><strong class="health-ok">Active</strong></article>
           <article><span>DATA</span><h3>Tenant RLS</h3><p>Company records isolated at database level.</p><strong class="health-ok">Active</strong></article>
@@ -235,6 +250,6 @@
   </main>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=4"></script>
+  <script src="admin.js?v=5"></script>
 </body>
 </html>
