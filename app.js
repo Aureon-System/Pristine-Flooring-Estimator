@@ -32,9 +32,18 @@ async function fetchNetworkRole(){
     if(admin)admin.classList.toggle('hidden',!d.admin);
     const params=new URLSearchParams(location.search);
     const distributorEstimator=params.get('workspace')==='distributor-estimator';
+    const adminPreview=params.get('workspace')==='admin-preview';
+    if(d.admin && !adminPreview && /(?:^|\/)calculator\.html$/i.test(location.pathname)){
+      location.replace('admin.html');
+      return d;
+    }
     if(distributorMemberships.length && !d.admin && !distributorEstimator && /(?:^|\/)calculator\.html$/i.test(location.pathname)){
       location.replace('distributor.html');
       return d;
+    }
+    if(adminPreview && d.admin){
+      document.body.classList.add('admin-preview-mode');
+      const greeting=$('#homeGreeting');if(greeting)greeting.textContent='Installer workspace preview';
     }
     if(distributorEstimator && distributorMemberships.length){
       document.body.classList.add('distributor-estimator-mode');
