@@ -41,8 +41,10 @@ async function fetchNetworkRole(){
       const greeting=$('#homeGreeting');if(greeting)greeting.textContent='Distributor customer estimating workspace';
       document.querySelectorAll('[data-workspace-view="materials"],[data-home-action="materials"],[data-home-action="partner"]').forEach(el=>el.classList.add('hidden'));
       const documentsNav=document.querySelector('[data-workspace-view="documents"]');if(documentsNav)documentsNav.textContent='Customer Documents';
-      const partnerCenter=document.querySelector('.partner-network-card, #partnerCenter, [data-partner-center]');
-      if(partnerCenter)partnerCenter.classList.add('hidden');
+      const partnerCenter=$('#partnerCenter');if(partnerCenter)partnerCenter.classList.add('hidden');
+      const homePartner=document.querySelector('.home-partner-card');if(homePartner)homePartner.classList.add('hidden');
+      const materialDialogOption=document.querySelector('input[name="materialOpportunityType"][value="already_purchased"]')?.closest('.opportunity-choice');
+      if(materialDialogOption)materialDialogOption.classList.add('hidden');
     }
     return d;
   }catch(e){console.error('Network role',e);return null}
@@ -108,9 +110,15 @@ async function fetchPartnerNetworkData(promptProfile=false){
     currentOpportunityEvents=[];
   }
   await fetchNetworkRole();
+  const params=new URLSearchParams(location.search);
+  const distributorOnly=(currentNetworkRole?.distributors||[]).length>0 && !currentNetworkRole?.admin;
+  const distributorEstimator=params.get('workspace')==='distributor-estimator';
+  if(distributorOnly && !distributorEstimator){
+    return {profile:currentPartnerProfile,code:currentReferralCode,events:currentPartnerEvents,leads:currentMaterialOpportunities};
+  }
   renderPartnerCenter(currentPartnerEvents);
   renderMaterialOpportunities();
-  if(promptProfile && currentPartnerProfile && !currentPartnerProfile.profile_completed){
+  if(promptProfile && !distributorOnly && currentPartnerProfile && !currentPartnerProfile.profile_completed){
     const key='pristine_partner_profile_prompted:'+currentPartner.id;
     if(!sessionStorage.getItem(key)){
       sessionStorage.setItem(key,'1');
