@@ -370,7 +370,7 @@ function saveDocs(d){saveWorkspaceJSON(DOC_KEY,d);renderSaved()}
 function loadLeads(){return loadWorkspaceJSON(LEAD_KEY,[])}
 function saveLeads(d){saveWorkspaceJSON(LEAD_KEY,d);renderSaved()}
 function defaultArea(){return{id:id('area'),description:'Floor installation',material:'Material not included',sqft:0,pattern:'Straight',dailyRate:0,dailyRateMode:'crew_total',crewSize:1,durationDays:1,crewRate:0,sellRate:6,surcharge:0,materialCost:0,materialSell:0}}
-function areaTotals(a){const sq=num(a.sqft),dailyRate=num(a.dailyRate),durationDays=num(a.durationDays),crewTotal=dailyRate*durationDays,calculatedCrewRate=sq>0&&crewTotal>0?crewTotal/sq:num(a.crewRate),surcharge=num(a.surcharge)/100,effective=num(a.sellRate)*(1+surcharge),laborSell=sq*effective,laborCost=sq*calculatedCrewRate,included=a.material!=='Material not included',materialQty=a.catalogVariantId?sq*(1+num(a.catalogWastePct??10)/100):sq,matSell=included?materialQty*num(a.materialSell):0,matCost=included?materialQty*num(a.materialCost):0;return{dailyRate,durationDays,crewTotal,crewRate:calculatedCrewRate,effective,laborSell,laborCost,materialQty,matSell,matCost,totalSell:laborSell+matSell,totalCost:laborCost+matCost}}
+function areaTotals(a){const sq=num(a.sqft),dailyRate=num(a.dailyRate),durationDays=num(a.durationDays),crewTotal=dailyRate*durationDays,calculatedCrewRate=sq>0&&crewTotal>0?crewTotal/sq:num(a.crewRate),surcharge=num(a.surcharge)/100,effective=num(a.sellRate)*(1+surcharge),laborSell=sq*effective,laborCost=sq*calculatedCrewRate,included=a.material!=='Material not included',requiredQty=a.catalogVariantId?sq*(1+num(a.catalogWastePct??10)/100):sq,boxQty=num(a.catalogSqftPerBox||0),materialQty=a.catalogVariantId&&boxQty>0?Math.ceil(requiredQty/boxQty)*boxQty:requiredQty,matSell=included?materialQty*num(a.materialSell):0,matCost=included?materialQty*num(a.materialCost):0;return{dailyRate,durationDays,crewTotal,crewRate:calculatedCrewRate,effective,laborSell,laborCost,requiredQty,materialQty,matSell,matCost,totalSell:laborSell+matSell,totalCost:laborCost+matCost}}
 function addonTotals(a){return{sell:num(a.qty)*num(a.sellRate),cost:num(a.qty)*num(a.costRate)}}
 function state(){const areaCalc=areas.map(a=>({...a,...areaTotals(a)})),addonCalc=addons.map(a=>({...a,...addonTotals(a)}));const installationSell=areaCalc.reduce((s,a)=>s+a.laborSell,0),materialSell=areaCalc.reduce((s,a)=>s+a.matSell,0),addonsSell=addonCalc.reduce((s,a)=>s+a.sell,0),durationDays=areaCalc.reduce((s,a)=>s+num(a.durationDays),0),baseSell=installationSell+materialSell+addonsSell,discount=Math.min(baseSell,num($('#discount').value)),net=baseSell-discount,taxRate=num($('#taxRate').value),tax=net*taxRate/100,total=net+tax,coreCost=areaCalc.reduce((s,a)=>s+a.totalCost,0)+addonCalc.reduce((s,a)=>s+a.cost,0),otherCosts=num($('#otherInternalCosts').value),cost=coreCost+otherCosts,contribution=net-cost,margin=net>0?contribution/net*100:0;return{client:{name:$('#clientName').value,project:$('#projectName').value,email:$('#clientEmail').value,phone:$('#clientPhone').value,address:$('#projectAddress').value,city:$('#projectCity')?.value||'',state:$('#projectState')?.value||'',zip:$('#projectZip')?.value||'',lat:currentProjectGeo.lat,lng:currentProjectGeo.lng,county:currentProjectGeo.county||'',distributor:currentProjectGeo.distributor||null},documentNo:$('#documentNo').value,issueDate:$('#issueDate').value,validThrough:$('#validThrough').value,type:$('#documentType').value,areas:areaCalc,addons:addonCalc,durationDays,discount,taxRate,tax,installationSell,materialSell,addonsSell,baseSell,net,total,coreCost,otherCosts,cost,contribution,margin,clientNotes:$('#clientNotes').value,terms:$('#terms').value,brand:loadBrand()}}
 function syncAreaCard(el,a){const t=areaTotals(a);const crewTotal=el.querySelector('[data-derived="crewTotal"]'),crewRate=el.querySelector('[data-derived="crewRate"]'),effective=el.querySelector('[data-derived="effective"]'),meta=el.querySelector('[data-derived="meta"]'),total=el.querySelector('[data-derived="total"]');if(crewTotal)crewTotal.value=money(t.crewTotal);if(crewRate)crewRate.value=money(t.crewRate)+' / sqft';if(effective)effective.value=money(t.effective)+' / sqft';if(meta)meta.textContent=Math.round(num(a.sqft)).toLocaleString()+' sqft · '+a.pattern+' · '+num(a.durationDays)+' work day'+(num(a.durationDays)===1?'':'s')+(a.material==='Material not included'?' · Material not included':'');if(total)total.textContent=money(t.totalSell);calc()}
@@ -389,7 +389,7 @@ function renderAreas(){
     el.dataset.areaId=a.id;
     const catalogEligible=catalogEligibleMaterials.has(a.material);
     const catalogChoice=a.catalogVariantId
-      ? '<div class="estimate-product-card"><div><span>Selected flooring</span><strong>'+esc(a.catalogProductName||a.catalogSku||'Catalog product')+'</strong><small>'+esc([a.catalogCollection,a.catalogSize,a.catalogFinish,a.catalogSku?'SKU '+a.catalogSku:''].filter(Boolean).join(' · '))+'</small></div><div class="estimate-product-pricing"><span>'+money(a.materialSell||0)+'/sqft</span><small>'+num(a.catalogWastePct??10)+'% waste · '+Math.ceil(num(a.sqft)*(1+num(a.catalogWastePct??10)/100)).toLocaleString()+' sqft material</small></div><button class="btn btn-secondary choose-catalog-product" type="button">Change product</button></div>'
+      ? '<div class="estimate-product-card"><div><span>Selected flooring</span><strong>'+esc(a.catalogProductName||a.catalogSku||'Catalog product')+'</strong><small>'+esc([a.catalogCollection,a.catalogSize,a.catalogFinish,a.catalogSku?'SKU '+a.catalogSku:''].filter(Boolean).join(' · '))+'</small></div><div class="estimate-product-pricing"><span>'+money(a.materialSell||0)+'/sqft</span><small>'+num(a.catalogWastePct??10)+'% waste · '+Math.ceil(t.materialQty).toLocaleString()+' sqft purchased</small></div><button class="btn btn-secondary choose-catalog-product" type="button">Change product</button></div>'
       : (catalogEligible?'<div class="estimate-catalog-prompt"><div><strong>Choose a flooring product</strong><small>Select model, SKU, size, finish and price from Materials.</small></div><button class="btn btn-dark choose-catalog-product" type="button">Choose product</button></div>':'');
     el.innerHTML=`<div class="area-head"><div><span class="area-index">AREA ${String(i+1).padStart(2,'0')}</span><strong>${esc(a.description||'Installation area')}</strong></div><div class="area-head-actions"><button class="area-collapse-btn" type="button" aria-label="Expand or collapse area">⌄</button>${areas.length>1?'<button class="remove-btn" type="button" aria-label="Remove area">×</button>':''}</div></div><div class="area-body"><div class="area-grid"><label class="wide"><span class="field-title">Area description</span><input data-k="description" value="${esc(a.description)}"></label><label><span class="field-title">Area (sqft)</span><input data-k="sqft" type="number" min="0" step="1" value="${a.sqft}"></label><label class="wide"><span class="field-title">Material</span><select data-k="material">${matOpts}</select></label><label><span class="field-title">Installation pattern</span><select data-k="pattern">${patternOpts}</select></label></div>${catalogChoice}<button class="advanced-pricing-toggle" type="button" aria-expanded="false"><span>Advanced pricing & costs</span><b>＋</b></button><div class="advanced-pricing-panel"><div class="crew-grid"><label><span class="field-title">Daily crew cost ($)<small class="internal-tag">INTERNAL</small></span><input data-k="dailyRate" type="number" min="0" step="0.01" value="${a.dailyRate}"></label><label><span class="field-title">Duration (work days)<small class="internal-spacer">INTERNAL</small></span><input data-k="durationDays" type="number" min="0" step="1" value="${a.durationDays}"></label><label><span class="field-title">Total labor cost<small class="internal-tag">INTERNAL</small></span><input data-derived="crewTotal" value="${money(t.crewTotal)}" disabled></label><label><span class="field-title">Labor cost / sqft<small class="internal-tag">INTERNAL</small></span><input data-derived="crewRate" value="${money(t.crewRate)} / sqft" disabled></label></div><div class="crew-formula">Labor cost / sqft = total daily crew cost × work days ÷ area sqft.</div><div class="pricing-grid"><label><span class="field-title">Selling labor / sqft<small class="internal-spacer">INTERNAL</small></span><input data-k="sellRate" type="number" min="0" step="0.01" value="${a.sellRate}"></label><label><span class="field-title">Pattern surcharge %<small class="internal-spacer">INTERNAL</small></span><input data-k="surcharge" type="number" min="0" step="0.1" value="${a.surcharge}"></label><label><span class="field-title">Effective labor rate<small class="internal-spacer">INTERNAL</small></span><input data-derived="effective" value="${money(t.effective)} / sqft" disabled></label><label><span class="field-title">Material cost / sqft<small class="internal-tag">INTERNAL</small></span><input data-k="materialCost" type="number" min="0" step="0.01" value="${a.materialCost}" ${disabled}></label><label><span class="field-title">Material sell / sqft<small class="internal-spacer">INTERNAL</small></span><input data-k="materialSell" type="number" min="0" step="0.01" value="${a.materialSell}" ${disabled}></label></div></div></div><div class="area-total-line"><span data-derived="meta">${Math.round(num(a.sqft)).toLocaleString()} sqft · ${esc(a.pattern)} · ${num(a.durationDays)} work day${num(a.durationDays)===1?'':'s'}${a.material==='Material not included'?' · Material not included':''}</span><b data-derived="total">${money(t.totalSell)}</b></div>`;
     el.querySelectorAll('[data-k]').forEach(inp=>{
@@ -609,7 +609,7 @@ function renderCatalogPilot(){
     const price=offer?.price_sqft!=null?money(offer.price_sqft)+'/sqft':'Set price';
     el.innerHTML='<div class="catalog-card-head"><div><span class="catalog-collection">'+esc(item.catalog_products?.collection||'Catalog')+'</span><strong>'+esc(item.name)+'</strong></div><span class="catalog-sku">SKU '+esc(item.sku)+'</span></div>'+
       '<div class="catalog-tags"><span>'+esc(item.size||'')+'</span><span>'+esc(item.finish||'')+'</span><span>'+esc(item.edges||'')+'</span><span>'+esc(String(item.sqft_per_box||0))+' sqft/box</span></div>'+
-      '<div class="catalog-price-grid single"><div><span>'+esc(distributorName)+'</span><strong>'+price+'</strong><small>Distributor price</small></div></div>';
+      '<div class="catalog-price-grid single"><div><span>'+esc(distributorName)+'</span><strong>'+price+'</strong><small>Distributor reference</small></div></div>';
     el.onclick=()=>{selectedCatalogVariant=item;const p=$('#catalogPriceSqft');if(p)p.value=String(num(selectedCatalogOffer(item)?.price_sqft||0));renderCatalogPilot();updateCatalogCalculation()};
     box.append(el);
   });
@@ -622,6 +622,7 @@ function updateCatalogCalculation(){
   const required=area*(1+waste/100);
   const sqftBox=Math.max(0,num(selectedCatalogVariant.sqft_per_box||0));
   const boxes=sqftBox?Math.ceil(required/sqftBox):0;
+  const purchased=sqftBox&&boxes?boxes*sqftBox:required;
   const offer=selectedCatalogOffer(selectedCatalogVariant);
   const priceInput=$('#catalogPriceSqft');
   if(priceInput&&document.activeElement!==priceInput&&num(priceInput.value)===0)priceInput.value=String(num(offer?.price_sqft||0));
@@ -632,7 +633,8 @@ function updateCatalogCalculation(){
   set('catalogCalcArea',Math.round(area).toLocaleString()+' sqft');
   set('catalogCalcRequired',Math.ceil(required).toLocaleString()+' sqft');
   set('catalogCalcBoxes',boxes.toLocaleString());
-  set('catalogCalcValue',money(required*price));
+  set('catalogCalcPurchased',purchased.toLocaleString(undefined,{maximumFractionDigits:2})+' sqft');
+  set('catalogCalcValue',money(purchased*price));
 }
 function useEstimateForCatalog(){
   const sqft=Math.round(estimateAreaSqft());
@@ -641,6 +643,9 @@ function useEstimateForCatalog(){
 function openCatalogForArea(areaId){
   const area=areas.find(x=>x.id===areaId);if(!area)return;
   catalogTargetAreaId=areaId;
+  const context=$('#catalogSelectionContext'),contextText=$('#catalogSelectionContextText');
+  if(context){context.classList.remove('hidden')}
+  if(contextText)contextText.textContent=(area.description||'Installation area')+' · '+Math.round(num(area.sqft)).toLocaleString()+' sqft';
   const sqft=$('#catalogProjectSqft');if(sqft)sqft.value=String(Math.round(num(area.sqft)));
   const waste=$('#catalogWastePct');if(waste)waste.value=String(num(area.catalogWastePct??10));
   const useBtn=$('#catalogUseInEstimateBtn');if(useBtn)useBtn.classList.remove('hidden');
@@ -669,6 +674,8 @@ function useCatalogProductInEstimate(){
   if(selectedCatalogVariant.size&&['24x48','48x48'].includes(selectedCatalogVariant.size))area.material='Large-format porcelain';
   else if(!catalogEligibleMaterials.has(area.material))area.material='Ceramic / porcelain';
   renderAreas();
+  const context=$('#catalogSelectionContext');if(context)context.classList.add('hidden');
+  catalogTargetAreaId=null;
   showWorkspace('estimate',{instant:true});
   setTimeout(()=>document.querySelector('[data-area-id="'+CSS.escape(area.id)+'"]')?.scrollIntoView({behavior:'smooth',block:'center'}),100);
 }
@@ -848,6 +855,7 @@ function setupWorkspaceNavigation(){
   const ca=$('#catalogProjectSqft');if(ca)ca.oninput=updateCatalogCalculation;
   const cw=$('#catalogWastePct');if(cw)cw.oninput=updateCatalogCalculation;
   const cue=$('#catalogUseEstimateBtn');if(cue)cue.onclick=useEstimateForCatalog;
+  const back=$('#catalogBackToEstimateBtn');if(back)back.onclick=()=>{const context=$('#catalogSelectionContext');if(context)context.classList.add('hidden');catalogTargetAreaId=null;showWorkspace('estimate',{instant:true})};
   const crq=$('#catalogRequestQuoteBtn');if(crq)crq.onclick=requestCatalogQuote;
   const cui=$('#catalogUseInEstimateBtn');if(cui)cui.onclick=useCatalogProductInEstimate;
   const cpp=$('#catalogPriceSqft');if(cpp)cpp.oninput=updateCatalogCalculation;
