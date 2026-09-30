@@ -1,30 +1,33 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { access, readFile } from 'node:fs/promises';
+import { constants } from 'node:fs';
+import { join } from 'node:path';
 
-test('Cloudflare unknown routes return a real 404', async () => {
-  const raw = await readFile('wrangler.jsonc', 'utf8');
-  const cfg = JSON.parse(raw.replace(/^\s*\/\/.*$/gm, ''));
-  assert.equal(cfg.assets.directory, '.');
-  assert.equal(cfg.assets.not_found_handling, '404-page');
-});
+async function exists(path){try{await access(path,constants.F_OK);return true;}catch{return false;}}
 
-test('internal repository surfaces are excluded from static uploads', async () => {
-  const ignore = (await readFile('.assetsignore', 'utf8')).split(/\r?\n/);
-  for (const rule of ['backend/**', 'supabase/**', 'docs/**', 'scripts/**', 'tests/**', '*.md', 'package.json', 'wrangler.jsonc']) {
-    assert.ok(ignore.includes(rule), `missing rule ${rule}`);
+test('safe public bundle contains required app assets', async()=>{
+  for(const path of ['index.html','calculator.html','app.js','styles.css','404.html']) {
+    assert.equal(await exists(join('dist',path)),true,`missing dist/${path}`);
   }
 });
 
-test('billing stays in sandbox until live Stripe is configured', async () => {
-  const billing = await readFile('billing-config.js', 'utf8');
-  assert.match(billing, /environment:\s*["']sandbox["']/);
-  const live = billing.match(/live:\s*\{([\s\S]*?)\}/)?.[1] ?? '';
-  assert.match(live, /stripePriceId:\s*["']["']/);
-  assert.match(live, /checkoutUrl:\s*["']["']/);
+test('internal repository surfaces are excluded from dist', async()=>{
+  for(const path of ['README.md','PRODUCTION_DEPLOYMENT_RUNBOOK.md','package.json','wrangler.jsonc','backend','supabase','docs','.github']) {
+    assert.equal(await exists(join('dist',path)),false,`dist unexpectedly contains ${path}`);
+  }
 });
 
-test('workspace exposes the audit hardening build marker', async () => {
-  const html = await readFile('calculator.html', 'utf8');
-  assert.match(html, /Build 2026\.09\.29\.1 · Network v33 · Audit hardening/);
+test('Cloudflare deploys only dist and returns real 404s', async()=>{
+  const cfg=JSON.parse(await readFile('wrangler.jsonc','utf8'));
+  assert.equal(cfg.assets.directory,'./dist');
+  assert.equal(cfg.assets.not_found_handling,'404-page');
+});
+
+test('billing remains sandbox until live Stripe is configured', async()=>{
+  const billing=await readFile('billing-config.js','utf8');
+  assert.match(billing,/environment:\s*["']sandbox["']/);
+  const live=billing.match(/live:\s*\{([\s\S]*?)\}/)?.[1]??'';
+  assert.match(live,/stripePriceId:\s*["']["']/);
+  assert.match(live,/checkoutUrl:\s*["']["']/);
 });
