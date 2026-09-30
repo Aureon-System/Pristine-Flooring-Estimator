@@ -2251,3 +2251,29 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 @media(max-width:680px){.opportunity-network-head{grid-template-columns:1fr}}
 
 .installer-quote-actions{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px}.installer-quote-actions .btn{min-height:34px;padding:0 11px;font-size:9px}
+
+
+/* Audit UX: keep material selection in the Estimate task context */
+.catalog-selection-context{
+  position:sticky;
+  top:72px;
+  z-index:24;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  margin:0 0 18px;
+  padding:12px 14px;
+  border:1px solid rgba(31,77,61,.18);
+  border-radius:14px;
+  background:rgba(255,255,255,.96);
+  box-shadow:0 10px 30px rgba(20,43,35,.08);
+  backdrop-filter:blur(10px);
+}
+.catalog-selection-context.hidden{display:none}
+.catalog-selection-context div{display:flex;flex-direction:column;gap:2px}
+.catalog-selection-context span{font-size:.72rem;font-weight:800;letter-spacing:.1em;color:#6b776f}
+.catalog-selection-context strong{font-size:.96rem;color:#183a2f}
+@media(max-width:760px){
+  .catalog-selection-context{top:8px;align-items:stretch;flex-direction:column}
+  .catalog-selection-context .btn{width:100%}
+}
