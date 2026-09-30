@@ -4,6 +4,9 @@
   "private": true,
   "description": "Pristine Flooring Estimator - static Cloudflare Workers application",
   "scripts": {
-    "build": "echo \"Static site - no build step required\""
+    "build": "node scripts/verify-release.mjs",
+    "check:js": "node --check app.js && node --check admin.js && node --check distributor.js && node --check landing.js && node --check i18n.js && node --check locales.js && node --check billing-config.js",
+    "test": "node --test tests/*.test.mjs",
+    "ci": "npm run check:js && npm run build && npm test"
   }
 }
