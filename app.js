@@ -686,9 +686,9 @@ function requestCatalogQuote(){
   if(area<=0){alert('Enter the project sqft first.');return}
   const offer=selectedCatalogOffer(selectedCatalogVariant);
   const price=num($('#catalogPriceSqft')?.value||offer?.price_sqft||0);
-  const required=Math.ceil(area*(1+waste/100));
-  const boxes=num(selectedCatalogVariant.sqft_per_box)>0?Math.ceil(required/num(selectedCatalogVariant.sqft_per_box)):0;
-  currentCatalogQuoteContext={variantId:selectedCatalogVariant.id,sku:selectedCatalogVariant.sku,name:selectedCatalogVariant.name,unitPrice:price,boxes,size:selectedCatalogVariant.size,finish:selectedCatalogVariant.finish};
+  const sqftPerBox=Math.max(0,num(selectedCatalogVariant.sqft_per_box||0));
+  const order=materialOrderMetrics(area,waste,sqftPerBox);
+  currentCatalogQuoteContext={variantId:selectedCatalogVariant.id,sku:selectedCatalogVariant.sku,name:selectedCatalogVariant.name,unitPrice:price,boxes:order.boxes,sqftPerBox,requiredTarget:order.wasteTarget,purchasedSqft:order.orderSqft,size:selectedCatalogVariant.size,finish:selectedCatalogVariant.finish};
   openMaterialQuote();
   setTimeout(()=>{
     const measured=$('#quoteMeasuredSqftInput');if(measured)measured.value=String(Math.round(area));
@@ -696,7 +696,7 @@ function requestCatalogQuote(){
     const material=$('#quoteMaterial');if(material){material.value='Ceramic / porcelain';renderMaterialSizeOptions(false)}
     const custom=$('#quoteCustomSize');if(custom)custom.value=selectedCatalogVariant.size||'';
     const notes=$('#quoteNotes');
-    if(notes)notes.value='Catalog product: '+selectedCatalogVariant.name+' | SKU '+selectedCatalogVariant.sku+' | '+selectedCatalogVariant.size+' | '+(selectedCatalogVariant.finish||'')+' | '+selectedCatalogVariant.sqft_per_box+' sqft/box | Selected material price '+money(price)+'/sqft.';
+    if(notes)notes.value='Catalog product: '+selectedCatalogVariant.name+' | SKU '+selectedCatalogVariant.sku+' | '+selectedCatalogVariant.size+' | '+(selectedCatalogVariant.finish||'')+' | '+sqftPerBox+' sqft/box | '+order.boxes+' full boxes | Order quantity '+order.orderSqft.toLocaleString(undefined,{maximumFractionDigits:2})+' sqft | Selected material price '+money(price)+'/sqft.';
     document.querySelectorAll('#quoteSizeOptions input[type="checkbox"]').forEach(cb=>{if(cb.value===selectedCatalogVariant.size)cb.checked=true});
     refreshQuoteMetrics();
   },80);
@@ -756,8 +756,14 @@ function openMaterialOpportunityEditor(item){
 function updateOpportunityEditSummary(recalcRequired=true){
   const measured=Math.max(0,num($('#editOpportunityMeasured')?.value||0));
   const waste=Math.max(0,num($('#editOpportunityWaste')?.value||0));
+  const variant=currentEditingMaterialOpportunity?.catalogVariantId
+    ? catalogItems.find(v=>v.id===currentEditingMaterialOpportunity.catalogVariantId)
+    : null;
+  const sqftPerBox=Math.max(0,num(variant?.sqft_per_box||0));
   if(recalcRequired){
-    const required=$('#editOpportunityRequired');if(required)required.value=String(Math.ceil(measured*(1+waste/100)));
+    const metrics=materialOrderMetrics(measured,waste,sqftPerBox);
+    const required=$('#editOpportunityRequired');if(required)required.value=String(Number(metrics.orderSqft.toFixed(2)));
+    const boxes=$('#editOpportunityBoxes');if(boxes&&sqftPerBox>0)boxes.value=String(metrics.boxes);
   }
   const required=num($('#editOpportunityRequired')?.value||0);
   const price=num($('#editOpportunityPrice')?.value||0);
@@ -818,7 +824,7 @@ function renderMaterialOpportunities(){
     const networkMeta=latestQuote?('Distributor quote '+money(latestQuote.total)+(latestQuote.eta_days!=null?' · ETA '+latestQuote.eta_days+' days':'')):networkStatusLabel(x.status);
     el.innerHTML='<div><span class="material-status '+esc(x.status)+'">'+esc(String(x.status).toUpperCase())+'</span><strong>'+esc(x.project)+'</strong><small>'+esc(typeLabel)+(x.estimateNo?' · '+esc(x.estimateNo):'')+'</small></div>'+
       '<div><span>Product</span><strong>'+esc(productLabel)+'</strong><small>'+esc(productMeta)+'</small></div>'+
-      '<div><span>Required</span><strong>'+Math.round(x.required).toLocaleString()+' sqft</strong><small>'+Math.round(x.measured).toLocaleString()+' measured · '+esc(priceMeta)+(x.boxes?' · '+x.boxes+' boxes':'')+'</small><small class="network-result">'+esc(networkMeta)+'</small></div>'+
+      '<div><span>Order quantity</span><strong>'+Number(x.required||0).toLocaleString(undefined,{maximumFractionDigits:2})+' sqft</strong><small>'+Math.round(x.measured).toLocaleString()+' measured · '+Math.ceil(num(x.measured)*(1+num(x.waste)/100)).toLocaleString()+' waste target · '+esc(priceMeta)+(x.boxes?' · '+x.boxes+' full boxes':'')+'</small><small class="network-result">'+esc(networkMeta)+'</small></div>'+
       '<div class="material-opportunity-actions"><button class="btn btn-secondary material-edit-btn" type="button">View / Edit</button></div>';
     el.querySelector('.material-edit-btn').onclick=()=>openMaterialOpportunityEditor(x);
     box.append(el);
@@ -985,10 +991,29 @@ function quoteAreaSqft(){
   const manual=num($('#quoteMeasuredSqftInput')?.value);
   return manual>0?manual:estimateAreaSqft();
 }
-function quoteRequiredSqft(){return Math.round(quoteAreaSqft()*(1+num($('#quoteWaste')?.value||10)/100))}
+function materialOrderMetrics(measured,wastePct,sqftPerBox=0){
+  const measuredSqft=Math.max(0,num(measured));
+  const waste=Math.max(0,num(wastePct));
+  const wasteTarget=measuredSqft*(1+waste/100);
+  const boxCoverage=Math.max(0,num(sqftPerBox));
+  const boxes=boxCoverage>0?Math.ceil(wasteTarget/boxCoverage):0;
+  const orderSqft=boxes>0?boxes*boxCoverage:wasteTarget;
+  return {measuredSqft,waste,wasteTarget,boxCoverage,boxes,orderSqft};
+}
+function currentQuoteOrderMetrics(){
+  return materialOrderMetrics(quoteAreaSqft(),num($('#quoteWaste')?.value||10),num(currentCatalogQuoteContext?.sqftPerBox||0));
+}
+function quoteRequiredSqft(){return currentQuoteOrderMetrics().orderSqft}
 function refreshQuoteMetrics(){
+  const m=currentQuoteOrderMetrics();
   const r=$('#quoteRequiredSqft');
-  if(r)r.textContent=quoteRequiredSqft().toLocaleString()+' sqft';
+  if(r)r.textContent=m.orderSqft.toLocaleString(undefined,{maximumFractionDigits:2})+' sqft';
+  const detail=$('#quoteRequiredDetail');
+  if(detail){
+    detail.textContent=m.boxes
+      ? 'Waste target '+Math.ceil(m.wasteTarget).toLocaleString()+' sqft · '+m.boxes+' full boxes · '+m.boxCoverage.toLocaleString(undefined,{maximumFractionDigits:2})+' sqft/box'
+      : 'Includes waste allowance';
+  }
 }
 function useEstimateSqft(){
   const input=$('#quoteMeasuredSqftInput');

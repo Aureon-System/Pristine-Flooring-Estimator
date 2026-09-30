@@ -31,3 +31,14 @@ test('billing remains sandbox until live Stripe is configured', async()=>{
   assert.match(live,/stripePriceId:\s*["']["']/);
   assert.match(live,/checkoutUrl:\s*["']["']/);
 });
+
+
+test('material opportunities round catalog quantities up to full boxes', async()=>{
+  const app=await readFile('app.js','utf8');
+  assert.match(app,/const boxes=boxCoverage>0\?Math\.ceil\(wasteTarget\/boxCoverage\):0/);
+  assert.match(app,/const orderSqft=boxes>0\?boxes\*boxCoverage:wasteTarget/);
+  assert.match(app,/requiredSqft:quoteRequiredSqft\(\)/);
+  const calculator=await readFile('calculator.html','utf8');
+  assert.match(calculator,/Order quantity/);
+  assert.match(calculator,/quoteRequiredDetail/);
+});
