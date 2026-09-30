@@ -291,6 +291,10 @@
   </section>
 
   <section class="workspace-module" data-workspace-module="materials">
+    <div id="catalogSelectionContext" class="catalog-selection-context hidden">
+      <button id="catalogBackToEstimateBtn" class="btn btn-secondary" type="button">← Back to Estimate</button>
+      <div><span>SELECTING PRODUCT FOR</span><strong id="catalogSelectionContextText">Installation area</strong></div>
+    </div>
     <div class="module-page-head">
       <div><p class="kicker">MATERIAL NETWORK</p><h1>Materials</h1><p>Create flooring opportunities and keep every material request in one place.</p></div>
       <button id="materialQuoteBtn" class="btn btn-gold" type="button">+ New material request</button>
@@ -318,7 +322,8 @@
           <div><span>Project area</span><strong id="catalogCalcArea">0 sqft</strong></div>
           <div><span>Required + waste</span><strong id="catalogCalcRequired">0 sqft</strong></div>
           <div><span>Boxes</span><strong id="catalogCalcBoxes">0</strong></div>
-          <div><span>Price / sqft</span><input id="catalogPriceSqft" class="catalog-inline-price" type="number" min="0" step="0.01" value="0" /></div>
+          <div><span>Purchased coverage</span><strong id="catalogCalcPurchased">0 sqft</strong></div>
+          <div><span>Your project price / sqft</span><input id="catalogPriceSqft" class="catalog-inline-price" type="number" min="0" step="0.01" value="0" /></div>
           <div><span>Material value</span><strong id="catalogCalcValue">$0.00</strong></div>
         </div>
         <div class="catalog-selection-actions">
@@ -326,7 +331,7 @@
           <button id="catalogUseInEstimateBtn" class="btn btn-dark hidden" type="button">Use in estimate</button>
           <button id="catalogRequestQuoteBtn" class="btn btn-gold" type="button">Request distributor quote</button>
         </div>
-        <p class="catalog-price-note">One price per distributor/SKU. The value can be adjusted for this project without changing the product master.</p>
+        <p class="catalog-price-note"><strong>Distributor reference</strong> comes from the routed distributor offer. <strong>Your project price</strong> is editable and does not change the distributor catalog.</p>
       </div>
     </section>
     <section class="panel materials-list-panel">
