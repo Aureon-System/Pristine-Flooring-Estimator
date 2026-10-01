@@ -424,7 +424,8 @@ async function distributorDashboard(req: Request, db: any, url: URL) {
   if(permissionsR.error)throw permissionsR.error;
   const permissions=(permissionsR.data||[]).map((x:any)=>x.permission);
 
-  return json({ok:true,membership:ad.membership,permissions,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[],catalog:catalogRows||[],industry_inventory:[...industryByVariant.values()],installer_network:installerNetwork});
+  const rewards=await distributorRewardsBundle(db,distributorId);
+  return json({ok:true,membership:ad.membership,permissions,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[],catalog:catalogRows||[],industry_inventory:[...industryByVariant.values()],installer_network:installerNetwork,rewards});
 }
 
 async function installerCatalog(req:Request,db:any){
@@ -500,6 +501,166 @@ async function distributorAdjustPoints(req:Request,db:any,body:any){
   return json({ok:true,balance});
 }
 
+async function rewardBalance(db:any,partnerId:string,distributorId:string){
+  const {data,error}=await db.from("reward_points_ledger")
+    .select("points,expires_at")
+    .eq("partner_id",partnerId)
+    .eq("distributor_id",distributorId);
+  if(error)throw error;
+  const now=Date.now();
+  return (data||[]).reduce((sum:number,row:any)=>{
+    if(row.expires_at&&new Date(row.expires_at).getTime()<=now)return sum;
+    return sum+Number(row.points||0);
+  },0);
+}
+
+async function distributorRewardsBundle(db:any,distributorId:string){
+  const [programR,catalogR,campaignR,redemptionR]=await Promise.all([
+    db.from("distributor_reward_programs").select("*").eq("distributor_id",distributorId).maybeSingle(),
+    db.from("distributor_reward_catalog").select("*").eq("distributor_id",distributorId).order("sort_order").order("points_cost"),
+    db.from("distributor_reward_campaigns").select("*,catalog_variants(id,sku,name,size)").eq("distributor_id",distributorId).order("created_at",{ascending:false}),
+    db.from("reward_redemptions").select("*,partners(company_name,email)").eq("distributor_id",distributorId).order("requested_at",{ascending:false}).limit(200)
+  ]);
+  for(const r of [programR,catalogR,campaignR,redemptionR])if(r.error)throw r.error;
+  return {program:programR.data||null,catalog:catalogR.data||[],campaigns:campaignR.data||[],redemptions:redemptionR.data||[]};
+}
+
+async function awardPurchasePoints(db:any,order:any,actorUserId:string|null){
+  if(!order?.partner_id||!order?.distributor_id)return null;
+  const {data:program,error:pErr}=await db.from("distributor_reward_programs")
+    .select("*").eq("distributor_id",order.distributor_id).eq("active",true).maybeSingle();
+  if(pErr)throw pErr;if(!program||Number(program.points_per_dollar||0)<=0)return null;
+
+  const existing=await db.from("reward_points_ledger").select("id")
+    .eq("partner_id",order.partner_id).eq("distributor_id",order.distributor_id)
+    .eq("event_type","purchase_earned").eq("reference_type","material_order").eq("reference_id",String(order.id)).maybeSingle();
+  if(existing.error)throw existing.error;if(existing.data)return null;
+
+  const eligible=program.earn_basis==="total"?Number(order.total||0):Number(order.subtotal||0);
+  if(eligible<=0||eligible<Number(program.minimum_purchase||0))return null;
+
+  let variantId:any=null;
+  if(order.material_lead_id){
+    const lead=await db.from("material_leads").select("catalog_variant_id").eq("id",order.material_lead_id).maybeSingle();
+    if(lead.error)throw lead.error;variantId=lead.data?.catalog_variant_id||null;
+  }
+
+  const now=new Date();
+  const {data:campaigns,error:cErr}=await db.from("distributor_reward_campaigns").select("*")
+    .eq("distributor_id",order.distributor_id).eq("active",true);
+  if(cErr)throw cErr;
+  let multiplier=1,bonus=0;
+  for(const campaign of (campaigns||[])){
+    const startsOk=!campaign.starts_at||new Date(campaign.starts_at)<=now;
+    const endsOk=!campaign.ends_at||new Date(campaign.ends_at)>=now;
+    const variantOk=!campaign.variant_id||campaign.variant_id===variantId;
+    const spendOk=eligible>=Number(campaign.minimum_purchase||0);
+    if(!(startsOk&&endsOk&&variantOk&&spendOk))continue;
+    if(campaign.campaign_type==="multiplier")multiplier=Math.max(multiplier,Number(campaign.multiplier||1));
+    if(campaign.campaign_type==="fixed_bonus")bonus+=Math.max(0,Math.trunc(Number(campaign.bonus_points||0)));
+  }
+  const points=Math.max(0,Math.floor(eligible*Number(program.points_per_dollar||0)*multiplier)+bonus);
+  if(points<=0)return null;
+
+  let expiresAt:any=null;
+  if(program.expiration_months){
+    const d=new Date();d.setMonth(d.getMonth()+Number(program.expiration_months));expiresAt=d.toISOString();
+  }
+  const {data:entry,error}=await db.from("reward_points_ledger").insert({
+    partner_id:order.partner_id,distributor_id:order.distributor_id,points,event_type:"purchase_earned",
+    reference_type:"material_order",reference_id:String(order.id),
+    description:"Purchase reward · "+points+" "+clean(program.points_label||"Points",60),
+    created_by:actorUserId||null,expires_at:expiresAt
+  }).select("*").single();
+  if(error){
+    if(String(error.code||"")==="23505")return null;
+    throw error;
+  }
+  return {entry,eligible,multiplier,bonus};
+}
+
+async function distributorSaveRewardProgram(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80),ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_rewards")))return json({ok:false,error:"Your role cannot manage rewards"},403);
+  const pointsPerDollar=Math.max(0,Math.min(1000,Number(body.points_per_dollar||0)));
+  const minimumPurchase=Math.max(0,Number(body.minimum_purchase||0));
+  const expirationRaw=Number(body.expiration_months||0),expirationMonths=expirationRaw>0?Math.min(120,Math.trunc(expirationRaw)):null;
+  const earnBasis=["subtotal","total"].includes(clean(body.earn_basis,20))?clean(body.earn_basis,20):"subtotal";
+  const row={
+    distributor_id:ad.membership.distributor_id,
+    program_name:clean(body.program_name,120)||"Pristine Points",
+    points_label:clean(body.points_label,60)||"Points",
+    active:Boolean(body.active),earn_basis:earnBasis,points_per_dollar:pointsPerDollar,
+    minimum_purchase:minimumPurchase,expiration_months:expirationMonths,
+    terms:clean(body.terms,4000)||null,updated_by:ad.user.id,updated_at:new Date().toISOString()
+  };
+  const {data,error}=await db.from("distributor_reward_programs").upsert(row,{onConflict:"distributor_id"}).select("*").single();
+  if(error)throw error;return json({ok:true,program:data});
+}
+
+async function distributorSaveRewardItem(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80),ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_rewards")))return json({ok:false,error:"Your role cannot manage rewards"},403);
+  const label=clean(body.label,160),type=clean(body.reward_type,40),pointsCost=Math.trunc(Number(body.points_cost||0));
+  const allowed=["store_credit","cash_equivalent","free_delivery","product","service","custom"];
+  if(!label||!allowed.includes(type)||pointsCost<=0)return json({ok:false,error:"Reward name, type and positive points cost are required"},400);
+  const payload={label,reward_type:type,points_cost:pointsCost,reward_value:body.reward_value===""||body.reward_value==null?null:Math.max(0,Number(body.reward_value||0)),
+    description:clean(body.description,1200)||null,active:body.active===undefined?true:Boolean(body.active),
+    sort_order:Math.trunc(Number(body.sort_order||0)),updated_at:new Date().toISOString()};
+  const id=clean(body.id,80);
+  if(id){
+    const {data,error}=await db.from("distributor_reward_catalog").update(payload).eq("id",id).eq("distributor_id",ad.membership.distributor_id).select("*").maybeSingle();
+    if(error)throw error;if(!data)return json({ok:false,error:"Reward not found"},404);return json({ok:true,reward:data});
+  }
+  const {data,error}=await db.from("distributor_reward_catalog").insert({...payload,distributor_id:ad.membership.distributor_id,created_by:ad.user.id}).select("*").single();
+  if(error)throw error;return json({ok:true,reward:data});
+}
+
+async function distributorSaveRewardCampaign(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80),ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_rewards")))return json({ok:false,error:"Your role cannot manage rewards"},403);
+  const name=clean(body.name,160),type=clean(body.campaign_type,30);
+  if(!name||!["multiplier","fixed_bonus"].includes(type))return json({ok:false,error:"Campaign name and type are required"},400);
+  const payload={
+    name,campaign_type:type,multiplier:Math.max(1,Math.min(20,Number(body.multiplier||1))),
+    bonus_points:Math.max(0,Math.min(1000000,Math.trunc(Number(body.bonus_points||0)))),
+    minimum_purchase:Math.max(0,Number(body.minimum_purchase||0)),
+    variant_id:clean(body.variant_id,80)||null,starts_at:body.starts_at||null,ends_at:body.ends_at||null,
+    active:body.active===undefined?true:Boolean(body.active),updated_at:new Date().toISOString()
+  };
+  const id=clean(body.id,80);
+  if(id){
+    const {data,error}=await db.from("distributor_reward_campaigns").update(payload).eq("id",id).eq("distributor_id",ad.membership.distributor_id).select("*").maybeSingle();
+    if(error)throw error;if(!data)return json({ok:false,error:"Campaign not found"},404);return json({ok:true,campaign:data});
+  }
+  const {data,error}=await db.from("distributor_reward_campaigns").insert({...payload,distributor_id:ad.membership.distributor_id,created_by:ad.user.id}).select("*").single();
+  if(error)throw error;return json({ok:true,campaign:data});
+}
+
+async function partnerRequestReward(req:Request,db:any,body:any){
+  const ap=await authenticatedPartner(req,db);
+  if(!ap)return json({ok:false,error:"Sign in required"},401);
+  const {data:link,error:lErr}=await db.from("distributor_installers").select("distributor_id,status").eq("partner_id",ap.partner.id).eq("status","active").maybeSingle();
+  if(lErr)throw lErr;if(!link)return json({ok:false,error:"Active distributor link required"},403);
+  const rewardId=clean(body.reward_id,80);if(!rewardId)return json({ok:false,error:"Reward required"},400);
+  const {data:id,error}=await db.rpc("request_reward_redemption",{p_partner_id:ap.partner.id,p_distributor_id:link.distributor_id,p_reward_id:rewardId,p_notes:clean(body.notes,500)||null});
+  if(error)throw error;
+  return json({ok:true,redemption_id:id});
+}
+
+async function distributorUpdateRewardRedemption(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80),ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_rewards")))return json({ok:false,error:"Your role cannot manage rewards"},403);
+  const id=clean(body.redemption_id,80),status=clean(body.status,20);
+  if(!id||!["approved","fulfilled","cancelled"].includes(status))return json({ok:false,error:"Valid redemption and status are required"},400);
+  const {data,error}=await db.rpc("process_reward_redemption",{p_redemption_id:id,p_distributor_id:ad.membership.distributor_id,p_status:status,p_reviewer_id:ad.user.id,p_notes:clean(body.notes,500)||null});
+  if(error)throw error;return json({ok:true,status:data});
+}
+
 async function partnerRewardsSummary(req:Request,db:any){
   const ap=await authenticatedPartner(req,db);
   if(!ap)return json({ok:false,error:"Sign in required"},401);
@@ -507,16 +668,23 @@ async function partnerRewardsSummary(req:Request,db:any){
     .select("distributor_id,status,distributors(id,name)")
     .eq("partner_id",ap.partner.id).in("status",["active","suspended"]).maybeSingle();
   if(lErr)throw lErr;
-  const {data:ledger,error}=await db.from("reward_points_ledger")
-    .select("id,distributor_id,points,event_type,reference_type,reference_id,description,created_at")
-    .eq("partner_id",ap.partner.id).order("created_at",{ascending:false}).limit(50);
-  if(error)throw error;
-  const balance=(ledger||[]).reduce((s:number,x:any)=>s+Number(x.points||0),0);
-  const {data:redemptions,error:rErr}=await db.from("reward_redemptions")
-    .select("id,distributor_id,points,reward_type,reward_label,reward_value,status,requested_at,reviewed_at,notes")
-    .eq("partner_id",ap.partner.id).order("requested_at",{ascending:false}).limit(20);
-  if(rErr)throw rErr;
-  return json({ok:true,balance,distributor:link?.distributors||null,link_status:link?.status||null,ledger:ledger||[],redemptions:redemptions||[]});
+  if(!link)return json({ok:true,balance:0,distributor:null,link_status:null,program:null,rewards:[],campaigns:[],ledger:[],redemptions:[],next_reward:null});
+  const nowIso=new Date().toISOString();
+  const [programR,rewardR,campaignR,ledgerR,redemptionR]=await Promise.all([
+    db.from("distributor_reward_programs").select("*").eq("distributor_id",link.distributor_id).maybeSingle(),
+    db.from("distributor_reward_catalog").select("*").eq("distributor_id",link.distributor_id).eq("active",true).order("points_cost"),
+    db.from("distributor_reward_campaigns").select("*,catalog_variants(id,sku,name,size)").eq("distributor_id",link.distributor_id).eq("active",true).order("created_at",{ascending:false}),
+    db.from("reward_points_ledger").select("id,distributor_id,points,event_type,reference_type,reference_id,description,expires_at,created_at").eq("partner_id",ap.partner.id).eq("distributor_id",link.distributor_id).order("created_at",{ascending:false}).limit(100),
+    db.from("reward_redemptions").select("id,distributor_id,reward_catalog_id,points,reward_type,reward_label,reward_value,status,requested_at,reviewed_at,notes").eq("partner_id",ap.partner.id).eq("distributor_id",link.distributor_id).order("requested_at",{ascending:false}).limit(50)
+  ]);
+  for(const r of [programR,rewardR,campaignR,ledgerR,redemptionR])if(r.error)throw r.error;
+  const balance=(ledgerR.data||[]).reduce((sum:number,row:any)=>{
+    if(row.expires_at&&row.expires_at<=nowIso)return sum;
+    return sum+Number(row.points||0);
+  },0);
+  const activeCampaigns=(campaignR.data||[]).filter((x:any)=>(!x.starts_at||x.starts_at<=nowIso)&&(!x.ends_at||x.ends_at>=nowIso));
+  const nextReward=(rewardR.data||[]).find((x:any)=>Number(x.points_cost)>balance)||null;
+  return json({ok:true,balance,distributor:link.distributors||null,link_status:link.status,program:programR.data||null,rewards:rewardR.data||[],campaigns:activeCampaigns,ledger:ledgerR.data||[],redemptions:redemptionR.data||[],next_reward:nextReward});
 }
 
 async function distributorAddOffer(req:Request,db:any,body:any){
@@ -769,7 +937,9 @@ async function distributorUpdateOrder(req: Request, db: any, body: any) {
     message:"Distributor updated material order to "+status+".",
     metadata:{order_id:orderId,from:order.status,to:status,delivery_method:deliveryMethod,scheduled_for:update.scheduled_for,tracking_reference:update.tracking_reference}
   });
-  return json({ok:true,order:updated,lead_status:leadStatus});
+  let reward_award=null;
+  if(["delivered","picked_up"].includes(status))reward_award=await awardPurchasePoints(db,updated,ad.user.id);
+  return json({ok:true,order:updated,lead_status:leadStatus,reward_award});
 }
 
 async function distributorUpdateOffer(req: Request, db: any, body: any) {
@@ -1616,6 +1786,26 @@ Deno.serve(async (req) => {
 
     if (action === "partner-rewards-summary" && req.method === "GET") {
       return await partnerRewardsSummary(req,db);
+    }
+
+    if (action === "partner-request-reward" && req.method === "POST") {
+      return await partnerRequestReward(req,db,await req.json());
+    }
+
+    if (action === "distributor-save-reward-program" && req.method === "POST") {
+      return await distributorSaveRewardProgram(req,db,await req.json());
+    }
+
+    if (action === "distributor-save-reward-item" && req.method === "POST") {
+      return await distributorSaveRewardItem(req,db,await req.json());
+    }
+
+    if (action === "distributor-save-reward-campaign" && req.method === "POST") {
+      return await distributorSaveRewardCampaign(req,db,await req.json());
+    }
+
+    if (action === "distributor-update-reward-redemption" && req.method === "POST") {
+      return await distributorUpdateRewardRedemption(req,db,await req.json());
     }
 
     if (action === "distributor-create-installer-invite" && req.method === "POST") {
