@@ -861,6 +861,22 @@ async function adminSupplyResponse(req: Request, db: any, body: any) {
   return json({ok:true,request,lead_status:nextLeadStatus});
 }
 
+async function adminCreateDistributor(req:Request,db:any,body:any){
+  const adminRow=await requirePlatformAdmin(req,db);
+  if(!adminRow)return json({ok:false,error:"Admin access required"},403);
+  const name=clean(body.name,180),email=clean(body.email,180).toLowerCase(),phone=clean(body.phone,60);
+  const office=clean(body.office_address,280),warehouse=clean(body.warehouse_address,280);
+  if(!name)return json({ok:false,error:"Distributor name is required"},400);
+  if(email&&!validEmail(email))return json({ok:false,error:"Valid distributor email required"},400);
+  const {data:existing}=await db.from("distributors").select("id,name").ilike("name",name).maybeSingle();
+  if(existing)return json({ok:false,error:"A distributor with this name already exists"},409);
+  const {data:distributor,error}=await db.from("distributors").insert({
+    name,email:email||null,phone:phone||null,office_address:office||null,warehouse_address:warehouse||null,active:true
+  }).select("*").single();
+  if(error)throw error;
+  return json({ok:true,distributor});
+}
+
 async function adminAddDistributorMember(req: Request, db: any, body: any) {
   const adminRow=await requirePlatformAdmin(req,db);
   if(!adminRow)return json({ok:false,error:"Admin access required"},403);
@@ -1657,6 +1673,10 @@ Deno.serve(async (req) => {
 
     if (action === "admin-supply-response" && req.method === "POST") {
       return await adminSupplyResponse(req,db,await req.json());
+    }
+
+    if (action === "admin-create-distributor" && req.method === "POST") {
+      return await adminCreateDistributor(req,db,await req.json());
     }
 
     if (action === "admin-add-distributor-member" && req.method === "POST") {
