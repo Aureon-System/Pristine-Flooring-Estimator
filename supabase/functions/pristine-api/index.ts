@@ -662,6 +662,7 @@ async function distributorUpdateOpportunity(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_quotes")))return json({ok:false,error:"Your role cannot manage opportunities"},403);
   const leadId=clean(body.lead_id,80);
   const status=clean(body.status,40);
   const allowed=["new","distributor_review","awaiting_manufacturer","quote_ready","quoted","accepted","declined","ordered","fulfilled","lost"];
@@ -679,6 +680,7 @@ async function distributorSubmitQuote(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_quotes")))return json({ok:false,error:"Your role cannot submit quotes"},403);
   const leadId=clean(body.lead_id,80);
   const {data:lead,error:lerr}=await db.from("material_leads").select("id,required_sqft,calculated_boxes,assigned_distributor_id").eq("id",leadId).eq("assigned_distributor_id",ad.membership.distributor_id).maybeSingle();
   if(lerr)throw lerr;if(!lead)return json({ok:false,error:"Opportunity not found"},404);
@@ -703,6 +705,7 @@ async function distributorRequestSupply(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"request_industry_supply")))return json({ok:false,error:"Your role cannot request Industry supply"},403);
   const leadId=clean(body.lead_id,80);
   const {data:lead,error:lerr}=await db.from("material_leads").select("id,required_sqft,calculated_boxes,catalog_variant_id,assigned_distributor_id").eq("id",leadId).eq("assigned_distributor_id",ad.membership.distributor_id).maybeSingle();
   if(lerr)throw lerr;if(!lead)return json({ok:false,error:"Opportunity not found"},404);
@@ -722,6 +725,7 @@ async function distributorUpdateOrder(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_orders")))return json({ok:false,error:"Your role cannot manage orders"},403);
   const orderId=clean(body.order_id,80);
   const status=clean(body.status,40);
   const allowed=["accepted","confirmed","processing","ready","out_for_delivery","delivered","picked_up","cancelled"];
