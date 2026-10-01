@@ -19,3 +19,12 @@
   .order-controls{grid-template-columns:1fr}
   .catalog-search{width:100%;min-width:0}
 }
+
+.installer-network-grid{display:grid;grid-template-columns:1.25fr .75fr;gap:16px;margin-bottom:22px}
+.installer-invite-card{border:1px solid #d9dee3;border-radius:16px;padding:18px;background:#fff}
+.installer-invite-card h3{margin:0 0 6px}
+.link-output{width:100%;box-sizing:border-box;margin-top:10px;border:1px solid #d8dde2;border-radius:10px;padding:11px 12px;background:#f6f7f8;font-size:.85rem}
+.referral-code-box{display:flex;align-items:center;justify-content:space-between;border:1px solid #d8dde2;border-radius:12px;padding:14px;margin:14px 0;background:#f8f6ef}
+.referral-code-box span{font-size:.72rem;font-weight:800;letter-spacing:.1em;color:#8a6a2d}.referral-code-box strong{font-size:1.2rem}
+.installer-list-head{margin-top:18px}.installer-list-head>strong{font-size:1.4rem}
+@media(max-width:900px){.installer-network-grid{grid-template-columns:1fr}}
