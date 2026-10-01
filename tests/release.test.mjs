@@ -96,7 +96,8 @@ test('configurable Pristine Points supports distributor-defined economics', asyn
   for(const path of [
     'supabase/migrations/20261001110527_configurable_pristine_points.sql',
     'supabase/migrations/20261001110614_pristine_points_expiration_and_redemption_links.sql',
-    'supabase/migrations/20261001110731_pristine_points_atomic_redemptions.sql'
+    'supabase/migrations/20261001110731_pristine_points_atomic_redemptions.sql',
+    'supabase/migrations/20261001111550_pristine_points_scaling_hardening.sql'
   ]) assert.equal(await exists(path),true,'missing '+path);
 
   const distributor=await readFile('distributor.html','utf8');
