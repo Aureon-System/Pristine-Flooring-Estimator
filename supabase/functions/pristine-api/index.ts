@@ -558,9 +558,10 @@ async function adminInventoryValidate(req:Request,db:any,body:any){
     const warehouse=clean(raw.warehouse_code||raw.warehouse||raw.location,80).toUpperCase()||"PRIMARY";
     const key=sku+"|"+warehouse,variant=bySku.get(sku);
     let severity="ok",issue="";
-    let sqft=Number(raw.on_hand_sqft??raw.sqft??raw.inventory_sqft??0);
-    let boxes=Math.trunc(Number(raw.on_hand_boxes??raw.boxes??0));
-    let pallets=Number(raw.on_hand_pallets??raw.pallets??0);
+    const numeric=(v:any)=>Number(String(v??0).replaceAll(",","").trim()||0);
+    let sqft=numeric(raw.on_hand_sqft??raw.sqft??raw.inventory_sqft??0);
+    let boxes=Math.trunc(numeric(raw.on_hand_boxes??raw.boxes??0));
+    let pallets=numeric(raw.on_hand_pallets??raw.pallets??0);
     if(!Number.isFinite(sqft))sqft=0;if(!Number.isFinite(boxes))boxes=0;if(!Number.isFinite(pallets))pallets=0;
     if(!sku||!variant){severity="error";issue="SKU not found in active master catalog";}
     else if(seen.has(key)){severity="error";issue="Duplicate SKU + warehouse in upload";}
@@ -572,8 +573,10 @@ async function adminInventoryValidate(req:Request,db:any,body:any){
       if(boxes<=0&&sqft>0&&perBox>0)boxes=Math.floor(sqft/perBox);
       if(sqft>0&&boxes===0){severity="warning";issue="Positive sqft but box count is zero";}
     }
-    const availability=clean(raw.availability,40)|| (sqft<=0?"out_of_stock":"in_stock");
-    const eta=clean(raw.eta_date||raw.eta,40)||null;
+    const availability=(clean(raw.availability,40).toLowerCase().replaceAll(" ","_").replaceAll("-","_"))|| (sqft<=0?"out_of_stock":"in_stock");
+    const etaRaw=clean(raw.eta_date||raw.eta,40);
+    const eta=/^\d{4}-\d{2}-\d{2}$/.test(etaRaw)&&!Number.isNaN(Date.parse(etaRaw))?etaRaw:null;
+    if(etaRaw&&!eta&&severity!=="error"){severity="warning";issue=(issue?issue+"; ":"")+"ETA date ignored; expected YYYY-MM-DD";}
     if(severity==="ok")validRows++;else if(severity==="warning"){validRows++;warningRows++;}else errorRows++;
     return {row_number:index+2,sku,warehouse_code:warehouse,on_hand_sqft:Math.max(0,sqft),on_hand_boxes:Math.max(0,boxes),on_hand_pallets:Math.max(0,pallets),availability,eta_date:eta,valid:severity!=="error",severity,issue:issue||null,raw_data:raw};
   });
