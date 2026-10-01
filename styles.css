@@ -2277,3 +2277,10 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .catalog-selection-context{top:8px;align-items:stretch;flex-direction:column}
   .catalog-selection-context .btn{width:100%}
 }
+
+.partner-rewards-panel{margin-top:18px;padding:18px;border:1px solid #e1d7bd;border-radius:18px;background:linear-gradient(180deg,#fffdf8,#f7f3e9)}
+.partner-rewards-head{display:flex;justify-content:space-between;gap:18px;align-items:flex-start}.partner-rewards-head h3{margin:4px 0}.partner-rewards-head p{margin:0;color:#65717a}.partner-rewards-head>strong{font-size:1.7rem;white-space:nowrap}
+.partner-rewards-progress{margin:16px 0}.partner-rewards-progress small{display:block;margin-top:7px;color:#66727c}.points-progress{height:9px;background:#e3e7ea;border-radius:999px;overflow:hidden}.points-progress>span{display:block;height:100%;background:linear-gradient(90deg,#b88a34,#dfb75f)}
+.partner-reward-campaigns{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.partner-reward-campaigns .campaign-chip{padding:6px 10px;border-radius:999px;background:#1d2c36;color:#fff;font-size:.78rem;font-weight:800}
+.partner-reward-catalog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:14px}.partner-reward-card{background:#fff;border:1px solid #dde2e5;border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:7px}.partner-reward-card strong{font-size:1rem}.partner-reward-card .reward-cost{font-size:1.2rem;font-weight:900}.partner-reward-card small{color:#6b747c;min-height:34px}.partner-reward-card .btn{margin-top:auto}
+@media(max-width:900px){.partner-reward-catalog{grid-template-columns:1fr 1fr}}@media(max-width:620px){.partner-reward-catalog{grid-template-columns:1fr}.partner-rewards-head{flex-direction:column}.partner-rewards-head>strong{font-size:1.4rem}}
