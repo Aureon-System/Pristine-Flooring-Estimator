@@ -303,6 +303,30 @@ async function authenticatedDistributor(req: Request, db: any, requestedDistribu
   return null;
 }
 
+async function distributorCan(db:any, role:string, permission:string){
+  if(role==="admin_view")return true;
+  const {data,error}=await db.from("distributor_role_permissions")
+    .select("allowed").eq("role",clean(role,40)).eq("permission",clean(permission,80)).maybeSingle();
+  if(error)throw error;
+  return Boolean(data?.allowed);
+}
+
+async function ensureDistributorReferral(db:any, userId:string, distributorId:string){
+  const {data:partner,error:pErr}=await db.from("partners").select("id,company_name,email").eq("owner_id",userId).maybeSingle();
+  if(pErr)throw pErr;
+  if(!partner)return {partner:null,referral_code:null};
+  let {data:refCode,error:rErr}=await db.from("referral_codes").select("id,code,partner_id,active").eq("partner_id",partner.id).eq("active",true).maybeSingle();
+  if(rErr)throw rErr;
+  if(!refCode){
+    for(let i=0;i<5&&!refCode;i++){
+      const candidate="PF-"+crypto.randomUUID().replaceAll("-","").slice(0,8).toUpperCase();
+      const created=await db.from("referral_codes").insert({partner_id:partner.id,code:candidate}).select("id,code,partner_id,active").single();
+      if(!created.error)refCode=created.data;
+    }
+  }
+  return {partner,referral_code:refCode||null,distributor_id:distributorId};
+}
+
 async function networkRole(req: Request, db: any) {
   const user = await authenticatedUser(req,db);
   if (!user) return json({ok:false,error:"Sign in required"},401);
@@ -311,9 +335,20 @@ async function networkRole(req: Request, db: any) {
     db.from("distributor_members").select("id,distributor_id,role,active,distributors(id,name)").eq("user_id",user.id).eq("active",true),
     db.from("platform_admins").select("role,active").eq("user_id",user.id).eq("active",true).maybeSingle()
   ]);
+  let installerDistributor:any=null;
+  if(partnerR.data?.id){
+    const {data:link,error:lErr}=await db.from("distributor_installers")
+      .select("id,distributor_id,status,distributors(id,name)")
+      .eq("partner_id",partnerR.data.id)
+      .in("status",["active","suspended"])
+      .maybeSingle();
+    if(lErr)throw lErr;
+    installerDistributor=link||null;
+  }
   return json({
     ok:true,
     installer:partnerR.data||null,
+    installer_distributor:installerDistributor,
     distributors:memberR.data||[],
     admin:adminR.data||null
   });
@@ -343,52 +378,228 @@ async function distributorDashboard(req: Request, db: any, url: URL) {
     quotes=qR.data||[];supply=sR.data||[];events=eR.data||[];orders=oR.data||[];
   }
   const offersR=await db.from("distributor_offers")
-    .select("id,distributor_id,variant_id,price_sqft,availability,stock_sqft,lead_time_days,effective_date,active,catalog_variants(id,sku,name,size,finish,sqft_per_box,catalog_products(collection,category))")
+    .select("id,distributor_id,variant_id,price_sqft,availability,stock_sqft,lead_time_days,effective_date,active,catalog_variants(id,sku,name,size,finish,sqft_per_box,active,catalog_products(collection,category))")
     .eq("distributor_id",distributorId)
-    .eq("active",true)
     .order("updated_at",{ascending:false});
   if(offersR.error)throw offersR.error;
 
-  let installerNetwork:any={partner:null,referral_code:null,installers:[]};
-  const {data:networkPartner,error:npErr}=await db.from("partners")
-    .select("id,company_name,email")
-    .eq("owner_id",ad.user.id)
-    .maybeSingle();
-  if(npErr)throw npErr;
-  if(networkPartner){
-    let {data:refCode,error:rcErr}=await db.from("referral_codes")
-      .select("id,code,partner_id,active")
-      .eq("partner_id",networkPartner.id)
-      .eq("active",true)
-      .maybeSingle();
-    if(rcErr)throw rcErr;
-    if(!refCode){
-      for(let i=0;i<5&&!refCode;i++){
-        const candidate="PF-"+crypto.randomUUID().replaceAll("-","").slice(0,8).toUpperCase();
-        const created=await db.from("referral_codes").insert({partner_id:networkPartner.id,code:candidate}).select("id,code,partner_id,active").single();
-        if(!created.error)refCode=created.data;
-      }
-    }
-    let installers:any[]=[];
-    if(refCode?.code){
-      const {data:profiles,error:pErr}=await db.from("partner_profiles")
-        .select("partner_id,business_type,service_area,profile_completed,referred_by_code,created_at")
-        .eq("referred_by_code",refCode.code)
-        .order("created_at",{ascending:false});
-      if(pErr)throw pErr;
-      const partnerIds=(profiles||[]).map((x:any)=>x.partner_id).filter(Boolean);
-      let partnerRows:any[]=[];
-      if(partnerIds.length){
-        const {data:rows,error:rErr}=await db.from("partners").select("id,company_name,email,phone,created_at").in("id",partnerIds);
-        if(rErr)throw rErr;partnerRows=rows||[];
-      }
-      const byId=new Map(partnerRows.map((x:any)=>[x.id,x]));
-      installers=(profiles||[]).map((p:any)=>({...byId.get(p.partner_id),business_type:p.business_type,service_area:p.service_area,profile_completed:p.profile_completed,created_at:p.created_at}));
-    }
-    installerNetwork={partner:networkPartner,referral_code:refCode||null,installers};
+  const {data:catalogRows,error:catErr}=await db.from("catalog_variants")
+    .select("id,sku,name,size,finish,sqft_per_box,active,catalog_products(collection,category)")
+    .eq("active",true).order("name");
+  if(catErr)throw catErr;
+  const {data:industryRows,error:invErr}=await db.from("industry_inventory")
+    .select("variant_id,warehouse_code,on_hand_sqft,on_hand_boxes,on_hand_pallets,availability,eta_date,updated_at");
+  if(invErr)throw invErr;
+  const industryByVariant=new Map<string,any>();
+  for(const row of (industryRows||[])){
+    const prev=industryByVariant.get(row.variant_id)||{variant_id:row.variant_id,on_hand_sqft:0,on_hand_boxes:0,on_hand_pallets:0,warehouses:0,availability:"unknown",updated_at:null};
+    prev.on_hand_sqft+=Number(row.on_hand_sqft||0);prev.on_hand_boxes+=Number(row.on_hand_boxes||0);prev.on_hand_pallets+=Number(row.on_hand_pallets||0);prev.warehouses+=1;
+    if(row.availability==="in_stock"||row.availability==="limited")prev.availability=row.availability;
+    if(!prev.updated_at||String(row.updated_at)>String(prev.updated_at))prev.updated_at=row.updated_at;
+    industryByVariant.set(row.variant_id,prev);
   }
 
-  return json({ok:true,membership:ad.membership,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[],installer_network:installerNetwork});
+  const network=await ensureDistributorReferral(db,ad.user.id,distributorId);
+  const {data:links,error:linksErr}=await db.from("distributor_installers")
+    .select("id,partner_id,referral_code_id,status,assigned_sales_user_id,joined_at,last_activity_at,created_at,updated_at,partners(id,company_name,email,phone,created_at,partner_profiles(business_type,service_area,profile_completed))")
+    .eq("distributor_id",distributorId)
+    .neq("status","removed")
+    .order("updated_at",{ascending:false});
+  if(linksErr)throw linksErr;
+  const installerIds=(links||[]).map((x:any)=>x.partner_id);
+  let pointRows:any[]=[];
+  if(installerIds.length){
+    const {data:pts,error:pErr}=await db.from("reward_points_ledger").select("partner_id,points").eq("distributor_id",distributorId).in("partner_id",installerIds);
+    if(pErr)throw pErr;pointRows=pts||[];
+  }
+  const pointsByPartner=new Map<string,number>();
+  for(const p of pointRows)pointsByPartner.set(p.partner_id,(pointsByPartner.get(p.partner_id)||0)+Number(p.points||0));
+  const installers=(links||[]).map((link:any)=>{
+    const p=link.partners||{},profile=Array.isArray(p.partner_profiles)?p.partner_profiles[0]:p.partner_profiles;
+    return {link_id:link.id,partner_id:link.partner_id,status:link.status,company_name:p.company_name,email:p.email,phone:p.phone,business_type:profile?.business_type||"installer",service_area:profile?.service_area||null,profile_completed:Boolean(profile?.profile_completed),created_at:link.joined_at||link.created_at,points_balance:pointsByPartner.get(link.partner_id)||0};
+  });
+  const installerNetwork={partner:network.partner,referral_code:network.referral_code,installers};
+
+  const permissionsR=await db.from("distributor_role_permissions").select("permission,allowed").eq("role",clean(ad.membership.role,40)).eq("allowed",true);
+  if(permissionsR.error)throw permissionsR.error;
+  const permissions=(permissionsR.data||[]).map((x:any)=>x.permission);
+
+  return json({ok:true,membership:ad.membership,permissions,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[],catalog:catalogRows||[],industry_inventory:[...industryByVariant.values()],installer_network:installerNetwork});
+}
+
+async function installerCatalog(req:Request,db:any){
+  const ap=await authenticatedPartner(req,db);
+  if(!ap)return json({ok:false,error:"Sign in required"},401);
+  const {data:link,error:lErr}=await db.from("distributor_installers")
+    .select("distributor_id,status,distributors(id,name)")
+    .eq("partner_id",ap.partner.id)
+    .in("status",["active","suspended"])
+    .maybeSingle();
+  if(lErr)throw lErr;
+  if(!link)return json({ok:true,distributor:null,items:[]});
+  if(link.status!=="active")return json({ok:false,error:"Installer access is suspended by the distributor"},403);
+  const {data:offers,error:oErr}=await db.from("distributor_offers")
+    .select("id,variant_id,price_sqft,availability,stock_sqft,lead_time_days,effective_date,catalog_variants(id,sku,name,size,material_type,finish,edges,sqft_per_box,boxes_per_pallet,active,catalog_products(collection,category))")
+    .eq("distributor_id",link.distributor_id)
+    .eq("active",true);
+  if(oErr)throw oErr;
+  const items=(offers||[]).filter((o:any)=>o.catalog_variants?.active!==false).map((o:any)=>({
+    ...o.catalog_variants,
+    distributor_offer:{id:o.id,distributor_id:link.distributor_id,distributor_name:(link as any).distributors?.name||null,price_sqft:o.price_sqft,availability:o.availability,stock_sqft:o.stock_sqft,lead_time_days:o.lead_time_days,effective_date:o.effective_date}
+  }));
+  return json({ok:true,distributor:(link as any).distributors||null,items});
+}
+
+async function distributorCreateInstallerInvite(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80);
+  const ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  const canManage=await distributorCan(db,ad.membership.role,"manage_installers");
+  const canInvite=canManage||await distributorCan(db,ad.membership.role,"invite_installers");
+  if(!canInvite)return json({ok:false,error:"Your role cannot invite installers"},403);
+  const email=clean(body.email,180).toLowerCase(),company=clean(body.company,160);
+  if(email&&!validEmail(email))return json({ok:false,error:"Valid installer email required"},400);
+  const network=await ensureDistributorReferral(db,ad.user.id,ad.membership.distributor_id);
+  const token=crypto.randomUUID().replaceAll("-","")+crypto.randomUUID().replaceAll("-","");
+  const {data:invite,error}=await db.from("distributor_installer_invites").insert({
+    distributor_id:ad.membership.distributor_id,referral_code_id:network.referral_code?.id||null,invite_token:token,
+    installer_email:email||null,installer_company:company||null,status:"pending",created_by:ad.user.id
+  }).select("id,invite_token,installer_email,installer_company,status,expires_at,created_at").single();
+  if(error)throw error;
+  return json({ok:true,invite,referral_code:network.referral_code?.code||null});
+}
+
+async function distributorUpdateInstaller(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80);
+  const ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_installers")))return json({ok:false,error:"Your role cannot manage installers"},403);
+  const partnerId=clean(body.partner_id,80),status=clean(body.status,20);
+  if(!partnerId||!["active","suspended","removed"].includes(status))return json({ok:false,error:"Installer and valid status are required"},400);
+  const {data:updated,error}=await db.from("distributor_installers").update({status,updated_at:new Date().toISOString()})
+    .eq("distributor_id",ad.membership.distributor_id).eq("partner_id",partnerId)
+    .select("id,partner_id,distributor_id,status,updated_at").maybeSingle();
+  if(error)throw error;if(!updated)return json({ok:false,error:"Installer is not linked to this distributor"},404);
+  return json({ok:true,installer:updated});
+}
+
+async function distributorAdjustPoints(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80);
+  const ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_installers")))return json({ok:false,error:"Your role cannot adjust installer points"},403);
+  const partnerId=clean(body.partner_id,80),points=Math.trunc(Number(body.points||0)),description=clean(body.description,500);
+  if(!partnerId||!Number.isFinite(points)||points===0||Math.abs(points)>100000)return json({ok:false,error:"A non-zero points adjustment is required"},400);
+  const {data:link,error:lErr}=await db.from("distributor_installers").select("id,status").eq("distributor_id",ad.membership.distributor_id).eq("partner_id",partnerId).neq("status","removed").maybeSingle();
+  if(lErr)throw lErr;if(!link)return json({ok:false,error:"Installer is not linked to this distributor"},404);
+  const {error}=await db.from("reward_points_ledger").insert({partner_id:partnerId,distributor_id:ad.membership.distributor_id,points,event_type:"manual_adjustment",description:description||"Distributor points adjustment",created_by:ad.user.id});
+  if(error)throw error;
+  const {data:ledger,error:sErr}=await db.from("reward_points_ledger").select("points").eq("partner_id",partnerId).eq("distributor_id",ad.membership.distributor_id);
+  if(sErr)throw sErr;
+  const balance=(ledger||[]).reduce((s:number,x:any)=>s+Number(x.points||0),0);
+  return json({ok:true,balance});
+}
+
+async function partnerRewardsSummary(req:Request,db:any){
+  const ap=await authenticatedPartner(req,db);
+  if(!ap)return json({ok:false,error:"Sign in required"},401);
+  const {data:link,error:lErr}=await db.from("distributor_installers")
+    .select("distributor_id,status,distributors(id,name)")
+    .eq("partner_id",ap.partner.id).in("status",["active","suspended"]).maybeSingle();
+  if(lErr)throw lErr;
+  const {data:ledger,error}=await db.from("reward_points_ledger")
+    .select("id,distributor_id,points,event_type,reference_type,reference_id,description,created_at")
+    .eq("partner_id",ap.partner.id).order("created_at",{ascending:false}).limit(50);
+  if(error)throw error;
+  const balance=(ledger||[]).reduce((s:number,x:any)=>s+Number(x.points||0),0);
+  const {data:redemptions,error:rErr}=await db.from("reward_redemptions")
+    .select("id,distributor_id,points,reward_type,reward_label,reward_value,status,requested_at,reviewed_at,notes")
+    .eq("partner_id",ap.partner.id).order("requested_at",{ascending:false}).limit(20);
+  if(rErr)throw rErr;
+  return json({ok:true,balance,distributor:link?.distributors||null,link_status:link?.status||null,ledger:ledger||[],redemptions:redemptions||[]});
+}
+
+async function distributorAddOffer(req:Request,db:any,body:any){
+  const distributorId=clean(body.distributor_id,80);
+  const ad=await authenticatedDistributor(req,db,distributorId);
+  if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  const canCatalog=await distributorCan(db,ad.membership.role,"manage_catalog");
+  const canPricing=await distributorCan(db,ad.membership.role,"manage_pricing");
+  if(!canCatalog&&!canPricing)return json({ok:false,error:"Your role cannot manage catalog products"},403);
+  const variantId=clean(body.variant_id,80);
+  if(!variantId)return json({ok:false,error:"Product variant required"},400);
+  const {data:permission,error:pErr}=await db.from("distributor_catalog_permissions").select("allowed,reason").eq("distributor_id",ad.membership.distributor_id).eq("variant_id",variantId).maybeSingle();
+  if(pErr)throw pErr;if(permission&&permission.allowed===false)return json({ok:false,error:permission.reason||"Industry has not authorized this product for this distributor"},403);
+  const price=Math.max(0,Number(body.price_sqft||0)),stock=Math.max(0,Number(body.stock_sqft||0)),lead=Math.max(0,Math.round(Number(body.lead_time_days||0)));
+  const availability=clean(body.availability,40)||"unknown";
+  if(!["in_stock","limited","out_of_stock","special_order","unknown"].includes(availability))return json({ok:false,error:"Invalid availability"},400);
+  const now=new Date().toISOString();
+  const {data:offer,error}=await db.from("distributor_offers").upsert({
+    distributor_id:ad.membership.distributor_id,variant_id:variantId,price_sqft:price,stock_sqft:stock,lead_time_days:lead,availability,active:false,effective_date:now.slice(0,10),updated_at:now,source_label:"Distributor"
+  },{onConflict:"distributor_id,variant_id"}).select("*").single();
+  if(error)throw error;
+  return json({ok:true,offer});
+}
+
+async function adminInventoryValidate(req:Request,db:any,body:any){
+  const adminRow=await requirePlatformAdmin(req,db);
+  if(!adminRow)return json({ok:false,error:"Admin access required"},403);
+  const user=await authenticatedUser(req,db);
+  const filename=clean(body.filename,240)||"inventory-upload";
+  const rows=Array.isArray(body.rows)?body.rows.slice(0,5000):[];
+  if(!rows.length)return json({ok:false,error:"Inventory file has no rows"},400);
+  const {data:variants,error:vErr}=await db.from("catalog_variants").select("id,sku,sqft_per_box,boxes_per_pallet").eq("active",true);
+  if(vErr)throw vErr;
+  const bySku=new Map((variants||[]).map((v:any)=>[String(v.sku||"").trim().toUpperCase(),v]));
+  const seen=new Set<string>();
+  let validRows=0,warningRows=0,errorRows=0;
+  const staged=rows.map((raw:any,index:number)=>{
+    const sku=clean(raw.sku||raw.SKU||raw.product_sku,80).toUpperCase();
+    const warehouse=clean(raw.warehouse_code||raw.warehouse||raw.location,80).toUpperCase()||"PRIMARY";
+    const key=sku+"|"+warehouse,variant=bySku.get(sku);
+    let severity="ok",issue="";
+    const numeric=(v:any)=>Number(String(v??0).replaceAll(",","").trim()||0);
+    let sqft=numeric(raw.on_hand_sqft??raw.sqft??raw.inventory_sqft??0);
+    let boxes=Math.trunc(numeric(raw.on_hand_boxes??raw.boxes??0));
+    let pallets=numeric(raw.on_hand_pallets??raw.pallets??0);
+    if(!Number.isFinite(sqft))sqft=0;if(!Number.isFinite(boxes))boxes=0;if(!Number.isFinite(pallets))pallets=0;
+    if(!sku||!variant){severity="error";issue="SKU not found in active master catalog";}
+    else if(seen.has(key)){severity="error";issue="Duplicate SKU + warehouse in upload";}
+    else if(sqft<0||boxes<0||pallets<0){severity="error";issue="Inventory quantities cannot be negative";}
+    else{
+      seen.add(key);
+      const perBox=Number((variant as any).sqft_per_box||0);
+      if(sqft<=0&&boxes>0&&perBox>0)sqft=boxes*perBox;
+      if(boxes<=0&&sqft>0&&perBox>0)boxes=Math.floor(sqft/perBox);
+      if(sqft>0&&boxes===0){severity="warning";issue="Positive sqft but box count is zero";}
+    }
+    const availability=(clean(raw.availability,40).toLowerCase().replaceAll(" ","_").replaceAll("-","_"))|| (sqft<=0?"out_of_stock":"in_stock");
+    const etaRaw=clean(raw.eta_date||raw.eta,40);
+    const eta=/^\d{4}-\d{2}-\d{2}$/.test(etaRaw)&&!Number.isNaN(Date.parse(etaRaw))?etaRaw:null;
+    if(etaRaw&&!eta&&severity!=="error"){severity="warning";issue=(issue?issue+"; ":"")+"ETA date ignored; expected YYYY-MM-DD";}
+    if(severity==="ok")validRows++;else if(severity==="warning"){validRows++;warningRows++;}else errorRows++;
+    return {row_number:index+2,sku,warehouse_code:warehouse,on_hand_sqft:Math.max(0,sqft),on_hand_boxes:Math.max(0,boxes),on_hand_pallets:Math.max(0,pallets),availability,eta_date:eta,valid:severity!=="error",severity,issue:issue||null,raw_data:raw};
+  });
+  const {data:batch,error:bErr}=await db.from("industry_inventory_batches").insert({source_filename:filename,source_type:"upload",status:errorRows?"validated":"validated",total_rows:rows.length,valid_rows:validRows,warning_rows:warningRows,error_rows:errorRows,uploaded_by:user?.id||null}).select("*").single();
+  if(bErr)throw bErr;
+  for(let i=0;i<staged.length;i+=500){
+    const part=staged.slice(i,i+500).map((x:any)=>({...x,batch_id:batch.id}));
+    const {error}=await db.from("industry_inventory_import_rows").insert(part);if(error)throw error;
+  }
+  return json({ok:true,batch:{...batch,total_rows:rows.length,valid_rows:validRows,warning_rows:warningRows,error_rows:errorRows},preview:staged.slice(0,100)});
+}
+
+async function adminInventoryPublish(req:Request,db:any,body:any){
+  const adminRow=await requirePlatformAdmin(req,db);
+  if(!adminRow)return json({ok:false,error:"Admin access required"},403);
+  const user=await authenticatedUser(req,db);
+  const batchId=clean(body.batch_id,80);
+  if(!batchId)return json({ok:false,error:"Inventory batch required"},400);
+  const {data:publishedRows,error:rpcErr}=await db.rpc("publish_industry_inventory_batch",{p_batch_id:batchId,p_user_id:user?.id||null});
+  if(rpcErr)throw rpcErr;
+  const {data:batch,error:bErr}=await db.from("industry_inventory_batches").select("*").eq("id",batchId).single();
+  if(bErr)throw bErr;
+  return json({ok:true,batch,published_rows:Number(publishedRows||0)});
 }
 
 async function installerQuoteDecision(req: Request, db: any, body: any) {
@@ -454,6 +665,7 @@ async function distributorUpdateOpportunity(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_quotes")))return json({ok:false,error:"Your role cannot manage opportunities"},403);
   const leadId=clean(body.lead_id,80);
   const status=clean(body.status,40);
   const allowed=["new","distributor_review","awaiting_manufacturer","quote_ready","quoted","accepted","declined","ordered","fulfilled","lost"];
@@ -471,6 +683,7 @@ async function distributorSubmitQuote(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_quotes")))return json({ok:false,error:"Your role cannot submit quotes"},403);
   const leadId=clean(body.lead_id,80);
   const {data:lead,error:lerr}=await db.from("material_leads").select("id,required_sqft,calculated_boxes,assigned_distributor_id").eq("id",leadId).eq("assigned_distributor_id",ad.membership.distributor_id).maybeSingle();
   if(lerr)throw lerr;if(!lead)return json({ok:false,error:"Opportunity not found"},404);
@@ -495,6 +708,7 @@ async function distributorRequestSupply(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"request_industry_supply")))return json({ok:false,error:"Your role cannot request Industry supply"},403);
   const leadId=clean(body.lead_id,80);
   const {data:lead,error:lerr}=await db.from("material_leads").select("id,required_sqft,calculated_boxes,catalog_variant_id,assigned_distributor_id").eq("id",leadId).eq("assigned_distributor_id",ad.membership.distributor_id).maybeSingle();
   if(lerr)throw lerr;if(!lead)return json({ok:false,error:"Opportunity not found"},404);
@@ -514,6 +728,7 @@ async function distributorUpdateOrder(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
+  if(!(await distributorCan(db,ad.membership.role,"manage_orders")))return json({ok:false,error:"Your role cannot manage orders"},403);
   const orderId=clean(body.order_id,80);
   const status=clean(body.status,40);
   const allowed=["accepted","confirmed","processing","ready","out_for_delivery","delivered","picked_up","cancelled"];
@@ -561,7 +776,10 @@ async function distributorUpdateOffer(req: Request, db: any, body: any) {
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
   if(!ad)return json({ok:false,error:"Distributor access required"},403);
-  if(!["owner","manager"].includes(clean(ad.membership.role,40)))return json({ok:false,error:"Owner or manager access required to edit catalog pricing"},403);
+  const canPricing=await distributorCan(db,ad.membership.role,"manage_pricing");
+  const canInventory=await distributorCan(db,ad.membership.role,"manage_inventory");
+  const canCatalog=await distributorCan(db,ad.membership.role,"manage_catalog");
+  if(!canPricing&&!canInventory&&!canCatalog)return json({ok:false,error:"Your role cannot edit catalog or inventory"},403);
   const offerId=clean(body.offer_id,80);
   const price=Math.max(0,Number(body.price_sqft||0));
   const availability=clean(body.availability,80)||"unknown";
@@ -574,27 +792,36 @@ async function distributorUpdateOffer(req: Request, db: any, body: any) {
     .eq("id",offerId).eq("distributor_id",ad.membership.distributor_id).maybeSingle();
   if(oErr)throw oErr;if(!offer)return json({ok:false,error:"Catalog offer not found"},404);
   const now=new Date().toISOString();
+  const active=body.active===undefined?true:Boolean(body.active);
   const {data:updated,error}=await db.from("distributor_offers").update({
-    price_sqft:price,availability,stock_sqft:stock,lead_time_days:leadTime,effective_date:now.slice(0,10),updated_at:now
+    price_sqft:price,availability,stock_sqft:stock,lead_time_days:leadTime,active,effective_date:now.slice(0,10),updated_at:now
   }).eq("id",offerId).select("id,distributor_id,variant_id,price_sqft,availability,stock_sqft,lead_time_days,effective_date,active").single();
   if(error)throw error;
+  await db.from("inventory_events").insert({scope:"distributor",distributor_id:ad.membership.distributor_id,variant_id:offer.variant_id,event_type:"distributor_offer_update",before_data:offer,after_data:updated,actor_user_id:ad.user.id});
   return json({ok:true,offer:updated});
 }
 
 async function adminNetworkSummary(req: Request, db: any) {
   const adminRow=await requirePlatformAdmin(req,db);
   if(!adminRow)return json({ok:false,error:"Admin access required"},403);
-  const [leadsR,distR,memberR,quoteR,supplyR,manR,orderR] = await Promise.all([
+  const [leadsR,distR,memberR,quoteR,supplyR,manR,orderR,installerLinksR,inventoryR,batchesR] = await Promise.all([
     db.from("material_leads").select("id,requester_company,requester_name,project_name,project_city,project_state,project_zip,material,required_sqft,status,product_sku,product_name,assigned_distributor_id,created_at,last_activity_at,partners(company_name)").order("last_activity_at",{ascending:false}).limit(300),
     db.from("distributors").select("*").order("name"),
     db.from("distributor_members").select("id,distributor_id,user_id,role,active,created_at,distributors(name)").order("created_at",{ascending:false}),
     db.from("material_quotes").select("*").order("created_at",{ascending:false}).limit(300),
     db.from("manufacturer_supply_requests").select("*,distributors(name),catalog_manufacturers(name),catalog_variants(sku,name,size,finish)").order("created_at",{ascending:false}).limit(300),
     db.from("catalog_manufacturers").select("*").eq("active",true).order("name"),
-    db.from("material_orders").select("*,distributors(name),material_leads(project_name,product_name,product_sku)").order("created_at",{ascending:false}).limit(300)
+    db.from("material_orders").select("*,distributors(name),material_leads(project_name,product_name,product_sku)").order("created_at",{ascending:false}).limit(300),
+    db.from("distributor_installers").select("id,distributor_id,status",{count:"exact"}).neq("status","removed").limit(5000),
+    db.from("industry_inventory").select("variant_id,on_hand_sqft,on_hand_boxes,on_hand_pallets,availability,updated_at").limit(10000),
+    db.from("industry_inventory_batches").select("id,source_filename,status,total_rows,valid_rows,warning_rows,error_rows,uploaded_at,published_at").order("uploaded_at",{ascending:false}).limit(20)
   ]);
-  for(const r of [leadsR,distR,memberR,quoteR,supplyR,manR,orderR])if(r.error)throw r.error;
+  for(const r of [leadsR,distR,memberR,quoteR,supplyR,manR,orderR,installerLinksR,inventoryR,batchesR])if(r.error)throw r.error;
   const leads=leadsR.data||[], supply=supplyR.data||[], quotes=quoteR.data||[], orders=orderR.data||[];
+  const distributorInstallerCounts:any={};
+  for(const x of (installerLinksR.data||[]))distributorInstallerCounts[x.distributor_id]=(distributorInstallerCounts[x.distributor_id]||0)+1;
+  const totalIndustrySqft=(inventoryR.data||[]).reduce((s:number,x:any)=>s+Number(x.on_hand_sqft||0),0);
+  const outOfStockSkus=new Set((inventoryR.data||[]).filter((x:any)=>x.availability==="out_of_stock"||Number(x.on_hand_sqft||0)<=0).map((x:any)=>x.variant_id)).size;
   return json({ok:true,role:adminRow.role,metrics:{
     opportunities:leads.length,
     distributor_review:leads.filter((x:any)=>["new","distributor_review","quote_ready"].includes(x.status)).length,
@@ -605,8 +832,13 @@ async function adminNetworkSummary(req: Request, db: any) {
     quote_value:quotes.filter((x:any)=>x.status==="submitted"||x.status==="accepted").reduce((sum:number,x:any)=>sum+Number(x.total||0),0),
     open_orders:orders.filter((x:any)=>!["delivered","picked_up","cancelled"].includes(x.status)).length,
     fulfilled_orders:orders.filter((x:any)=>["delivered","picked_up"].includes(x.status)).length,
-    order_value:orders.filter((x:any)=>x.status!=="cancelled").reduce((sum:number,x:any)=>sum+Number(x.total||0),0)
-  },leads,distributors:distR.data||[],members:memberR.data||[],quotes,supply_requests:supply,manufacturers:manR.data||[],orders});
+    order_value:orders.filter((x:any)=>x.status!=="cancelled").reduce((sum:number,x:any)=>sum+Number(x.total||0),0),
+    distributors:(distR.data||[]).length,
+    installers:(installerLinksR.data||[]).length,
+    industry_inventory_sqft:totalIndustrySqft,
+    industry_out_of_stock_skus:outOfStockSkus,
+    last_inventory_publish:batchesR.data?.find((x:any)=>x.status==="published")?.published_at||null
+  },leads,distributors:(distR.data||[]).map((d:any)=>({...d,installer_count:distributorInstallerCounts[d.id]||0})),members:memberR.data||[],quotes,supply_requests:supply,manufacturers:manR.data||[],orders,inventory_batches:batchesR.data||[],industry_inventory:inventoryR.data||[]});
 }
 
 async function adminSupplyResponse(req: Request, db: any, body: any) {
@@ -626,6 +858,22 @@ async function adminSupplyResponse(req: Request, db: any, body: any) {
   await db.from("material_leads").update({status:nextLeadStatus,last_activity_at:now,updated_at:now}).eq("id",sr.material_lead_id);
   await db.from("opportunity_events").insert({material_lead_id:sr.material_lead_id,actor_type:"industry",actor_user_id:user?.id||null,event_type:"manufacturer_supply_response",message:"Industry responded to the distributor supply request.",metadata:{supply_request_id:requestId,status,...update}});
   return json({ok:true,request,lead_status:nextLeadStatus});
+}
+
+async function adminCreateDistributor(req:Request,db:any,body:any){
+  const adminRow=await requirePlatformAdmin(req,db);
+  if(!adminRow)return json({ok:false,error:"Admin access required"},403);
+  const name=clean(body.name,180),email=clean(body.email,180).toLowerCase(),phone=clean(body.phone,60);
+  const office=clean(body.office_address,280),warehouse=clean(body.warehouse_address,280);
+  if(!name)return json({ok:false,error:"Distributor name is required"},400);
+  if(email&&!validEmail(email))return json({ok:false,error:"Valid distributor email required"},400);
+  const {data:existing}=await db.from("distributors").select("id,name").ilike("name",name).maybeSingle();
+  if(existing)return json({ok:false,error:"A distributor with this name already exists"},409);
+  const {data:distributor,error}=await db.from("distributors").insert({
+    name,email:email||null,phone:phone||null,office_address:office||null,warehouse_address:warehouse||null,active:true
+  }).select("*").single();
+  if(error)throw error;
+  return json({ok:true,distributor});
 }
 
 async function adminAddDistributorMember(req: Request, db: any, body: any) {
@@ -1095,7 +1343,7 @@ Deno.serve(async (req) => {
         email,
         password,
         options:{
-          data:{company_name:company,referred_by_code:clean(b.referral_code,40).toUpperCase()||null},
+          data:{company_name:company,referred_by_code:clean(b.referral_code,40).toUpperCase()||null,distributor_invite_token:clean(b.invite_token,160)||null},
           redirectTo:"https://pristineflooring.online/calculator.html"
         }
       });
@@ -1279,7 +1527,35 @@ Deno.serve(async (req) => {
         }
       }
 
-      return json({ok:true,profile,referral_code:refCode});
+      const inviteToken=clean(ap.user?.user_metadata?.distributor_invite_token,160);
+      if(inviteToken){
+        const {data:invite,error:iErr}=await db.from("distributor_installer_invites")
+          .select("id,distributor_id,referral_code_id,status,expires_at")
+          .eq("invite_token",inviteToken).eq("status","pending").maybeSingle();
+        if(iErr)throw iErr;
+        if(invite&&(!invite.expires_at||new Date(invite.expires_at).getTime()>Date.now())){
+          const now=new Date().toISOString();
+          const {error:linkErr}=await db.from("distributor_installers").upsert({
+            distributor_id:invite.distributor_id,partner_id:ap.partner.id,referral_code_id:invite.referral_code_id||null,status:"active",joined_at:now,last_activity_at:now,updated_at:now
+          },{onConflict:"distributor_id,partner_id"});
+          if(linkErr)throw linkErr;
+          await db.from("distributor_installer_invites").update({status:"redeemed",redeemed_partner_id:ap.partner.id,redeemed_at:now}).eq("id",invite.id);
+        }
+      }
+      if(profile?.referred_by_code){
+        const {data:parentCode}=await db.from("referral_codes").select("id,partner_id").eq("code",profile.referred_by_code).eq("active",true).maybeSingle();
+        if(parentCode){
+          const {data:ownerPartner}=await db.from("partners").select("owner_id").eq("id",parentCode.partner_id).maybeSingle();
+          if(ownerPartner?.owner_id){
+            const {data:membership}=await db.from("distributor_members").select("distributor_id").eq("user_id",ownerPartner.owner_id).eq("active",true).order("created_at",{ascending:true}).limit(1).maybeSingle();
+            if(membership?.distributor_id){
+              await db.from("distributor_installers").upsert({distributor_id:membership.distributor_id,partner_id:ap.partner.id,referral_code_id:parentCode.id,status:"active",last_activity_at:new Date().toISOString(),updated_at:new Date().toISOString()},{onConflict:"distributor_id,partner_id"});
+            }
+          }
+        }
+      }
+      const {data:installerLink}=await db.from("distributor_installers").select("id,distributor_id,status,distributors(id,name)").eq("partner_id",ap.partner.id).in("status",["active","suspended"]).maybeSingle();
+      return json({ok:true,profile,referral_code:refCode,installer_distributor:installerLink||null});
     }
 
     if (action === "referral-open" && req.method === "POST") {
@@ -1334,6 +1610,38 @@ Deno.serve(async (req) => {
     }
 
 
+    if (action === "installer-catalog" && req.method === "GET") {
+      return await installerCatalog(req,db);
+    }
+
+    if (action === "partner-rewards-summary" && req.method === "GET") {
+      return await partnerRewardsSummary(req,db);
+    }
+
+    if (action === "distributor-create-installer-invite" && req.method === "POST") {
+      return await distributorCreateInstallerInvite(req,db,await req.json());
+    }
+
+    if (action === "distributor-update-installer" && req.method === "POST") {
+      return await distributorUpdateInstaller(req,db,await req.json());
+    }
+
+    if (action === "distributor-adjust-points" && req.method === "POST") {
+      return await distributorAdjustPoints(req,db,await req.json());
+    }
+
+    if (action === "distributor-add-offer" && req.method === "POST") {
+      return await distributorAddOffer(req,db,await req.json());
+    }
+
+    if (action === "admin-inventory-validate" && req.method === "POST") {
+      return await adminInventoryValidate(req,db,await req.json());
+    }
+
+    if (action === "admin-inventory-publish" && req.method === "POST") {
+      return await adminInventoryPublish(req,db,await req.json());
+    }
+
     if (action === "installer-quote-decision" && req.method === "POST") {
       return await installerQuoteDecision(req,db,await req.json());
     }
@@ -1364,6 +1672,10 @@ Deno.serve(async (req) => {
 
     if (action === "admin-supply-response" && req.method === "POST") {
       return await adminSupplyResponse(req,db,await req.json());
+    }
+
+    if (action === "admin-create-distributor" && req.method === "POST") {
+      return await adminCreateDistributor(req,db,await req.json());
     }
 
     if (action === "admin-add-distributor-member" && req.method === "POST") {
@@ -1550,7 +1862,11 @@ Deno.serve(async (req) => {
       const projectState = clean(b.state,40).toUpperCase();
       const projectCounty = clean(b.county,100);
       const projectZip = clean(b.zip,20);
-      const assignedDistributorId = await routeDistributor(db,{
+      const {data:installerLink,error:linkErr}=await db.from("distributor_installers")
+        .select("distributor_id,status").eq("partner_id",ap.partner.id).in("status",["active","suspended"]).maybeSingle();
+      if(linkErr)throw linkErr;
+      if(installerLink?.status==="suspended")return json({ok:false,error:"Installer access is suspended by the distributor"},403);
+      const assignedDistributorId = installerLink?.distributor_id || await routeDistributor(db,{
         catalogVariantId,
         state:projectState,
         county:projectCounty,

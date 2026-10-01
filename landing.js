@@ -57,7 +57,8 @@ async function signUp(){
   setMessage('Creating account...');
   try{
     const referralCode=(localStorage.getItem(REFERRAL_KEY)||'').trim().toUpperCase();
-    const r=await fetch(PRISTINE_API+'?action=auth-signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({company,email,password,referral_code:referralCode,website:''})});
+    const inviteToken=(sessionStorage.getItem('pristine_distributor_invite')||'').trim();
+    const r=await fetch(PRISTINE_API+'?action=auth-signup',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({company,email,password,referral_code:referralCode,invite_token:inviteToken,website:''})});
     const d=await r.json();
     if(!r.ok||!d.ok)return setMessage(d.error||'Could not create account.',true);
     setMessage('Account created. We sent a confirmation email from Pristine Estimator. Check your inbox and spam folder.');
@@ -104,6 +105,8 @@ $('#authEmail').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='reset
 (async()=>{
   const queryNow=new URLSearchParams(location.search);
   const incomingRef=(queryNow.get('ref')||'').trim().toUpperCase();
+  const incomingInvite=(queryNow.get('invite')||'').trim();
+  if(incomingInvite){try{sessionStorage.setItem('pristine_distributor_invite',incomingInvite)}catch{}}
   if(incomingRef){
     try{
       localStorage.setItem(REFERRAL_KEY,incomingRef);

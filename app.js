@@ -88,11 +88,12 @@ async function fetchPartnerNetworkData(promptProfile=false){
   try{
     await fetch(PRISTINE_API+'?action=ensure-partner-network',{method:'POST',headers:apiHeaders(),body:'{}'});
   }catch{}
-  const [profileR,codeR,eventsR,leadsR]=await Promise.all([
+  const [profileR,codeR,eventsR,leadsR,rewardsR]=await Promise.all([
     sb.from('partner_profiles').select('*').eq('partner_id',currentPartner.id).maybeSingle(),
     sb.from('referral_codes').select('id,code,active,created_at').eq('partner_id',currentPartner.id).eq('active',true).maybeSingle(),
     sb.from('referral_events').select('event_type,created_at,material_lead_id,metadata').eq('partner_id',currentPartner.id).order('created_at',{ascending:false}),
-    sb.from('material_leads').select('id,opportunity_type,buyer_role,project_name,project_address,project_city,project_state,project_county,project_zip,project_lat,project_lng,assigned_distributor_id,material,product_sizes,custom_size,measured_sqft,waste_pct,required_sqft,estimate_no,estimate_total,status,notes,created_at,updated_at,catalog_variant_id,product_sku,product_name,unit_price_sqft,calculated_boxes').eq('partner_id',currentPartner.id).order('created_at',{ascending:false})
+    sb.from('material_leads').select('id,opportunity_type,buyer_role,project_name,project_address,project_city,project_state,project_county,project_zip,project_lat,project_lng,assigned_distributor_id,material,product_sizes,custom_size,measured_sqft,waste_pct,required_sqft,estimate_no,estimate_total,status,notes,created_at,updated_at,catalog_variant_id,product_sku,product_name,unit_price_sqft,calculated_boxes').eq('partner_id',currentPartner.id).order('created_at',{ascending:false}),
+    fetch(PRISTINE_API+'?action=partner-rewards-summary',{headers:apiHeaders()}).then(async r=>({ok:r.ok,data:await r.json()})).catch(()=>({ok:false,data:null}))
   ]);
   if(profileR.error)console.error(profileR.error);
   if(codeR.error)console.error(codeR.error);
@@ -127,7 +128,7 @@ async function fetchPartnerNetworkData(promptProfile=false){
   if(distributorOnly && !distributorEstimator){
     return {profile:currentPartnerProfile,code:currentReferralCode,events:currentPartnerEvents,leads:currentMaterialOpportunities};
   }
-  renderPartnerCenter(currentPartnerEvents);
+  renderPartnerCenter(currentPartnerEvents,rewardsR?.ok?rewardsR.data:null);
   renderMaterialOpportunities();
   if(promptProfile && !distributorOnly && currentPartnerProfile && !currentPartnerProfile.profile_completed){
     const key='pristine_partner_profile_prompted:'+currentPartner.id;
@@ -139,7 +140,7 @@ async function fetchPartnerNetworkData(promptProfile=false){
   return {profile:currentPartnerProfile,code:currentReferralCode,events:currentPartnerEvents,leads:currentMaterialOpportunities};
 }
 
-function renderPartnerCenter(events=[]){
+function renderPartnerCenter(events=[],rewards=null){
   const code=currentReferralCode?.code||'—';
   const link=currentReferralCode?.code?(location.origin+'/?ref='+encodeURIComponent(currentReferralCode.code)):'';
   const codeEl=$('#partnerCode'),linkEl=$('#partnerReferralLink'),typeEl=$('#partnerBusinessType');
@@ -164,6 +165,8 @@ function renderPartnerCenter(events=[]){
     materialsPurchasedCount:purchasedCount
   };
   Object.entries(map).forEach(([id,v])=>{const el=$('#'+id);if(el)el.textContent=String(v)});
+  const points=$('#partnerPointsBalance');if(points)points.textContent=Number(rewards?.balance||0).toLocaleString();
+  const pointsDist=$('#partnerPointsDistributor');if(pointsDist)pointsDist.textContent=rewards?.distributor?.name?('Rewards with '+rewards.distributor.name):'Link with a distributor to earn points';
 }
 
 function openPartnerProfile(){
@@ -609,13 +612,14 @@ const catalogEligibleMaterials=new Set(['Ceramic / porcelain','Large-format porc
 
 async function loadCatalogPilot(){
   if(!sb||!currentSession?.user)return;
-  const box=$('#catalogProductGrid');if(box)box.innerHTML='<p class="empty">Loading pilot catalog...</p>';
-  const {data,error}=await sb.from('catalog_variants')
-    .select('id,sku,name,size,material_type,finish,edges,sqft_per_box,boxes_per_pallet,catalog_products(collection,category),distributor_offers(price_sqft,effective_date,distributors(id,name))')
-    .eq('active',true)
-    .order('name');
-  if(error){if(box)box.innerHTML='<p class="empty">'+esc(error.message)+'</p>';return}
-  catalogItems=data||[];
+  const box=$('#catalogProductGrid');if(box)box.innerHTML='<p class="empty">Loading distributor catalog...</p>';
+  try{
+    const r=await fetch(PRISTINE_API+'?action=installer-catalog',{headers:apiHeaders()});
+    const d=await r.json();
+    if(!r.ok||!d.ok)throw new Error(d.error||'Could not load distributor catalog');
+    catalogItems=(d.items||[]).map(item=>({...item,distributor_offers:item.distributor_offer?[{...item.distributor_offer,distributors:{id:item.distributor_offer.distributor_id,name:item.distributor_offer.distributor_name}}]:[]}));
+    if(!d.distributor&&box)box.innerHTML='<p class="empty">This installer is not linked to a distributor yet. Use the access link provided by your distributor.</p>';
+  }catch(error){if(box)box.innerHTML='<p class="empty">'+esc(error.message||'Catalog unavailable')+'</p>';catalogItems=[];return}
   const coll=$('#catalogCollectionFilter'),size=$('#catalogSizeFilter');
   if(coll){coll.innerHTML='<option value="">All collections</option>';[...new Set(catalogItems.map(x=>x.catalog_products?.collection).filter(Boolean))].sort().forEach(v=>coll.insertAdjacentHTML('beforeend','<option>'+esc(v)+'</option>'))}
   if(size){size.innerHTML='<option value="">All sizes</option>';[...new Set(catalogItems.map(x=>x.size).filter(Boolean))].sort().forEach(v=>size.insertAdjacentHTML('beforeend','<option>'+esc(v)+'</option>'))}
