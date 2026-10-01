@@ -6,7 +6,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Pristine Admin & Dev Control Center</title>
   <meta name="robots" content="noindex,nofollow">
-  <link rel="stylesheet" href="admin.css?v=5">
+  <link rel="stylesheet" href="admin.css?v=6">
 </head>
 <body>
   <aside class="admin-sidebar">
@@ -157,14 +157,29 @@
 
       <section class="tab-panel" data-panel="network">
         <div class="metric-grid network-metrics">
+          <article><span>Distributors</span><strong id="networkDistributorCount">0</strong><small>Active network companies</small></article>
+          <article><span>Installers</span><strong id="networkInstallerCount">0</strong><small>Distributor-linked accounts</small></article>
+          <article><span>Industry inventory</span><strong id="networkIndustryStock">0 sqft</strong><small>Published central availability</small></article>
+          <article><span>Out of stock</span><strong id="networkIndustryOut">0</strong><small>Industry SKUs requiring attention</small></article>
           <article><span>Material opportunities</span><strong id="networkOpportunities">0</strong><small>Installer demand in network</small></article>
-          <article><span>Distributor action</span><strong id="networkDistributorReview">0</strong><small>New / review / quote ready</small></article>
           <article><span>Awaiting industry</span><strong id="networkAwaitingIndustry">0</strong><small>Supply confirmation required</small></article>
           <article><span>Quoted value</span><strong id="networkQuoteValue">$0</strong><small>Submitted + accepted quotes</small></article>
           <article><span>Open orders</span><strong id="networkOpenOrders">0</strong><small id="networkOrderValue">$0 accepted value</small></article>
         </div>
 
         <div class="split-grid">
+          <article class="panel">
+            <div class="panel-head"><div><p class="eyebrow">DISTRIBUTOR REGISTRATION</p><h2>Add distributor company</h2><p>Create the distributor entity first, then authorize its internal users.</p></div></div>
+            <div class="form-grid">
+              <label>Company name<input id="newDistributorName" placeholder="Distributor company"></label>
+              <label>Email<input id="newDistributorEmail" type="email" placeholder="operations@distributor.com"></label>
+              <label>Phone<input id="newDistributorPhone" placeholder="(555) 555-5555"></label>
+              <label>Office address<input id="newDistributorOffice" placeholder="Office address"></label>
+              <label class="wide">Warehouse address<input id="newDistributorWarehouse" placeholder="Warehouse / pickup location"></label>
+            </div>
+            <button id="createDistributorBtn" class="btn gold" type="button">Create distributor</button>
+            <p id="createDistributorMessage" class="form-message"></p>
+          </article>
           <article class="panel">
             <div class="panel-head"><div><p class="eyebrow">NETWORK ACCESS</p><h2>Distributor team access</h2><p>Link an existing Pristine account to a distributor workspace.</p></div><a class="btn secondary" href="distributor.html" target="_blank" rel="noopener">Open Distributor UI</a></div>
             <div class="form-grid">
@@ -175,17 +190,39 @@
             <button id="addDistributorMemberBtn" class="btn gold" type="button">Add distributor access</button>
             <p id="networkMemberMessage" class="form-message"></p>
           </article>
-          <article class="panel">
-            <div class="panel-head"><div><p class="eyebrow">CONNECTED ROLES</p><h2>Three integrated workspaces</h2></div></div>
-            <div class="network-role-flow">
+        </div>
+        <article class="panel">
+          <div class="panel-head"><div><p class="eyebrow">CONNECTED ROLES</p><h2>Three integrated workspaces</h2></div></div>
+          <div class="network-role-flow">
               <div><strong>Installer</strong><span>Estimate → Material Request</span></div>
               <b>→</b>
               <div><strong>Distributor</strong><span>Inventory → Quote / Supply Request</span></div>
               <b>→</b>
               <div><strong>Admin / Industry</strong><span>Availability → Cost → ETA</span></div>
+          </div>
+        </article>
+
+        <article class="panel industry-inventory-panel">
+          <div class="panel-head"><div><p class="eyebrow">DAILY INDUSTRY INVENTORY</p><h2>Publish inventory to the entire network</h2><p>Upload XLSX or CSV. Pristine validates the file first, then publishes one atomic inventory batch that every distributor sees immediately.</p></div><span id="inventoryLastPublish">No published batch</span></div>
+          <div class="inventory-upload-grid">
+            <label class="inventory-drop">Inventory file<input id="industryInventoryFile" type="file" accept=".xlsx,.csv,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"></label>
+            <div class="inventory-upload-actions">
+              <button id="validateInventoryBtn" class="btn secondary" type="button">Validate upload</button>
+              <button id="publishInventoryBtn" class="btn gold" type="button" disabled>Publish to network</button>
             </div>
-          </article>
-        </div>
+          </div>
+          <p class="form-message">Expected columns: SKU, warehouse_code, on_hand_sqft and/or on_hand_boxes, on_hand_pallets, availability, eta_date.</p>
+          <div id="inventoryUploadMessage" class="form-message"></div>
+          <div class="compact-stats inventory-validation-stats">
+            <div><span>Total rows</span><strong id="inventoryRowsTotal">0</strong></div>
+            <div><span>Valid</span><strong id="inventoryRowsValid">0</strong></div>
+            <div><span>Warnings</span><strong id="inventoryRowsWarnings">0</strong></div>
+            <div><span>Errors</span><strong id="inventoryRowsErrors">0</strong></div>
+          </div>
+          <div class="table-wrap"><table><thead><tr><th>Row</th><th>SKU</th><th>Warehouse</th><th>Sqft</th><th>Boxes</th><th>Pallets</th><th>Availability</th><th>Validation</th></tr></thead><tbody id="inventoryPreviewRows"><tr><td colspan="8">Choose a daily inventory file to validate.</td></tr></tbody></table></div>
+          <div class="panel-head inventory-history-head"><div><h3>Inventory upload history</h3></div></div>
+          <div class="table-wrap"><table><thead><tr><th>Uploaded</th><th>File</th><th>Status</th><th>Rows</th><th>Valid</th><th>Warnings</th><th>Errors</th><th>Published</th></tr></thead><tbody id="inventoryBatchRows"></tbody></table></div>
+        </article>
 
         <article class="panel">
           <div class="panel-head"><div><p class="eyebrow">DISTRIBUTOR → INDUSTRY</p><h2>Open supply requests</h2><p>Confirm manufacturer availability so the distributor can finish the installer quote.</p></div><span id="networkOpenSupply">0 open</span></div>
@@ -249,7 +286,7 @@
     </div>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="admin.js?v=6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>\n  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="admin.js?v=7"></script>
 </body>
 </html>
