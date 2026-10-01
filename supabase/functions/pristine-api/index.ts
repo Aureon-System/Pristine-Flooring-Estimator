@@ -401,7 +401,7 @@ async function distributorDashboard(req: Request, db: any, url: URL) {
 
   const network=await ensureDistributorReferral(db,ad.user.id,distributorId);
   const {data:links,error:linksErr}=await db.from("distributor_installers")
-    .select("id,partner_id,referral_code_id,status,assigned_sales_user_id,joined_at,last_activity_at,created_at,updated_at,partners(id,company_name,email,phone,created_at,partner_profiles(business_type,service_area,profile_completed))")
+    .select("id,partner_id,referral_code_id,status,assigned_sales_user_id,joined_at,last_activity_at,created_at,updated_at,partners(id,company_name,email,phone,created_at,partner_profiles!partner_profiles_partner_id_fkey(business_type,service_area,profile_completed))")
     .eq("distributor_id",distributorId)
     .neq("status","removed")
     .order("updated_at",{ascending:false});
