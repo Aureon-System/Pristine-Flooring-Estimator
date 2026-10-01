@@ -39,7 +39,7 @@
           <div class="company-menu-head">
             <strong id="companyMenuTitle">Company workspace</strong>
             <span id="companyMenuEmail"></span>
-            <span class="workspace-build">Build 2026.10.01 · Network v35 · Multi-tenant inventory & points</span>
+            <span class="workspace-build">Build 2026.10.01.1 · Network v36 · Configurable Pristine Points</span>
           </div>
           <div class="mobile-menu-shortcuts">
             <button class="company-menu-item" type="button" data-documents-subview="invoices">Invoices</button>
@@ -245,6 +245,18 @@
     <div class="partner-center-footer">
       <div><strong>Pristine Points</strong><span>Points can be redeemed for rewards, credits or cash-equivalent offers when your distributor makes them available.</span></div>
       <button id="partnerMaterialBtn" class="btn btn-gold" type="button">Create material opportunity</button>
+    </div>
+    <div id="partnerRewardsPanel" class="partner-rewards-panel hidden">
+      <div class="partner-rewards-head">
+        <div><span class="partner-label">LOYALTY PROGRAM</span><h3 id="partnerRewardsProgramTitle">Pristine Points</h3><p id="partnerRewardsEarnRule">Your distributor controls the earning and redemption rules.</p></div>
+        <strong id="partnerRewardsBalanceLarge">0 pts</strong>
+      </div>
+      <div id="partnerRewardsProgressWrap" class="partner-rewards-progress hidden">
+        <div class="points-progress"><span id="partnerRewardsProgressBar" style="width:0%"></span></div>
+        <small id="partnerRewardsProgressText"></small>
+      </div>
+      <div id="partnerRewardsCampaigns" class="partner-reward-campaigns"></div>
+      <div id="partnerRewardsCatalog" class="partner-reward-catalog"></div>
     </div>
   </section>
 
@@ -617,6 +629,6 @@
 <script src="billing-config.js"></script>
 <script src="locales.js?v=170"></script>
 <script src="i18n.js?v=170"></script>
-<script src="app.js?v=467"></script>
+<script src="app.js?v=468"></script>
 </body>
 </html>
