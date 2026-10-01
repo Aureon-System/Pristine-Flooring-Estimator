@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>Pristine Distributor Workspace</title>
-  <link rel="stylesheet" href="distributor.css?v=3">
+  <link rel="stylesheet" href="distributor.css?v=4">
 </head>
 <body>
 <header class="dist-header">
@@ -29,6 +29,7 @@
       <button class="tab" data-tab="quotes" type="button">Quotes</button>
       <button class="tab" data-tab="orders" type="button">Orders &amp; Delivery</button>
       <button class="tab" data-tab="catalog" type="button">Catalog Pricing</button>
+      <button class="tab" data-tab="installers" type="button">Installer Network</button>
     </nav>
     <section class="tab-panel active" data-panel="opportunities"><article class="panel">
       <div class="panel-head"><div><p class="eyebrow">INSTALLER → DISTRIBUTOR</p><h2>Material opportunities</h2><p>Requests routed to your territory from Pristine installers.</p></div><select id="statusFilter"><option value="">All statuses</option><option value="new">New</option><option value="distributor_review">Distributor review</option><option value="awaiting_manufacturer">Awaiting industry</option><option value="quote_ready">Quote ready</option><option value="quoted">Quoted</option><option value="accepted">Accepted</option><option value="ordered">Ordered</option><option value="fulfilled">Fulfilled</option><option value="lost">Lost</option></select></div>
@@ -51,6 +52,30 @@
       <div id="catalogRoleNote" class="form-message"></div>
       <div class="table-wrap"><table><thead><tr><th>Product</th><th>SKU</th><th>Size</th><th>Price / sqft</th><th>Stock sqft</th><th>Lead days</th><th>Availability</th><th></th></tr></thead><tbody id="catalogRows"></tbody></table></div>
     </article></section>
+    <section class="tab-panel" data-panel="installers"><article class="panel">
+      <div class="panel-head"><div><p class="eyebrow">DISTRIBUTOR → INSTALLER</p><h2>Installer network</h2><p>Create installer access links, share your referral link and track installers registered through your distributor network.</p></div></div>
+      <div class="installer-network-grid">
+        <div class="installer-invite-card">
+          <h3>Invite an installer</h3>
+          <p class="form-message">Generate a signup link prefilled for the installer. Registration remains secure and the installer receives its own isolated workspace.</p>
+          <div class="form-grid">
+            <label>Installer / company<input id="installerInviteCompany" placeholder="Company or installer name"></label>
+            <label>Email<input id="installerInviteEmail" type="email" placeholder="installer@example.com"></label>
+          </div>
+          <div class="action-row"><button id="generateInstallerLinkBtn" class="btn gold" type="button">Generate access link</button><button id="copyInstallerLinkBtn" class="btn secondary" type="button">Copy access link</button></div>
+          <input id="installerAccessLink" class="link-output" readonly aria-label="Installer access link">
+        </div>
+        <div class="installer-invite-card">
+          <h3>Your referral link</h3>
+          <p class="form-message">Use this link for installer and customer referrals attributed to your distributor network.</p>
+          <div class="referral-code-box"><span>Partner ID</span><strong id="distributorReferralCode">—</strong></div>
+          <div class="action-row"><button id="copyDistributorReferralBtn" class="btn dark" type="button">Copy referral link</button></div>
+          <input id="distributorReferralLink" class="link-output" readonly aria-label="Distributor referral link">
+        </div>
+      </div>
+      <div class="panel-head installer-list-head"><div><h3>Registered installers</h3><p>Installers who signed up through your referral code.</p></div><strong id="installerNetworkCount">0</strong></div>
+      <div class="table-wrap"><table><thead><tr><th>Company</th><th>Email</th><th>Business type</th><th>Service area</th><th>Profile</th><th>Joined</th></tr></thead><tbody id="installerNetworkRows"></tbody></table></div>
+    </article></section>
   </div>
 </main>
 <div id="opportunityDrawer" class="drawer hidden" aria-hidden="true">
@@ -58,6 +83,6 @@
   <aside class="drawer-panel"><div class="drawer-head"><div><p class="eyebrow">NETWORK OPPORTUNITY</p><h2 id="drawerTitle">Material request</h2><p id="drawerMeta"></p></div><button id="closeDrawerBtn" class="close-btn" type="button">×</button></div><div id="drawerBody"></div></aside>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="distributor.js?v=5"></script>
+<script src="distributor.js?v=6"></script>
 </body>
 </html>
