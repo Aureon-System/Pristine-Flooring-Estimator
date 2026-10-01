@@ -427,6 +427,29 @@ async function distributorDashboard(req: Request, db: any, url: URL) {
   return json({ok:true,membership:ad.membership,permissions,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[],catalog:catalogRows||[],industry_inventory:[...industryByVariant.values()],installer_network:installerNetwork});
 }
 
+async function installerCatalog(req:Request,db:any){
+  const ap=await authenticatedPartner(req,db);
+  if(!ap)return json({ok:false,error:"Sign in required"},401);
+  const {data:link,error:lErr}=await db.from("distributor_installers")
+    .select("distributor_id,status,distributors(id,name)")
+    .eq("partner_id",ap.partner.id)
+    .in("status",["active","suspended"])
+    .maybeSingle();
+  if(lErr)throw lErr;
+  if(!link)return json({ok:true,distributor:null,items:[]});
+  if(link.status!=="active")return json({ok:false,error:"Installer access is suspended by the distributor"},403);
+  const {data:offers,error:oErr}=await db.from("distributor_offers")
+    .select("id,variant_id,price_sqft,availability,stock_sqft,lead_time_days,effective_date,catalog_variants(id,sku,name,size,material_type,finish,edges,sqft_per_box,boxes_per_pallet,active,catalog_products(collection,category))")
+    .eq("distributor_id",link.distributor_id)
+    .eq("active",true);
+  if(oErr)throw oErr;
+  const items=(offers||[]).filter((o:any)=>o.catalog_variants?.active!==false).map((o:any)=>({
+    ...o.catalog_variants,
+    distributor_offer:{id:o.id,distributor_id:link.distributor_id,distributor_name:(link as any).distributors?.name||null,price_sqft:o.price_sqft,availability:o.availability,stock_sqft:o.stock_sqft,lead_time_days:o.lead_time_days,effective_date:o.effective_date}
+  }));
+  return json({ok:true,distributor:(link as any).distributors||null,items});
+}
+
 async function distributorCreateInstallerInvite(req:Request,db:any,body:any){
   const distributorId=clean(body.distributor_id,80);
   const ad=await authenticatedDistributor(req,db,distributorId);
@@ -1572,6 +1595,10 @@ Deno.serve(async (req) => {
     }
 
 
+    if (action === "installer-catalog" && req.method === "GET") {
+      return await installerCatalog(req,db);
+    }
+
     if (action === "partner-rewards-summary" && req.method === "GET") {
       return await partnerRewardsSummary(req,db);
     }
@@ -1816,7 +1843,11 @@ Deno.serve(async (req) => {
       const projectState = clean(b.state,40).toUpperCase();
       const projectCounty = clean(b.county,100);
       const projectZip = clean(b.zip,20);
-      const assignedDistributorId = await routeDistributor(db,{
+      const {data:installerLink,error:linkErr}=await db.from("distributor_installers")
+        .select("distributor_id,status").eq("partner_id",ap.partner.id).in("status",["active","suspended"]).maybeSingle();
+      if(linkErr)throw linkErr;
+      if(installerLink?.status==="suspended")return json({ok:false,error:"Installer access is suspended by the distributor"},403);
+      const assignedDistributorId = installerLink?.distributor_id || await routeDistributor(db,{
         catalogVariantId,
         state:projectState,
         county:projectCounty,
