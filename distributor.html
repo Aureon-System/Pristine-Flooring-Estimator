@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>Pristine Distributor Workspace</title>
-  <link rel="stylesheet" href="distributor.css?v=5">
+  <link rel="stylesheet" href="distributor.css?v=6">
 </head>
 <body>
 <header class="dist-header">
@@ -30,6 +30,7 @@
       <button class="tab" data-tab="orders" type="button">Orders &amp; Delivery</button>
       <button class="tab" data-tab="catalog" type="button">Catalog Pricing</button>
       <button class="tab" data-tab="installers" type="button">Installer Network</button>
+      <button class="tab" data-tab="rewards" type="button">Pristine Points</button>
     </nav>
     <section class="tab-panel active" data-panel="opportunities"><article class="panel">
       <div class="panel-head"><div><p class="eyebrow">INSTALLER → DISTRIBUTOR</p><h2>Material opportunities</h2><p>Requests routed to your territory from Pristine installers.</p></div><select id="statusFilter"><option value="">All statuses</option><option value="new">New</option><option value="distributor_review">Distributor review</option><option value="awaiting_manufacturer">Awaiting industry</option><option value="quote_ready">Quote ready</option><option value="quoted">Quoted</option><option value="accepted">Accepted</option><option value="ordered">Ordered</option><option value="fulfilled">Fulfilled</option><option value="lost">Lost</option></select></div>
@@ -80,6 +81,68 @@
       <div class="panel-head installer-list-head"><div><h3>Registered installers</h3><p>Installers connected to this distributor. Points stay in a ledger and can later be redeemed for rewards, credits or cash-equivalent offers.</p></div><strong id="installerNetworkCount">0</strong></div>
       <div class="table-wrap"><table><thead><tr><th>Company</th><th>Email</th><th>Service area</th><th>Status</th><th>Points</th><th>Joined</th><th>Actions</th></tr></thead><tbody id="installerNetworkRows"></tbody></table></div>
     </article></section>
+    <section class="tab-panel" data-panel="rewards">
+      <article class="panel rewards-panel">
+        <div class="panel-head"><div><p class="eyebrow">LOYALTY · DISTRIBUTOR CONTROL</p><h2>Pristine Points</h2><p>Use the Home-Depot-style perks concept without forcing one network-wide value. Your company defines earning rates, campaigns and redemption values based on your margins.</p></div><span id="rewardProgramStatus" class="status">Disabled</span></div>
+
+        <div class="rewards-settings-grid">
+          <div class="reward-config-card">
+            <h3>Program settings</h3>
+            <div class="form-grid">
+              <label>Program name<input id="rewardProgramName" value="Pristine Points"></label>
+              <label>Points label<input id="rewardPointsLabel" value="Points"></label>
+              <label>Points per $1<input id="rewardPointsPerDollar" type="number" min="0" step=".01" value="1"></label>
+              <label>Earn on<select id="rewardEarnBasis"><option value="subtotal">Material subtotal</option><option value="total">Order total</option></select></label>
+              <label>Minimum purchase $<input id="rewardMinimumPurchase" type="number" min="0" step=".01" value="0"></label>
+              <label>Expire after months<input id="rewardExpirationMonths" type="number" min="1" max="120" placeholder="Never"></label>
+              <label class="wide reward-toggle"><input id="rewardProgramActive" type="checkbox"> Enable earning and redemptions</label>
+              <label class="wide">Terms<textarea id="rewardTerms" rows="3" placeholder="Optional program terms"></textarea></label>
+            </div>
+            <p class="form-message"><strong>Suggested template:</strong> 1 point per $1 of eligible purchases. Example rewards can stay inactive until you choose the economics.</p>
+            <button id="saveRewardProgramBtn" class="btn gold" type="button">Save program</button>
+            <span id="rewardProgramMessage" class="form-message"></span>
+          </div>
+
+          <div class="reward-config-card">
+            <h3>Create reward</h3>
+            <div class="form-grid">
+              <label>Reward name<input id="newRewardLabel" placeholder="$25 Store Credit"></label>
+              <label>Type<select id="newRewardType"><option value="store_credit">Store credit</option><option value="cash_equivalent">Cash equivalent</option><option value="free_delivery">Free delivery</option><option value="product">Product</option><option value="service">Service</option><option value="custom">Custom</option></select></label>
+              <label>Points cost<input id="newRewardPoints" type="number" min="1" step="1" placeholder="2500"></label>
+              <label>Value $<input id="newRewardValue" type="number" min="0" step=".01" placeholder="25"></label>
+              <label class="wide">Description<input id="newRewardDescription" placeholder="Optional customer-facing description"></label>
+              <label class="wide reward-toggle"><input id="newRewardActive" type="checkbox" checked> Active and visible to installers</label>
+            </div>
+            <button id="addRewardBtn" class="btn secondary" type="button">Add reward</button>
+            <span id="newRewardMessage" class="form-message"></span>
+          </div>
+        </div>
+
+        <div class="panel-head rewards-subhead"><div><h3>Reward catalog</h3><p>Points cost and dollar value are independent so each distributor can protect its margin.</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Reward</th><th>Type</th><th>Points</th><th>Value</th><th>Active</th><th></th></tr></thead><tbody id="rewardCatalogRows"></tbody></table></div>
+
+        <div class="reward-config-card campaign-builder">
+          <h3>Campaign / multiplier</h3>
+          <div class="form-grid">
+            <label>Name<input id="newCampaignName" placeholder="Double Points Weekend"></label>
+            <label>Type<select id="newCampaignType"><option value="multiplier">Multiplier</option><option value="fixed_bonus">Fixed bonus</option></select></label>
+            <label>Multiplier<input id="newCampaignMultiplier" type="number" min="1" max="20" step=".25" value="2"></label>
+            <label>Bonus points<input id="newCampaignBonus" type="number" min="0" step="1" value="0"></label>
+            <label>Minimum purchase $<input id="newCampaignMinimum" type="number" min="0" step=".01" value="0"></label>
+            <label>Product<select id="newCampaignVariant"><option value="">All products</option></select></label>
+            <label>Starts<input id="newCampaignStarts" type="datetime-local"></label>
+            <label>Ends<input id="newCampaignEnds" type="datetime-local"></label>
+            <label class="wide reward-toggle"><input id="newCampaignActive" type="checkbox" checked> Active campaign</label>
+          </div>
+          <button id="addCampaignBtn" class="btn secondary" type="button">Add campaign</button>
+          <span id="newCampaignMessage" class="form-message"></span>
+        </div>
+        <div class="table-wrap"><table><thead><tr><th>Campaign</th><th>Rule</th><th>Product</th><th>Window</th><th>Active</th><th></th></tr></thead><tbody id="rewardCampaignRows"></tbody></table></div>
+
+        <div class="panel-head rewards-subhead"><div><h3>Redemption requests</h3><p>Installers reserve their points when they request a reward. Cancelling returns the points automatically.</p></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Requested</th><th>Installer</th><th>Reward</th><th>Points</th><th>Status</th><th>Action</th></tr></thead><tbody id="rewardRedemptionRows"></tbody></table></div>
+      </article>
+    </section>
   </div>
 </main>
 <div id="opportunityDrawer" class="drawer hidden" aria-hidden="true">
@@ -87,6 +150,6 @@
   <aside class="drawer-panel"><div class="drawer-head"><div><p class="eyebrow">NETWORK OPPORTUNITY</p><h2 id="drawerTitle">Material request</h2><p id="drawerMeta"></p></div><button id="closeDrawerBtn" class="close-btn" type="button">×</button></div><div id="drawerBody"></div></aside>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="distributor.js?v=7"></script>
+<script src="distributor.js?v=8"></script>
 </body>
 </html>

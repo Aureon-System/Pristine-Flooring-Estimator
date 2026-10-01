@@ -32,3 +32,13 @@
 .catalog-add-bar{display:flex;gap:10px;align-items:center;margin:14px 0}.catalog-add-bar select{min-width:320px;max-width:100%;padding:10px 12px;border:1px solid #d8dde2;border-radius:10px;background:#fff}
 .inactive-row{opacity:.58}.installer-actions{display:flex;gap:6px;flex-wrap:wrap}.btn.mini{padding:7px 9px;font-size:.78rem}
 @media(max-width:760px){.catalog-add-bar{align-items:stretch;flex-direction:column}.catalog-add-bar select{min-width:0;width:100%}}
+
+.rewards-settings-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:16px 0 22px}
+.reward-config-card{border:1px solid #d9dee3;border-radius:16px;background:#fff;padding:18px}
+.reward-config-card h3{margin:0 0 12px}.reward-toggle{display:flex!important;flex-direction:row!important;align-items:center;gap:8px}.reward-toggle input{width:auto}
+.rewards-subhead{margin-top:24px}.campaign-builder{margin-top:24px}.rewards-panel .table-wrap{margin-bottom:12px}
+.reward-rule-badge{display:inline-flex;padding:5px 8px;border-radius:999px;background:#f4efe2;color:#72551d;font-size:.75rem;font-weight:800}
+.reward-program-on{background:#eaf6ee;color:#237342}.reward-program-off{background:#f2f3f4;color:#737b82}
+.reward-value-input{width:92px}.reward-points-input{width:90px}.reward-catalog-name{min-width:180px}
+.points-progress{height:8px;background:#e6eaed;border-radius:99px;overflow:hidden}.points-progress>span{display:block;height:100%;background:linear-gradient(90deg,#b88a34,#e0b65d)}
+@media(max-width:900px){.rewards-settings-grid{grid-template-columns:1fr}}

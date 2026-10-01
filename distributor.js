@@ -30,7 +30,7 @@ function render(){
   $('#metricIndustry').textContent=leads.filter(x=>x.status==='awaiting_manufacturer').length;
   $('#metricQuoted').textContent=quotes.filter(x=>x.status==='submitted').length;
   $('#metricValue').textContent=money(quotes.filter(x=>['submitted','accepted'].includes(x.status)).reduce((s,x)=>s+Number(x.total||0),0));
-  renderOpportunities();renderSupply();renderQuotes();renderOrders();renderCatalog();renderInstallerNetwork();
+  renderOpportunities();renderSupply();renderQuotes();renderOrders();renderCatalog();renderInstallerNetwork();renderRewards();
 }
 function renderOpportunities(){
   const filter=$('#statusFilter').value;
@@ -97,6 +97,117 @@ function renderInstallerNetwork(){
   document.querySelectorAll('[data-installer-save]').forEach(b=>b.onclick=()=>updateInstallerStatus(b.dataset.installerSave));
   document.querySelectorAll('[data-installer-points]').forEach(b=>b.onclick=()=>adjustInstallerPoints(b.dataset.installerPoints));
 }
+function toLocalInput(v){if(!v)return '';const d=new Date(v);const pad=n=>String(n).padStart(2,'0');return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())+'T'+pad(d.getHours())+':'+pad(d.getMinutes())}
+function rewardTypeLabel(v){return statusLabel(v||'custom')}
+function renderRewards(){
+  const rewards=data.rewards||{},program=rewards.program||{},canManage=hasPermission('manage_rewards');
+  const set=(id,val)=>{const el=$(id);if(el)el.value=val??''};
+  set('#rewardProgramName',program.program_name||'Pristine Points');
+  set('#rewardPointsLabel',program.points_label||'Points');
+  set('#rewardPointsPerDollar',Number(program.points_per_dollar??1));
+  set('#rewardEarnBasis',program.earn_basis||'subtotal');
+  set('#rewardMinimumPurchase',Number(program.minimum_purchase||0));
+  set('#rewardExpirationMonths',program.expiration_months||'');
+  set('#rewardTerms',program.terms||'');
+  const active=$('#rewardProgramActive');if(active)active.checked=Boolean(program.active);
+  const status=$('#rewardProgramStatus');if(status){status.textContent=program.active?'Enabled':'Disabled';status.className='status '+(program.active?'reward-program-on':'reward-program-off')}
+  ['#rewardProgramName','#rewardPointsLabel','#rewardPointsPerDollar','#rewardEarnBasis','#rewardMinimumPurchase','#rewardExpirationMonths','#rewardTerms','#rewardProgramActive','#saveRewardProgramBtn','#newRewardLabel','#newRewardType','#newRewardPoints','#newRewardValue','#newRewardDescription','#newRewardActive','#addRewardBtn','#newCampaignName','#newCampaignType','#newCampaignMultiplier','#newCampaignBonus','#newCampaignMinimum','#newCampaignVariant','#newCampaignStarts','#newCampaignEnds','#newCampaignActive','#addCampaignBtn'].forEach(s=>{const el=$(s);if(el)el.disabled=!canManage});
+
+  const rows=$('#rewardCatalogRows');
+  if(rows)rows.innerHTML=(rewards.catalog||[]).map(r=>{
+    const disabled=canManage?'':' disabled';
+    return '<tr><td><input class="reward-catalog-name" data-reward-label="'+esc(r.id)+'" value="'+esc(r.label)+'"'+disabled+'><small class="table-sub">'+esc(r.description||'')+'</small></td><td><select data-reward-type="'+esc(r.id)+'"'+disabled+'>'+['store_credit','cash_equivalent','free_delivery','product','service','custom'].map(t=>'<option value="'+t+'" '+(r.reward_type===t?'selected':'')+'>'+rewardTypeLabel(t)+'</option>').join('')+'</select></td><td><input class="reward-points-input" data-reward-points="'+esc(r.id)+'" type="number" min="1" step="1" value="'+Number(r.points_cost||0)+'"'+disabled+'></td><td><input class="reward-value-input" data-reward-value="'+esc(r.id)+'" type="number" min="0" step=".01" value="'+(r.reward_value??'')+'"'+disabled+'></td><td><input data-reward-active="'+esc(r.id)+'" type="checkbox" '+(r.active?'checked':'')+disabled+'></td><td>'+(canManage?'<button class="network-respond-btn" data-reward-save="'+esc(r.id)+'" type="button">Save</button>':'—')+'</td></tr>';
+  }).join('')||'<tr><td colspan="6">No rewards configured.</td></tr>';
+  document.querySelectorAll('[data-reward-save]').forEach(b=>b.onclick=()=>saveRewardRow(b.dataset.rewardSave));
+
+  const variant=$('#newCampaignVariant');
+  if(variant)variant.innerHTML='<option value="">All products</option>'+(data.catalog||[]).map(v=>'<option value="'+esc(v.id)+'">'+esc(v.sku+' · '+v.name+' · '+(v.size||''))+'</option>').join('');
+
+  const campaignRows=$('#rewardCampaignRows');
+  if(campaignRows)campaignRows.innerHTML=(rewards.campaigns||[]).map(x=>{
+    const rule=x.campaign_type==='multiplier'?(Number(x.multiplier||1)+'× points'):(Number(x.bonus_points||0).toLocaleString()+' bonus points');
+    const product=x.catalog_variants?((x.catalog_variants.sku||'')+' · '+(x.catalog_variants.name||'')):'All products';
+    const window=[x.starts_at?date(x.starts_at):'Any time',x.ends_at?date(x.ends_at):'No end'].join(' → ');
+    const disabled=canManage?'':' disabled';
+    return '<tr><td><input data-campaign-name="'+esc(x.id)+'" value="'+esc(x.name)+'"'+disabled+'></td><td><span class="reward-rule-badge">'+esc(rule)+'</span></td><td>'+esc(product)+'</td><td>'+esc(window)+'</td><td><input data-campaign-active="'+esc(x.id)+'" type="checkbox" '+(x.active?'checked':'')+disabled+'></td><td>'+(canManage?'<button class="network-respond-btn" data-campaign-save="'+esc(x.id)+'" type="button">Save</button>':'—')+'</td></tr>';
+  }).join('')||'<tr><td colspan="6">No campaigns configured.</td></tr>';
+  document.querySelectorAll('[data-campaign-save]').forEach(b=>b.onclick=()=>saveCampaignRow(b.dataset.campaignSave));
+
+  const redemptionRows=$('#rewardRedemptionRows');
+  if(redemptionRows)redemptionRows.innerHTML=(rewards.redemptions||[]).map(r=>{
+    const installer=r.partners?.company_name||r.partners?.email||'Installer';
+    const closed=['fulfilled','cancelled'].includes(r.status);
+    const action=canManage&&!closed?'<select data-redemption-status="'+esc(r.id)+'"><option value="approved" '+(r.status==='approved'?'selected':'')+'>Approve</option><option value="fulfilled">Fulfill</option><option value="cancelled">Cancel & refund</option></select><button class="network-respond-btn" data-redemption-save="'+esc(r.id)+'" type="button">Update</button>':'—';
+    return '<tr><td>'+date(r.requested_at)+'</td><td>'+esc(installer)+'</td><td>'+esc(r.reward_label)+'</td><td>'+Number(r.points||0).toLocaleString()+'</td><td><span class="status '+esc(r.status)+'">'+esc(statusLabel(r.status))+'</span></td><td><div class="installer-actions">'+action+'</div></td></tr>';
+  }).join('')||'<tr><td colspan="6">No redemption requests yet.</td></tr>';
+  document.querySelectorAll('[data-redemption-save]').forEach(b=>b.onclick=()=>updateRewardRedemption(b.dataset.redemptionSave));
+}
+async function saveRewardProgram(){
+  const msg=$('#rewardProgramMessage');if(msg)msg.textContent='Saving…';
+  try{
+    await api('distributor-save-reward-program',{method:'POST',body:{
+      distributor_id:data.membership.distributor_id,program_name:$('#rewardProgramName').value,points_label:$('#rewardPointsLabel').value,
+      points_per_dollar:Number($('#rewardPointsPerDollar').value||0),earn_basis:$('#rewardEarnBasis').value,
+      minimum_purchase:Number($('#rewardMinimumPurchase').value||0),expiration_months:$('#rewardExpirationMonths').value||null,
+      active:$('#rewardProgramActive').checked,terms:$('#rewardTerms').value
+    }});
+    if(msg)msg.textContent='Program saved.';await load();activateTab('rewards');
+  }catch(e){if(msg)msg.textContent=e.message}
+}
+async function addReward(){
+  const msg=$('#newRewardMessage');if(msg)msg.textContent='Saving…';
+  try{
+    await api('distributor-save-reward-item',{method:'POST',body:{
+      distributor_id:data.membership.distributor_id,label:$('#newRewardLabel').value,reward_type:$('#newRewardType').value,
+      points_cost:Number($('#newRewardPoints').value||0),reward_value:$('#newRewardValue').value,
+      description:$('#newRewardDescription').value,active:$('#newRewardActive').checked
+    }});
+    ['#newRewardLabel','#newRewardPoints','#newRewardValue','#newRewardDescription'].forEach(s=>$(s).value='');
+    if(msg)msg.textContent='Reward added.';await load();activateTab('rewards');
+  }catch(e){if(msg)msg.textContent=e.message}
+}
+async function saveRewardRow(id){
+  const current=(data.rewards?.catalog||[]).find(x=>x.id===id)||{};
+  await api('distributor-save-reward-item',{method:'POST',body:{
+    distributor_id:data.membership.distributor_id,id,
+    label:document.querySelector('[data-reward-label="'+CSS.escape(id)+'"]')?.value,
+    reward_type:document.querySelector('[data-reward-type="'+CSS.escape(id)+'"]')?.value,
+    points_cost:Number(document.querySelector('[data-reward-points="'+CSS.escape(id)+'"]')?.value||0),
+    reward_value:document.querySelector('[data-reward-value="'+CSS.escape(id)+'"]')?.value,
+    description:current.description||'',active:Boolean(document.querySelector('[data-reward-active="'+CSS.escape(id)+'"]')?.checked),
+    sort_order:current.sort_order||0
+  }});
+  await load();activateTab('rewards');
+}
+async function addCampaign(){
+  const msg=$('#newCampaignMessage');if(msg)msg.textContent='Saving…';
+  try{
+    await api('distributor-save-reward-campaign',{method:'POST',body:{
+      distributor_id:data.membership.distributor_id,name:$('#newCampaignName').value,campaign_type:$('#newCampaignType').value,
+      multiplier:Number($('#newCampaignMultiplier').value||1),bonus_points:Number($('#newCampaignBonus').value||0),
+      minimum_purchase:Number($('#newCampaignMinimum').value||0),variant_id:$('#newCampaignVariant').value||null,
+      starts_at:$('#newCampaignStarts').value?new Date($('#newCampaignStarts').value).toISOString():null,
+      ends_at:$('#newCampaignEnds').value?new Date($('#newCampaignEnds').value).toISOString():null,active:$('#newCampaignActive').checked
+    }});
+    if(msg)msg.textContent='Campaign added.';await load();activateTab('rewards');
+  }catch(e){if(msg)msg.textContent=e.message}
+}
+async function saveCampaignRow(id){
+  const current=(data.rewards?.campaigns||[]).find(x=>x.id===id);if(!current)return;
+  await api('distributor-save-reward-campaign',{method:'POST',body:{
+    distributor_id:data.membership.distributor_id,id,name:document.querySelector('[data-campaign-name="'+CSS.escape(id)+'"]')?.value||current.name,
+    campaign_type:current.campaign_type,multiplier:current.multiplier,bonus_points:current.bonus_points,
+    minimum_purchase:current.minimum_purchase,variant_id:current.variant_id,starts_at:current.starts_at,ends_at:current.ends_at,
+    active:Boolean(document.querySelector('[data-campaign-active="'+CSS.escape(id)+'"]')?.checked)
+  }});
+  await load();activateTab('rewards');
+}
+async function updateRewardRedemption(id){
+  const status=document.querySelector('[data-redemption-status="'+CSS.escape(id)+'"]')?.value;if(!status)return;
+  await api('distributor-update-reward-redemption',{method:'POST',body:{distributor_id:data.membership.distributor_id,redemption_id:id,status}});
+  await load();activateTab('rewards');
+}
+
 async function buildInstallerAccessLink(){
   const email=String($('#installerInviteEmail')?.value||'').trim(),company=String($('#installerInviteCompany')?.value||'').trim();
   const d=await api('distributor-create-installer-invite',{method:'POST',body:{distributor_id:data.membership.distributor_id,email,company}});
@@ -207,6 +318,9 @@ if($('#generateInstallerLinkBtn'))$('#generateInstallerLinkBtn').onclick=async()
 if($('#copyInstallerLinkBtn'))$('#copyInstallerLinkBtn').onclick=async()=>{try{let v=$('#installerAccessLink')?.value;if(!v)v=await buildInstallerAccessLink();await copyTextValue(v)}catch(e){alert(e.message||'Could not copy installer access link')}};
 if($('#catalogAddBtn'))$('#catalogAddBtn').onclick=async()=>{try{await addCatalogProduct()}catch(e){alert(e.message||'Could not add product')}};
 if($('#copyDistributorReferralBtn'))$('#copyDistributorReferralBtn').onclick=()=>copyTextValue($('#distributorReferralLink')?.value||'');
+if($('#saveRewardProgramBtn'))$('#saveRewardProgramBtn').onclick=saveRewardProgram;
+if($('#addRewardBtn'))$('#addRewardBtn').onclick=addReward;
+if($('#addCampaignBtn'))$('#addCampaignBtn').onclick=addCampaign;
 $('#refreshBtn').onclick=load;$('#signOutBtn').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
 (async()=>{
