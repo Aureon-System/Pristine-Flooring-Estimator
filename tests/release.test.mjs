@@ -81,3 +81,32 @@ test('installer catalog is server-scoped to linked distributor', async()=>{
   assert.match(api,/distributor_installers/);
   assert.match(api,/installerLink\?\.distributor_id \|\| await routeDistributor/);
 });
+
+
+test('configurable Pristine Points supports distributor-defined economics', async()=>{
+  const api=await readFile('supabase/functions/pristine-api/index.ts','utf8');
+  for(const action of [
+    'distributor-save-reward-program','distributor-save-reward-item','distributor-save-reward-campaign',
+    'partner-request-reward','distributor-update-reward-redemption','partner-rewards-summary'
+  ]) assert.ok(api.includes(action),'missing rewards action '+action);
+  assert.match(api,/purchase_earned/);
+  assert.match(api,/points_per_dollar/);
+  assert.match(api,/awardPurchasePoints/);
+
+  for(const path of [
+    'supabase/migrations/20261001110527_configurable_pristine_points.sql',
+    'supabase/migrations/20261001110614_pristine_points_expiration_and_redemption_links.sql',
+    'supabase/migrations/20261001110731_pristine_points_atomic_redemptions.sql'
+  ]) assert.equal(await exists(path),true,'missing '+path);
+
+  const distributor=await readFile('distributor.html','utf8');
+  assert.match(distributor,/Pristine Points/);
+  assert.match(distributor,/Points per \$1/);
+  assert.match(distributor,/Reward catalog/);
+  assert.match(distributor,/Campaign \/ multiplier/);
+
+  const calculator=await readFile('calculator.html','utf8');
+  assert.match(calculator,/partnerRewardsPanel/);
+  assert.match(calculator,/partnerRewardsCatalog/);
+  assert.match(calculator,/Network v36/);
+});
