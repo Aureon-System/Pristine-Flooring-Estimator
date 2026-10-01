@@ -409,11 +409,14 @@ async function distributorDashboard(req: Request, db: any, url: URL) {
   const installerIds=(links||[]).map((x:any)=>x.partner_id);
   let pointRows:any[]=[];
   if(installerIds.length){
-    const {data:pts,error:pErr}=await db.from("reward_points_ledger").select("partner_id,points").eq("distributor_id",distributorId).in("partner_id",installerIds);
+    const {data:pts,error:pErr}=await db.from("reward_points_ledger").select("partner_id,points,expires_at").eq("distributor_id",distributorId).in("partner_id",installerIds);
     if(pErr)throw pErr;pointRows=pts||[];
   }
-  const pointsByPartner=new Map<string,number>();
-  for(const p of pointRows)pointsByPartner.set(p.partner_id,(pointsByPartner.get(p.partner_id)||0)+Number(p.points||0));
+  const pointsByPartner=new Map<string,number>(),nowMs=Date.now();
+  for(const p of pointRows){
+    if(p.expires_at&&new Date(p.expires_at).getTime()<=nowMs)continue;
+    pointsByPartner.set(p.partner_id,(pointsByPartner.get(p.partner_id)||0)+Number(p.points||0));
+  }
   const installers=(links||[]).map((link:any)=>{
     const p=link.partners||{},profile=Array.isArray(p.partner_profiles)?p.partner_profiles[0]:p.partner_profiles;
     return {link_id:link.id,partner_id:link.partner_id,status:link.status,company_name:p.company_name,email:p.email,phone:p.phone,business_type:profile?.business_type||"installer",service_area:profile?.service_area||null,profile_completed:Boolean(profile?.profile_completed),created_at:link.joined_at||link.created_at,points_balance:pointsByPartner.get(link.partner_id)||0};
@@ -646,6 +649,8 @@ async function partnerRequestReward(req:Request,db:any,body:any){
   const {data:link,error:lErr}=await db.from("distributor_installers").select("distributor_id,status").eq("partner_id",ap.partner.id).eq("status","active").maybeSingle();
   if(lErr)throw lErr;if(!link)return json({ok:false,error:"Active distributor link required"},403);
   const rewardId=clean(body.reward_id,80);if(!rewardId)return json({ok:false,error:"Reward required"},400);
+  const {data:program,error:pErr}=await db.from("distributor_reward_programs").select("active").eq("distributor_id",link.distributor_id).maybeSingle();
+  if(pErr)throw pErr;if(!program?.active)return json({ok:false,error:"This distributor reward program is not active"},409);
   const {data:id,error}=await db.rpc("request_reward_redemption",{p_partner_id:ap.partner.id,p_distributor_id:link.distributor_id,p_reward_id:rewardId,p_notes:clean(body.notes,500)||null});
   if(error)throw error;
   return json({ok:true,redemption_id:id});
