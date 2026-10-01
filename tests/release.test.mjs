@@ -46,7 +46,7 @@ test('material opportunities round catalog quantities up to full boxes', async()
 
 test('role routing supports Cloudflare extensionless calculator paths', async()=>{
   const app=await readFile('app.js','utf8');
-  assert.match(app,/calculator\(\?:\\\.html\)\?\$\/i);
+  assert.ok(app.includes("const isCalculatorPath=/(?:^|\\/)calculator(?:\\.html)?$/i.test(normalizedPath);"));
   assert.match(app,/location\.replace\('\/admin\.html'\)/);
   assert.match(app,/location\.replace\('\/distributor\.html'\)/);
 });
