@@ -591,20 +591,12 @@ async function adminInventoryPublish(req:Request,db:any,body:any){
   if(!adminRow)return json({ok:false,error:"Admin access required"},403);
   const user=await authenticatedUser(req,db);
   const batchId=clean(body.batch_id,80);
-  const {data:batch,error:bErr}=await db.from("industry_inventory_batches").select("*").eq("id",batchId).maybeSingle();
-  if(bErr)throw bErr;if(!batch||batch.status!=="validated")return json({ok:false,error:"Validated inventory batch required"},409);
-  if(Number(batch.error_rows||0)>0)return json({ok:false,error:"Fix invalid rows before publishing this inventory batch"},409);
-  const {data:rows,error:rErr}=await db.from("industry_inventory_import_rows").select("*").eq("batch_id",batchId).eq("valid",true).order("row_number");
-  if(rErr)throw rErr;
-  const {data:variants,error:vErr}=await db.from("catalog_variants").select("id,sku").eq("active",true);
-  if(vErr)throw vErr;const bySku=new Map((variants||[]).map((v:any)=>[String(v.sku||"").trim().toUpperCase(),v.id]));
-  const now=new Date().toISOString(),upserts=(rows||[]).map((x:any)=>({variant_id:bySku.get(String(x.sku||"").toUpperCase()),warehouse_code:x.warehouse_code||"PRIMARY",on_hand_sqft:Number(x.on_hand_sqft||0),on_hand_boxes:Number(x.on_hand_boxes||0),on_hand_pallets:Number(x.on_hand_pallets||0),availability:x.availability||"unknown",eta_date:x.eta_date||null,batch_id:batchId,updated_at:now})).filter((x:any)=>x.variant_id);
-  for(let i=0;i<upserts.length;i+=500){const {error}=await db.from("industry_inventory").upsert(upserts.slice(i,i+500),{onConflict:"variant_id,warehouse_code"});if(error)throw error;}
-  const events=upserts.map((x:any)=>({scope:"industry",variant_id:x.variant_id,batch_id:batchId,event_type:"daily_inventory_publish",after_data:x,actor_user_id:user?.id||null}));
-  for(let i=0;i<events.length;i+=500){const {error}=await db.from("inventory_events").insert(events.slice(i,i+500));if(error)throw error;}
-  const {data:published,error:pErr}=await db.from("industry_inventory_batches").update({status:"published",published_by:user?.id||null,published_at:now}).eq("id",batchId).select("*").single();
-  if(pErr)throw pErr;
-  return json({ok:true,batch:published,published_rows:upserts.length});
+  if(!batchId)return json({ok:false,error:"Inventory batch required"},400);
+  const {data:publishedRows,error:rpcErr}=await db.rpc("publish_industry_inventory_batch",{p_batch_id:batchId,p_user_id:user?.id||null});
+  if(rpcErr)throw rpcErr;
+  const {data:batch,error:bErr}=await db.from("industry_inventory_batches").select("*").eq("id",batchId).single();
+  if(bErr)throw bErr;
+  return json({ok:true,batch,published_rows:Number(publishedRows||0)});
 }
 
 async function installerQuoteDecision(req: Request, db: any, body: any) {
