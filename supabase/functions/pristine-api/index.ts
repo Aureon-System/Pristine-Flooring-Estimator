@@ -535,7 +535,7 @@ async function distributorAddOffer(req:Request,db:any,body:any){
   if(!["in_stock","limited","out_of_stock","special_order","unknown"].includes(availability))return json({ok:false,error:"Invalid availability"},400);
   const now=new Date().toISOString();
   const {data:offer,error}=await db.from("distributor_offers").upsert({
-    distributor_id:ad.membership.distributor_id,variant_id:variantId,price_sqft:price,stock_sqft:stock,lead_time_days:lead,availability,active:true,effective_date:now.slice(0,10),updated_at:now,source_label:"Distributor"
+    distributor_id:ad.membership.distributor_id,variant_id:variantId,price_sqft:price,stock_sqft:stock,lead_time_days:lead,availability,active:false,effective_date:now.slice(0,10),updated_at:now,source_label:"Distributor"
   },{onConflict:"distributor_id,variant_id"}).select("*").single();
   if(error)throw error;
   return json({ok:true,offer});
