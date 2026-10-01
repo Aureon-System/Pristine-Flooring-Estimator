@@ -42,3 +42,11 @@ test('material opportunities round catalog quantities up to full boxes', async()
   assert.match(calculator,/Order quantity/);
   assert.match(calculator,/quoteRequiredDetail/);
 });
+
+
+test('role routing supports Cloudflare extensionless calculator paths', async()=>{
+  const app=await readFile('app.js','utf8');
+  assert.ok(app.includes("const isCalculatorPath=/(?:^|\\/)calculator(?:\\.html)?$/i.test(normalizedPath);"));
+  assert.match(app,/location\.replace\('\/admin\.html'\)/);
+  assert.match(app,/location\.replace\('\/distributor\.html'\)/);
+});

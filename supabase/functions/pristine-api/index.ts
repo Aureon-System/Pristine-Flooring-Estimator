@@ -348,7 +348,47 @@ async function distributorDashboard(req: Request, db: any, url: URL) {
     .eq("active",true)
     .order("updated_at",{ascending:false});
   if(offersR.error)throw offersR.error;
-  return json({ok:true,membership:ad.membership,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[]});
+
+  let installerNetwork:any={partner:null,referral_code:null,installers:[]};
+  const {data:networkPartner,error:npErr}=await db.from("partners")
+    .select("id,company_name,email")
+    .eq("owner_id",ad.user.id)
+    .maybeSingle();
+  if(npErr)throw npErr;
+  if(networkPartner){
+    let {data:refCode,error:rcErr}=await db.from("referral_codes")
+      .select("id,code,partner_id,active")
+      .eq("partner_id",networkPartner.id)
+      .eq("active",true)
+      .maybeSingle();
+    if(rcErr)throw rcErr;
+    if(!refCode){
+      for(let i=0;i<5&&!refCode;i++){
+        const candidate="PF-"+crypto.randomUUID().replaceAll("-","").slice(0,8).toUpperCase();
+        const created=await db.from("referral_codes").insert({partner_id:networkPartner.id,code:candidate}).select("id,code,partner_id,active").single();
+        if(!created.error)refCode=created.data;
+      }
+    }
+    let installers:any[]=[];
+    if(refCode?.code){
+      const {data:profiles,error:pErr}=await db.from("partner_profiles")
+        .select("partner_id,business_type,service_area,profile_completed,referred_by_code,created_at")
+        .eq("referred_by_code",refCode.code)
+        .order("created_at",{ascending:false});
+      if(pErr)throw pErr;
+      const partnerIds=(profiles||[]).map((x:any)=>x.partner_id).filter(Boolean);
+      let partnerRows:any[]=[];
+      if(partnerIds.length){
+        const {data:rows,error:rErr}=await db.from("partners").select("id,company_name,email,phone,created_at").in("id",partnerIds);
+        if(rErr)throw rErr;partnerRows=rows||[];
+      }
+      const byId=new Map(partnerRows.map((x:any)=>[x.id,x]));
+      installers=(profiles||[]).map((p:any)=>({...byId.get(p.partner_id),business_type:p.business_type,service_area:p.service_area,profile_completed:p.profile_completed,created_at:p.created_at}));
+    }
+    installerNetwork={partner:networkPartner,referral_code:refCode||null,installers};
+  }
+
+  return json({ok:true,membership:ad.membership,distributor:ad.distributor,leads:leadsR.data||[],quotes,supply_requests:supply,events,orders,offers:offersR.data||[],installer_network:installerNetwork});
 }
 
 async function installerQuoteDecision(req: Request, db: any, body: any) {

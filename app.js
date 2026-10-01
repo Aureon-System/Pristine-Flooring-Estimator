@@ -33,12 +33,14 @@ async function fetchNetworkRole(){
     const params=new URLSearchParams(location.search);
     const distributorEstimator=params.get('workspace')==='distributor-estimator';
     const adminPreview=params.get('workspace')==='admin-preview';
-    if(d.admin && !adminPreview && /(?:^|\/)calculator\.html$/i.test(location.pathname)){
-      location.replace('admin.html');
+    const normalizedPath=location.pathname.replace(/\/+$/,'');
+    const isCalculatorPath=/(?:^|\/)calculator(?:\.html)?$/i.test(normalizedPath);
+    if(d.admin && !adminPreview && isCalculatorPath){
+      location.replace('/admin.html');
       return d;
     }
-    if(distributorMemberships.length && !d.admin && !distributorEstimator && /(?:^|\/)calculator\.html$/i.test(location.pathname)){
-      location.replace('distributor.html');
+    if(distributorMemberships.length && !d.admin && !distributorEstimator && isCalculatorPath){
+      location.replace('/distributor.html');
       return d;
     }
     if(adminPreview && d.admin){

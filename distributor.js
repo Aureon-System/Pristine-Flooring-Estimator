@@ -30,7 +30,7 @@ function render(){
   $('#metricIndustry').textContent=leads.filter(x=>x.status==='awaiting_manufacturer').length;
   $('#metricQuoted').textContent=quotes.filter(x=>x.status==='submitted').length;
   $('#metricValue').textContent=money(quotes.filter(x=>['submitted','accepted'].includes(x.status)).reduce((s,x)=>s+Number(x.total||0),0));
-  renderOpportunities();renderSupply();renderQuotes();renderOrders();renderCatalog();
+  renderOpportunities();renderSupply();renderQuotes();renderOrders();renderCatalog();renderInstallerNetwork();
 }
 function renderOpportunities(){
   const filter=$('#statusFilter').value;
@@ -70,6 +70,34 @@ function renderCatalog(){
     return '<tr><td><strong>'+esc(v.name||'Product')+'</strong><small class="table-sub">'+esc(p.collection||'')+'</small></td><td>'+esc(v.sku||'—')+'</td><td>'+esc(v.size||'—')+'</td><td><input class="network-inline-input" data-offer-price="'+esc(o.id)+'" type="number" min="0" step=".01" value="'+Number(o.price_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-stock="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.stock_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-lead="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.lead_time_days||0)+'"'+disabled+'></td><td><select class="network-status-select" data-offer-availability="'+esc(o.id)+'"'+disabled+'>'+['in_stock','limited','special_order','out_of_stock','unknown'].map(a=>'<option value="'+a+'" '+(String(o.availability||'unknown')===a?'selected':'')+'>'+statusLabel(a)+'</option>').join('')+'</select></td><td>'+(canEdit?'<button class="network-respond-btn" data-offer-save="'+esc(o.id)+'" type="button">Save</button>':'')+'</td></tr>';
   }).join('')||'<tr><td colspan="8">No catalog offers match this search.</td></tr>';
   document.querySelectorAll('[data-offer-save]').forEach(b=>b.onclick=()=>updateOffer(b.dataset.offerSave));
+}
+function renderInstallerNetwork(){
+  const network=data.installer_network||{};
+  const code=network.referral_code?.code||'—';
+  const referral=network.referral_code?.code?(location.origin+'/?ref='+encodeURIComponent(network.referral_code.code)):'';
+  const codeEl=$('#distributorReferralCode'),refEl=$('#distributorReferralLink');
+  if(codeEl)codeEl.textContent=code;
+  if(refEl)refEl.value=referral;
+  const installers=network.installers||[];
+  const count=$('#installerNetworkCount');if(count)count.textContent=String(installers.length);
+  const rows=$('#installerNetworkRows');
+  if(rows)rows.innerHTML=installers.map(x=>'<tr><td><strong>'+esc(x.company_name||'Installer')+'</strong></td><td>'+esc(x.email||'—')+'</td><td>'+esc(statusLabel(x.business_type||'installer'))+'</td><td>'+esc(x.service_area||'—')+'</td><td>'+esc(x.profile_completed?'Complete':'Pending')+'</td><td>'+date(x.created_at)+'</td></tr>').join('')||'<tr><td colspan="6">No installers registered through this distributor yet.</td></tr>';
+}
+function buildInstallerAccessLink(){
+  const network=data.installer_network||{},code=network.referral_code?.code||'';
+  const email=String($('#installerInviteEmail')?.value||'').trim();
+  const company=String($('#installerInviteCompany')?.value||'').trim();
+  const q=new URLSearchParams({signup:'1'});
+  if(code)q.set('ref',code);
+  if(email)q.set('email',email);
+  if(company)q.set('company',company);
+  const link=location.origin+'/?'+q.toString();
+  const out=$('#installerAccessLink');if(out)out.value=link;
+  return link;
+}
+async function copyTextValue(text){
+  if(!text)return;
+  try{await navigator.clipboard.writeText(text)}catch{}
 }
 async function updateOrder(id){
   const btn=document.querySelector('[data-order-save="'+CSS.escape(id)+'"]');
@@ -148,6 +176,9 @@ async function submitQuote(){
 }
 $('#statusFilter').onchange=renderOpportunities;
 if($('#catalogSearch'))$('#catalogSearch').oninput=renderCatalog;
+if($('#generateInstallerLinkBtn'))$('#generateInstallerLinkBtn').onclick=buildInstallerAccessLink;
+if($('#copyInstallerLinkBtn'))$('#copyInstallerLinkBtn').onclick=()=>copyTextValue($('#installerAccessLink')?.value||buildInstallerAccessLink());
+if($('#copyDistributorReferralBtn'))$('#copyDistributorReferralBtn').onclick=()=>copyTextValue($('#distributorReferralLink')?.value||'');
 $('#refreshBtn').onclick=load;$('#signOutBtn').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
 (async()=>{

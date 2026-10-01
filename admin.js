@@ -132,6 +132,8 @@ $('#adminSignOut').onclick=async()=>{await sb.auth.signOut();location.href='/'};
     await fetchSummary();
     $('#accessGate').classList.add('hidden');$('#adminApp').classList.remove('hidden');
   }catch(e){
-    $('#accessGate').innerHTML='<div class="gate-card"><h2>Access denied</h2><p>'+esc(e.message||'Administrator access required')+'</p><a href="/">Return to Pristine</a></div>';
+    const email=session?.user?.email||'this account';
+    $('#accessGate').innerHTML='<div class="gate-card"><h2>Access denied</h2><p>'+esc(e.message||'Administrator access required')+'</p><p class="form-message">Signed in as <strong>'+esc(email)+'</strong>. Admin access is tied to the Admin test account.</p><div class="action-row"><button id="switchAdminAccount" class="btn dark" type="button">Switch account</button><a class="btn secondary" href="/">Return to Pristine</a></div></div>';
+    const switchBtn=$('#switchAdminAccount');if(switchBtn)switchBtn.onclick=async()=>{await sb.auth.signOut();location.href='/?admin=1'};
   }
 })();
