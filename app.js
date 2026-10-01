@@ -167,8 +167,44 @@ function renderPartnerCenter(events=[],rewards=null){
   Object.entries(map).forEach(([id,v])=>{const el=$('#'+id);if(el)el.textContent=String(v)});
   const points=$('#partnerPointsBalance');if(points)points.textContent=Number(rewards?.balance||0).toLocaleString();
   const pointsDist=$('#partnerPointsDistributor');if(pointsDist)pointsDist.textContent=rewards?.distributor?.name?('Rewards with '+rewards.distributor.name):'Link with a distributor to earn points';
+  const panel=$('#partnerRewardsPanel'),program=rewards?.program||null,balance=Number(rewards?.balance||0);
+  if(panel)panel.classList.toggle('hidden',!program?.active);
+  if(program?.active){
+    const title=$('#partnerRewardsProgramTitle');if(title)title.textContent=program.program_name||'Pristine Points';
+    const big=$('#partnerRewardsBalanceLarge');if(big)big.textContent=balance.toLocaleString()+' '+(program.points_label||'Points');
+    const rule=$('#partnerRewardsEarnRule');if(rule){
+      const min=Number(program.minimum_purchase||0);
+      rule.textContent=Number(program.points_per_dollar||0).toLocaleString(undefined,{maximumFractionDigits:2})+' '+(program.points_label||'Points')+' per $1 on '+(program.earn_basis==='total'?'order total':'material subtotal')+(min>0?' · minimum '+money(min):'');
+    }
+    const next=rewards?.next_reward||null,wrap=$('#partnerRewardsProgressWrap');
+    if(wrap)wrap.classList.toggle('hidden',!next);
+    if(next){
+      const pct=Math.max(0,Math.min(100,(balance/Math.max(1,Number(next.points_cost||1)))*100));
+      const bar=$('#partnerRewardsProgressBar');if(bar)bar.style.width=pct.toFixed(1)+'%';
+      const t=$('#partnerRewardsProgressText');if(t)t.textContent=Math.max(0,Number(next.points_cost||0)-balance).toLocaleString()+' more '+(program.points_label||'Points')+' until '+next.label;
+    }
+    const campaigns=$('#partnerRewardsCampaigns');
+    if(campaigns)campaigns.innerHTML=(rewards?.campaigns||[]).map(x=>'<span class="campaign-chip">'+esc(x.name)+' · '+esc(x.campaign_type==='multiplier'?(Number(x.multiplier||1)+'× points'):(Number(x.bonus_points||0).toLocaleString()+' bonus'))+'</span>').join('');
+    const catalog=$('#partnerRewardsCatalog');
+    if(catalog)catalog.innerHTML=(rewards?.rewards||[]).map(r=>{
+      const can=balance>=Number(r.points_cost||0);
+      return '<article class="partner-reward-card"><strong>'+esc(r.label)+'</strong><span class="reward-cost">'+Number(r.points_cost||0).toLocaleString()+' '+esc(program.points_label||'Points')+'</span><small>'+esc(r.description||((r.reward_value??null)!==null?money(r.reward_value)+' value':'Distributor reward'))+'</small><button class="btn '+(can?'btn-gold':'btn-secondary')+'" data-request-reward="'+esc(r.id)+'" type="button" '+(can?'':'disabled')+'>'+(can?'Request reward':Math.max(0,Number(r.points_cost||0)-balance).toLocaleString()+' points to go')+'</button></article>';
+    }).join('')||'<p class="empty">Your distributor has not activated rewards yet.</p>';
+    document.querySelectorAll('[data-request-reward]').forEach(b=>b.onclick=()=>requestPartnerReward(b.dataset.requestReward));
+  }
 }
 
+async function requestPartnerReward(rewardId){
+  if(!rewardId||!currentSession)return;
+  const btn=document.querySelector('[data-request-reward="'+CSS.escape(rewardId)+'"]');
+  if(btn){btn.disabled=true;btn.textContent='Requesting…'}
+  try{
+    const r=await fetch(PRISTINE_API+'?action=partner-request-reward',{method:'POST',headers:apiHeaders(),body:JSON.stringify({reward_id:rewardId})});
+    const d=await r.json();if(!r.ok||!d.ok)throw new Error(d.error||'Could not request reward');
+    await fetchPartnerNetworkData(false);
+    alert('Reward request sent to your distributor. Your points are reserved while it is reviewed.');
+  }catch(e){alert(e.message||'Could not request reward');await fetchPartnerNetworkData(false)}
+}
 function openPartnerProfile(){
   if(!currentPartner)return;
   const p=currentPartnerProfile||{};
