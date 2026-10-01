@@ -26,7 +26,22 @@ function openAuth(next='signin'){
   $('#authDialog').showModal();
   setTimeout(()=>$('#authEmail').focus(),50);
 }
-async function goToCalculator(){location.href=postAuthTarget||'calculator.html'}
+async function resolveWorkspaceTarget(){
+  if(postAuthTarget && postAuthTarget!=='calculator.html')return postAuthTarget;
+  try{
+    const {data}=await sb.auth.getSession();
+    const token=data.session?.access_token;
+    if(!token)return postAuthTarget||'calculator.html';
+    const r=await fetch(PRISTINE_API+'?action=network-role',{headers:{Authorization:'Bearer '+token}});
+    const d=await r.json();
+    if(r.ok&&d.ok){
+      if(d.admin)return 'admin.html';
+      if((d.distributors||[]).length)return 'distributor.html';
+    }
+  }catch{}
+  return postAuthTarget||'calculator.html';
+}
+async function goToCalculator(){location.href=await resolveWorkspaceTarget()}
 async function signIn(){
   const email=$('#authEmail').value.trim(),password=$('#authPassword').value;
   if(!email||!password)return setMessage('Enter your email and password.',true);
@@ -100,7 +115,13 @@ $('#authEmail').addEventListener('keydown',e=>{if(e.key==='Enter'&&mode==='reset
   const {data}=await sb.auth.getSession();
   const query=new URLSearchParams(location.search);
   if(query.get('admin')==='1')postAuthTarget='admin.html';
-  if(query.get('signin')==='1'||query.get('admin')==='1')openAuth('signin');
+  if(query.get('signup')==='1'){
+    openAuth('signup');
+    const email=(query.get('email')||'').trim();
+    const company=(query.get('company')||'').trim();
+    if(email)$('#authEmail').value=email;
+    if(company)$('#authCompany').value=company;
+  }else if(query.get('signin')==='1'||query.get('admin')==='1')openAuth('signin');
   if(data.session){
     const top=$('#openLoginTop');
     top.textContent='Open workspace';
