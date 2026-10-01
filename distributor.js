@@ -53,10 +53,11 @@ function renderOrders(){
   }).join('')||'<div class="empty">Accepted quotes will appear here as material orders.</div>';
   document.querySelectorAll('[data-order-save]').forEach(b=>b.onclick=()=>updateOrder(b.dataset.orderSave));
 }
+function hasPermission(name){return (data.permissions||[]).includes(name)||data.membership?.role==='admin_view'}
 function renderCatalog(){
   const body=$('#catalogRows');if(!body)return;
   const role=String(data.membership?.role||'');
-  const canEdit=['owner','manager'].includes(role);
+  const canEdit=hasPermission('manage_catalog')||hasPermission('manage_pricing')||hasPermission('manage_inventory');
   const note=$('#catalogRoleNote');
   if(note)note.textContent=canEdit?'Owner/manager pricing controls are active.':'Catalog pricing is read-only for your '+statusLabel(role)+' role.';
   const q=String($('#catalogSearch')?.value||'').trim().toLowerCase();
@@ -64,36 +65,61 @@ function renderCatalog(){
     const v=o.catalog_variants||{},p=v.catalog_products||{};
     return !q||[v.sku,v.name,v.size,p.collection,p.category].some(x=>String(x||'').toLowerCase().includes(q));
   });
+  const industry=new Map((data.industry_inventory||[]).map(x=>[x.variant_id,x]));
   body.innerHTML=offers.map(o=>{
-    const v=o.catalog_variants||{},p=v.catalog_products||{};
+    const v=o.catalog_variants||{},p=v.catalog_products||{},global=industry.get(o.variant_id)||{};
     const disabled=canEdit?'':' disabled';
-    return '<tr><td><strong>'+esc(v.name||'Product')+'</strong><small class="table-sub">'+esc(p.collection||'')+'</small></td><td>'+esc(v.sku||'—')+'</td><td>'+esc(v.size||'—')+'</td><td><input class="network-inline-input" data-offer-price="'+esc(o.id)+'" type="number" min="0" step=".01" value="'+Number(o.price_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-stock="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.stock_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-lead="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.lead_time_days||0)+'"'+disabled+'></td><td><select class="network-status-select" data-offer-availability="'+esc(o.id)+'"'+disabled+'>'+['in_stock','limited','special_order','out_of_stock','unknown'].map(a=>'<option value="'+a+'" '+(String(o.availability||'unknown')===a?'selected':'')+'>'+statusLabel(a)+'</option>').join('')+'</select></td><td>'+(canEdit?'<button class="network-respond-btn" data-offer-save="'+esc(o.id)+'" type="button">Save</button>':'')+'</td></tr>';
-  }).join('')||'<tr><td colspan="8">No catalog offers match this search.</td></tr>';
+    return '<tr class="'+(o.active?'':'inactive-row')+'"><td><strong>'+esc(v.name||'Product')+'</strong><small class="table-sub">'+esc(p.collection||'')+'</small></td><td>'+esc(v.sku||'—')+'</td><td>'+esc(v.size||'—')+'</td><td><strong>'+Number(global.on_hand_sqft||0).toLocaleString()+' sqft</strong><small class="table-sub">'+esc(statusLabel(global.availability||'unknown'))+'</small></td><td><input class="network-inline-input" data-offer-price="'+esc(o.id)+'" type="number" min="0" step=".01" value="'+Number(o.price_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-stock="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.stock_sqft||0)+'"'+disabled+'></td><td><input class="network-inline-input" data-offer-lead="'+esc(o.id)+'" type="number" min="0" step="1" value="'+Number(o.lead_time_days||0)+'"'+disabled+'></td><td><select class="network-status-select" data-offer-availability="'+esc(o.id)+'"'+disabled+'>'+['in_stock','limited','special_order','out_of_stock','unknown'].map(a=>'<option value="'+a+'" '+(String(o.availability||'unknown')===a?'selected':'')+'>'+statusLabel(a)+'</option>').join('')+'</select></td><td><input data-offer-active="'+esc(o.id)+'" type="checkbox" '+(o.active?'checked':'')+disabled+'></td><td>'+(canEdit?'<button class="network-respond-btn" data-offer-save="'+esc(o.id)+'" type="button">Save</button>':'')+'</td></tr>';
+  }).join('')||'<tr><td colspan="10">No catalog offers match this search.</td></tr>';
   document.querySelectorAll('[data-offer-save]').forEach(b=>b.onclick=()=>updateOffer(b.dataset.offerSave));
+  const add=$('#catalogAddVariant');
+  if(add){
+    const existing=new Set((data.offers||[]).map(o=>o.variant_id));
+    add.innerHTML='<option value="">Add product from Industry catalog…</option>'+(data.catalog||[]).filter(v=>!existing.has(v.id)).map(v=>'<option value="'+esc(v.id)+'">'+esc(v.sku+' · '+v.name+' · '+(v.size||''))+'</option>').join('');
+    add.disabled=!hasPermission('manage_catalog');
+  }
+  const addBtn=$('#catalogAddBtn');if(addBtn)addBtn.disabled=!hasPermission('manage_catalog');
 }
 function renderInstallerNetwork(){
   const network=data.installer_network||{};
   const code=network.referral_code?.code||'—';
   const referral=network.referral_code?.code?(location.origin+'/?ref='+encodeURIComponent(network.referral_code.code)):'';
   const codeEl=$('#distributorReferralCode'),refEl=$('#distributorReferralLink');
-  if(codeEl)codeEl.textContent=code;
-  if(refEl)refEl.value=referral;
-  const installers=network.installers||[];
+  if(codeEl)codeEl.textContent=code;if(refEl)refEl.value=referral;
+  const installers=network.installers||[],canManage=hasPermission('manage_installers');
   const count=$('#installerNetworkCount');if(count)count.textContent=String(installers.length);
   const rows=$('#installerNetworkRows');
-  if(rows)rows.innerHTML=installers.map(x=>'<tr><td><strong>'+esc(x.company_name||'Installer')+'</strong></td><td>'+esc(x.email||'—')+'</td><td>'+esc(statusLabel(x.business_type||'installer'))+'</td><td>'+esc(x.service_area||'—')+'</td><td>'+esc(x.profile_completed?'Complete':'Pending')+'</td><td>'+date(x.created_at)+'</td></tr>').join('')||'<tr><td colspan="6">No installers registered through this distributor yet.</td></tr>';
+  if(rows)rows.innerHTML=installers.map(x=>{
+    const statusSelect=canManage?'<select data-installer-status="'+esc(x.partner_id)+'">'+['active','suspended','removed'].map(s=>'<option value="'+s+'" '+(x.status===s?'selected':'')+'>'+statusLabel(s)+'</option>').join('')+'</select>':'<span class="status '+esc(x.status)+'">'+esc(statusLabel(x.status))+'</span>';
+    const actions=canManage?'<div class="installer-actions"><button data-installer-save="'+esc(x.partner_id)+'" class="network-respond-btn" type="button">Save</button><button data-installer-points="'+esc(x.partner_id)+'" class="btn secondary mini" type="button">± Points</button></div>':'—';
+    return '<tr><td><strong>'+esc(x.company_name||'Installer')+'</strong><small class="table-sub">'+esc(x.business_type||'')+'</small></td><td>'+esc(x.email||'—')+'</td><td>'+esc(x.service_area||'—')+'</td><td>'+statusSelect+'</td><td><strong>'+Number(x.points_balance||0).toLocaleString()+'</strong></td><td>'+date(x.created_at)+'</td><td>'+actions+'</td></tr>';
+  }).join('')||'<tr><td colspan="7">No installers registered through this distributor yet.</td></tr>';
+  document.querySelectorAll('[data-installer-save]').forEach(b=>b.onclick=()=>updateInstallerStatus(b.dataset.installerSave));
+  document.querySelectorAll('[data-installer-points]').forEach(b=>b.onclick=()=>adjustInstallerPoints(b.dataset.installerPoints));
 }
-function buildInstallerAccessLink(){
-  const network=data.installer_network||{},code=network.referral_code?.code||'';
-  const email=String($('#installerInviteEmail')?.value||'').trim();
-  const company=String($('#installerInviteCompany')?.value||'').trim();
-  const q=new URLSearchParams({signup:'1'});
-  if(code)q.set('ref',code);
-  if(email)q.set('email',email);
-  if(company)q.set('company',company);
-  const link=location.origin+'/?'+q.toString();
-  const out=$('#installerAccessLink');if(out)out.value=link;
-  return link;
+async function buildInstallerAccessLink(){
+  const email=String($('#installerInviteEmail')?.value||'').trim(),company=String($('#installerInviteCompany')?.value||'').trim();
+  const d=await api('distributor-create-installer-invite',{method:'POST',body:{distributor_id:data.membership.distributor_id,email,company}});
+  const q=new URLSearchParams({signup:'1',invite:d.invite.invite_token});
+  if(d.referral_code)q.set('ref',d.referral_code);if(email)q.set('email',email);if(company)q.set('company',company);
+  const link=location.origin+'/?'+q.toString();const out=$('#installerAccessLink');if(out)out.value=link;return link;
+}
+async function updateInstallerStatus(partnerId){
+  const status=document.querySelector('[data-installer-status="'+CSS.escape(partnerId)+'"]')?.value||'active';
+  await api('distributor-update-installer',{method:'POST',body:{distributor_id:data.membership.distributor_id,partner_id:partnerId,status}});
+  await load();activateTab('installers');
+}
+async function adjustInstallerPoints(partnerId){
+  const raw=prompt('Points adjustment. Use a positive number to add points or a negative number to remove points:','100');
+  if(raw===null)return;const points=Math.trunc(Number(raw));if(!points)return alert('Enter a non-zero points amount.');
+  const description=prompt('Reason / description:','Referral reward')||'Distributor points adjustment';
+  await api('distributor-adjust-points',{method:'POST',body:{distributor_id:data.membership.distributor_id,partner_id:partnerId,points,description}});
+  await load();activateTab('installers');
+}
+async function addCatalogProduct(){
+  const variantId=$('#catalogAddVariant')?.value;if(!variantId)return;
+  await api('distributor-add-offer',{method:'POST',body:{distributor_id:data.membership.distributor_id,variant_id:variantId,price_sqft:0,stock_sqft:0,lead_time_days:0,availability:'unknown'}});
+  await load();activateTab('catalog');
 }
 async function copyTextValue(text){
   if(!text)return;
@@ -125,7 +151,8 @@ async function updateOffer(id){
       price_sqft:Number(document.querySelector('[data-offer-price="'+CSS.escape(id)+'"]')?.value||0),
       stock_sqft:Number(document.querySelector('[data-offer-stock="'+CSS.escape(id)+'"]')?.value||0),
       lead_time_days:Number(document.querySelector('[data-offer-lead="'+CSS.escape(id)+'"]')?.value||0),
-      availability:document.querySelector('[data-offer-availability="'+CSS.escape(id)+'"]')?.value||'unknown'
+      availability:document.querySelector('[data-offer-availability="'+CSS.escape(id)+'"]')?.value||'unknown',
+      active:Boolean(document.querySelector('[data-offer-active="'+CSS.escape(id)+'"]')?.checked)
     }});
     await load();activateTab('catalog');
   }catch(e){alert(e.message||'Could not update catalog price')}
@@ -176,8 +203,9 @@ async function submitQuote(){
 }
 $('#statusFilter').onchange=renderOpportunities;
 if($('#catalogSearch'))$('#catalogSearch').oninput=renderCatalog;
-if($('#generateInstallerLinkBtn'))$('#generateInstallerLinkBtn').onclick=buildInstallerAccessLink;
-if($('#copyInstallerLinkBtn'))$('#copyInstallerLinkBtn').onclick=()=>copyTextValue($('#installerAccessLink')?.value||buildInstallerAccessLink());
+if($('#generateInstallerLinkBtn'))$('#generateInstallerLinkBtn').onclick=async()=>{try{await buildInstallerAccessLink()}catch(e){alert(e.message||'Could not create installer access link')}};
+if($('#copyInstallerLinkBtn'))$('#copyInstallerLinkBtn').onclick=async()=>{try{let v=$('#installerAccessLink')?.value;if(!v)v=await buildInstallerAccessLink();await copyTextValue(v)}catch(e){alert(e.message||'Could not copy installer access link')}};
+if($('#catalogAddBtn'))$('#catalogAddBtn').onclick=async()=>{try{await addCatalogProduct()}catch(e){alert(e.message||'Could not add product')}};
 if($('#copyDistributorReferralBtn'))$('#copyDistributorReferralBtn').onclick=()=>copyTextValue($('#distributorReferralLink')?.value||'');
 $('#refreshBtn').onclick=load;$('#signOutBtn').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
