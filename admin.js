@@ -3,7 +3,7 @@ const SUPABASE_KEY='sb_publishable_TmhHu9-ncOfBaij_xlCdmw_X7B0wLzG';
 const API=SUPABASE_URL+'/functions/v1/pristine-api';
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
 const $=s=>document.querySelector(s);
-let summary=null,network=null,session=null;
+let summary=null,network=null,session=null,inventoryBatch=null,inventoryParsedRows=[];
 const money=v=>new Intl.NumberFormat('en-US',{style:'currency',currency:'USD'}).format(Number(v||0));
 const date=v=>v?new Date(v).toLocaleDateString('en-US'):'—';
 const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
@@ -21,7 +21,12 @@ function networkStatusLabel(s){return String(s||'new').replaceAll('_',' ').repla
 function renderNetwork(){
   if(!network)return;
   const m=network.metrics||{};
+  $('#networkDistributorCount').textContent=m.distributors||0;
+  $('#networkInstallerCount').textContent=m.installers||0;
+  $('#networkIndustryStock').textContent=Number(m.industry_inventory_sqft||0).toLocaleString()+' sqft';
+  $('#networkIndustryOut').textContent=m.industry_out_of_stock_skus||0;
   $('#networkOpportunities').textContent=m.opportunities||0;
+  const last=$('#inventoryLastPublish');if(last)last.textContent=m.last_inventory_publish?('Last published '+new Date(m.last_inventory_publish).toLocaleString('en-US')):'No published batch';
   $('#networkDistributorReview').textContent=m.distributor_review||0;
   $('#networkAwaitingIndustry').textContent=m.awaiting_manufacturer||0;
   $('#networkQuoteValue').textContent=money(m.quote_value||0);
@@ -34,9 +39,11 @@ function renderNetwork(){
   $('#networkOpportunityRows').innerHTML=(network.leads||[]).map(l=>'<tr><td>'+date(l.created_at)+'</td><td>'+esc(l.partners?.company_name||l.requester_company||'—')+'</td><td>'+esc([l.project_name,l.project_city,l.project_state].filter(Boolean).join(' · ')||'—')+'</td><td>'+esc(l.product_name||l.product_sku||l.material||'—')+'</td><td>'+Number(l.required_sqft||0).toLocaleString()+' sqft</td><td>'+esc(distributors.get(l.assigned_distributor_id)?.name||'Unassigned')+'</td><td><span class="status-pill '+esc(l.status)+'">'+esc(networkStatusLabel(l.status))+'</span></td></tr>').join('')||'<tr><td colspan="7">No network opportunities yet.</td></tr>';
   $('#networkSupplyRows').innerHTML=(network.supply_requests||[]).map(s=>'<tr><td>'+esc(s.distributors?.name||'—')+'</td><td>'+esc(s.catalog_variants?.sku||'—')+'</td><td>'+Number(s.requested_sqft||0).toLocaleString()+' sqft</td><td><span class="status-pill '+esc(s.status)+'">'+esc(networkStatusLabel(s.status))+'</span></td><td><input class="network-inline-input" data-supply-available="'+esc(s.id)+'" type="number" min="0" step="1" value="'+(s.available_sqft??s.requested_sqft??0)+'"></td><td><input class="network-inline-input" data-supply-cost="'+esc(s.id)+'" type="number" min="0" step=".01" value="'+(s.cost_sqft??'')+'"></td><td><input class="network-inline-input" data-supply-eta="'+esc(s.id)+'" type="number" min="0" step="1" value="'+(s.eta_days??'')+'"></td><td><input class="network-response-input" data-supply-note="'+esc(s.id)+'" value="'+esc(s.response_notes||'')+'" placeholder="Availability / lot / timing"></td><td><select class="network-status-select" data-supply-status="'+esc(s.id)+'"><option value="confirmed">Confirmed</option><option value="partial">Partial</option><option value="unavailable">Unavailable</option><option value="cancelled">Cancelled</option></select><button class="network-respond-btn" data-supply-id="'+esc(s.id)+'" type="button">Respond</button></td></tr>').join('')||'<tr><td colspan="9">No manufacturer supply requests yet.</td></tr>';
   document.querySelectorAll('.network-respond-btn').forEach(b=>b.onclick=()=>respondSupply(b.dataset.supplyId));
-  $('#networkDistributorCards').innerHTML=(network.distributors||[]).map(d=>'<div class="network-card"><strong>'+esc(d.name)+'</strong><span>'+esc(d.warehouse_address||d.office_address||'Address pending')+'</span><small>'+esc(d.email||'Contact pending')+'</small><a class="network-preview-link" href="distributor.html?distributor_id='+encodeURIComponent(d.id)+'" target="_blank" rel="noopener">Open distributor workspace →</a></div>').join('')||'<p class="form-message">No distributors configured.</p>';
+  $('#networkDistributorCards').innerHTML=(network.distributors||[]).map(d=>'<div class="network-card"><strong>'+esc(d.name)+'</strong><span>'+Number(d.installer_count||0).toLocaleString()+' installers · '+esc(d.warehouse_address||d.office_address||'Address pending')+'</span><small>'+esc(d.email||'Contact pending')+'</small><a class="network-preview-link" href="distributor.html?distributor_id='+encodeURIComponent(d.id)+'" target="_blank" rel="noopener">Open distributor workspace →</a></div>').join('')||'<p class="form-message">No distributors configured.</p>';
   $('#networkMemberRows').innerHTML=(network.members||[]).map(x=>'<tr><td>'+esc(x.distributors?.name||'—')+'</td><td>'+esc(networkStatusLabel(x.role))+'</td><td><span class="status-pill '+(x.active?'active':'')+'">'+(x.active?'Active':'Inactive')+'</span></td></tr>').join('')||'<tr><td colspan="3">No distributor users linked yet.</td></tr>';
   $('#networkOrderRows').innerHTML=(network.orders||[]).map(o=>'<tr><td>'+date(o.created_at)+'</td><td>'+esc(o.material_leads?.project_name||'—')+'</td><td>'+esc(o.material_leads?.product_name||o.material_leads?.product_sku||'—')+'</td><td>'+esc(o.distributors?.name||'—')+'</td><td>'+money(o.total)+'</td><td>'+esc(networkStatusLabel(o.delivery_method))+'</td><td>'+esc(o.scheduled_for?new Date(o.scheduled_for).toLocaleString('en-US'):'—')+'</td><td><span class="status-pill '+esc(o.status)+'">'+esc(networkStatusLabel(o.status))+'</span></td></tr>').join('')||'<tr><td colspan="8">No accepted material orders yet.</td></tr>';
+  const batchRows=$('#inventoryBatchRows');
+  if(batchRows)batchRows.innerHTML=(network.inventory_batches||[]).map(b=>'<tr><td>'+date(b.uploaded_at)+'</td><td>'+esc(b.source_filename)+'</td><td><span class="status-pill '+esc(b.status)+'">'+esc(networkStatusLabel(b.status))+'</span></td><td>'+Number(b.total_rows||0).toLocaleString()+'</td><td>'+Number(b.valid_rows||0).toLocaleString()+'</td><td>'+Number(b.warning_rows||0).toLocaleString()+'</td><td>'+Number(b.error_rows||0).toLocaleString()+'</td><td>'+esc(b.published_at?new Date(b.published_at).toLocaleString('en-US'):'—')+'</td></tr>').join('')||'<tr><td colspan="8">No inventory uploads yet.</td></tr>';
 }
 async function respondSupply(id){
   const btn=document.querySelector('[data-supply-id="'+id+'"]');if(btn)btn.disabled=true;
@@ -60,6 +67,69 @@ async function addDistributorMember(){
     $('#networkMemberEmail').value='';
     await fetchNetwork();
   }catch(e){msg.textContent=e.message}
+}
+
+async function createDistributor(){
+  const msg=$('#createDistributorMessage');msg.textContent='Creating distributor…';
+  try{
+    const d=await apiRequest('admin-create-distributor',{method:'POST',body:{
+      name:$('#newDistributorName').value.trim(),email:$('#newDistributorEmail').value.trim(),
+      phone:$('#newDistributorPhone').value.trim(),office_address:$('#newDistributorOffice').value.trim(),
+      warehouse_address:$('#newDistributorWarehouse').value.trim()
+    }});
+    msg.textContent='Distributor '+d.distributor.name+' created.';
+    ['#newDistributorName','#newDistributorEmail','#newDistributorPhone','#newDistributorOffice','#newDistributorWarehouse'].forEach(s=>{$(s).value=''});
+    await fetchNetwork();
+  }catch(e){msg.textContent=e.message}
+}
+function normalizeInventoryHeader(v){return String(v||'').trim().toLowerCase().replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,'')}
+function parseCsvLine(line){
+  const out=[];let cur='',quote=false;
+  for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'){if(quote&&line[i+1]==='"'){cur+='"';i++}else quote=!quote}else if(ch===','&&!quote){out.push(cur);cur=''}else cur+=ch}
+  out.push(cur);return out;
+}
+async function parseInventoryFile(file){
+  if(!file)throw new Error('Choose an XLSX or CSV inventory file.');
+  if(file.name.toLowerCase().endsWith('.csv')){
+    const text=await file.text(),lines=text.split(/\r?\n/).filter(x=>x.trim());
+    if(lines.length<2)throw new Error('CSV has no inventory rows.');
+    const headers=parseCsvLine(lines[0]).map(normalizeInventoryHeader);
+    return lines.slice(1).map(line=>Object.fromEntries(headers.map((h,i)=>[h,parseCsvLine(line)[i]??''])));
+  }
+  if(!window.ExcelJS)throw new Error('Excel parser did not load.');
+  const wb=new ExcelJS.Workbook();await wb.xlsx.load(await file.arrayBuffer());
+  const ws=wb.worksheets[0];if(!ws)throw new Error('Excel workbook has no worksheet.');
+  const headers=[];ws.getRow(1).eachCell({includeEmpty:true},(cell,col)=>{headers[col-1]=normalizeInventoryHeader(cell.text)});
+  const rows=[];
+  ws.eachRow((row,rowNo)=>{if(rowNo===1)return;const obj={};let has=false;headers.forEach((h,i)=>{if(!h)return;const cell=row.getCell(i+1);let v=cell.value;if(v instanceof Date)v=v.toISOString().slice(0,10);else if(v&&typeof v==='object'&&'result' in v)v=v.result;else if(v&&typeof v==='object')v=cell.text;obj[h]=v??'';if(String(v??'').trim())has=true});if(has)rows.push(obj)});
+  return rows;
+}
+function renderInventoryPreview(preview=[]){
+  const body=$('#inventoryPreviewRows');if(!body)return;
+  body.innerHTML=preview.map(r=>'<tr><td>'+r.row_number+'</td><td><strong>'+esc(r.sku||'—')+'</strong></td><td>'+esc(r.warehouse_code||'PRIMARY')+'</td><td>'+Number(r.on_hand_sqft||0).toLocaleString()+'</td><td>'+Number(r.on_hand_boxes||0).toLocaleString()+'</td><td>'+Number(r.on_hand_pallets||0).toLocaleString()+'</td><td>'+esc(networkStatusLabel(r.availability||'unknown'))+'</td><td><span class="status-pill '+esc(r.severity)+'">'+esc(r.issue||r.severity)+'</span></td></tr>').join('')||'<tr><td colspan="8">No preview rows.</td></tr>';
+}
+async function validateInventoryUpload(){
+  const msg=$('#inventoryUploadMessage'),file=$('#industryInventoryFile')?.files?.[0];
+  msg.textContent='Reading and validating inventory…';$('#publishInventoryBtn').disabled=true;
+  try{
+    inventoryParsedRows=await parseInventoryFile(file);
+    const d=await apiRequest('admin-inventory-validate',{method:'POST',body:{filename:file.name,rows:inventoryParsedRows}});
+    inventoryBatch=d.batch;
+    $('#inventoryRowsTotal').textContent=d.batch.total_rows||0;$('#inventoryRowsValid').textContent=d.batch.valid_rows||0;$('#inventoryRowsWarnings').textContent=d.batch.warning_rows||0;$('#inventoryRowsErrors').textContent=d.batch.error_rows||0;
+    renderInventoryPreview(d.preview||[]);
+    $('#publishInventoryBtn').disabled=Number(d.batch.error_rows||0)>0;
+    msg.textContent=Number(d.batch.error_rows||0)>0?'Validation found errors. Correct the source file and upload again.':'Validated. Review the preview, then publish to the network.';
+    await fetchNetwork();
+  }catch(e){msg.textContent=e.message}
+}
+async function publishInventory(){
+  if(!inventoryBatch?.id)return;
+  const btn=$('#publishInventoryBtn'),msg=$('#inventoryUploadMessage');btn.disabled=true;msg.textContent='Publishing inventory batch to the network…';
+  try{
+    const d=await apiRequest('admin-inventory-publish',{method:'POST',body:{batch_id:inventoryBatch.id}});
+    msg.textContent='Published '+Number(d.published_rows||0).toLocaleString()+' inventory rows. Every distributor now reads the new Industry inventory.';
+    inventoryBatch=null;await fetchNetwork();
+  }catch(e){msg.textContent=e.message;btn.disabled=false}
 }
 
 function activateTab(name){
@@ -123,6 +193,9 @@ async function saveCost(){
 }
 $('#saveCost').onclick=saveCost;$('#refreshAdmin').onclick=fetchSummary;$('#costDate').value=new Date().toISOString().slice(0,10);
 $('#addDistributorMemberBtn').onclick=addDistributorMember;
+if($('#createDistributorBtn'))$('#createDistributorBtn').onclick=createDistributor;
+if($('#validateInventoryBtn'))$('#validateInventoryBtn').onclick=validateInventoryUpload;
+if($('#publishInventoryBtn'))$('#publishInventoryBtn').onclick=publishInventory;
 $('#adminSignOut').onclick=async()=>{await sb.auth.signOut();location.href='/'};
 
 (async()=>{
