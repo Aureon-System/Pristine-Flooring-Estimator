@@ -46,3 +46,8 @@
 .dev-tool-links{display:flex;flex-wrap:wrap;gap:10px}
 @media(max-width:1100px){.dev-release-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.dev-release-grid{grid-template-columns:1fr}.dev-tool-links .btn{width:100%;text-align:center}}
+
+.inventory-upload-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:end;margin:14px 0}
+.inventory-drop{display:flex;flex-direction:column;gap:7px;font-weight:700}.inventory-drop input{padding:11px;border:1px dashed #bcc5cc;border-radius:12px;background:#f8f9fa}
+.inventory-upload-actions{display:flex;gap:10px}.inventory-validation-stats{margin:14px 0}.inventory-history-head{margin-top:22px}
+@media(max-width:760px){.inventory-upload-grid{grid-template-columns:1fr}.inventory-upload-actions{flex-direction:column}.inventory-upload-actions .btn{width:100%}}
